@@ -1,0 +1,1 @@
+{"session_id": "019a-codex", "turn_id": "t1", "cwd": "/home/dev/proj", "hook_event_name": "PostToolUse", "model": "gpt-5-codex", "tool_name": "Bash", "tool_use_id": "call_2", "tool_input": {"command": "cargo test"}, "tool_response": {"exit_code": 101, "stdout": "running 4 tests", "stderr": "test auth::refresh_expired ... FAILED"}}

@@ -14,6 +14,12 @@ reviewable unit of work.
 - Commit after each step passes `cargo test` and `cargo clippy`.
 - Do not start a new phase until its gate prompt passes. The design doc requires this.
 
+Crates (already built in Phase 0; use these names, do not create new ones):
+`crates/myrn` (CLI binary), `crates/myrn-model` (types and events), `crates/myrn-store`
+(SQLite and notes), `crates/myrn-engine` (indexer, capture, distill, validity, retrieve, pack,
+and the single `api::Engine`), `crates/myrn-mcp` (MCP server), `crates/myrn-adapters`
+(agent adapters), `crates/myrn-embed` (optional embeddings), `bench/`.
+
 Defaults I picked where the doc leaves a question open (change them if you disagree):
 - First-class languages: **Rust, Python, TypeScript/JavaScript**.
 - Session-end summary: requested **only when the session edited code**.
@@ -48,10 +54,11 @@ Create:
 ```
 Following docs/DESIGN.md, scaffold a Cargo workspace for the `myrn` binary:
 
-- crates/myrn-cli      (binary `myrn`, clap derive; subcommands stubbed: init, connect, status,
+- crates/myrn         (binary `myrn`, clap derive; subcommands stubbed: init, connect, status,
                          log, show, diff, trace, verify, forget, gc, rebuild, publish, doctor, mcp)
-- crates/myrn-core     (engine API: the six components as modules: indexer, capture, distiller,
-                         validity, retriever, packer; plus model types for nodes/edges/records)
+- crates/myrn-engine   (engine API: the six components as modules: indexer, capture, distill,
+                         validity, retrieve, pack)
+- crates/myrn-model    (model types for nodes/edges/records, events; no I/O)
 - crates/myrn-store    (SQLite access and migrations)
 - crates/myrn-mcp      (MCP stdio server, empty for now)
 - crates/myrn-adapters (agent adapters, empty for now)
@@ -89,7 +96,7 @@ Implement crates/myrn-store per the "Code graph and index" section of docs/DESIG
 ### Step 3 — Tree-sitter indexer (files, symbols, body hashes)
 
 ```
-Implement the indexer in myrn-core per "Capture and indexing" and "Incremental indexing" in
+Implement the indexer in myrn-engine per "Capture and indexing" and "Incremental indexing" in
 docs/DESIGN.md, for Rust, Python and TypeScript/JavaScript.
 
 - Walk the repo with the `ignore` crate, honouring .gitignore and .myrn/ignore.
@@ -218,8 +225,8 @@ Show me the report and the misses so we can decide whether Phase 0 is done.
 ```
 Implement the adapter layer per "Agent integration" and "Adapter contract" in docs/DESIGN.md.
 
-- In myrn-core define the normalized events: SessionStart, PromptSubmitted, ToolResult
-  {failure | file_edit | other}, SessionEnd, and an Adapter trait with install(),
+- In myrn-model define the normalized events: SessionStart, PromptSubmitted, ToolResult
+  {failure | file_edit | other}, SessionEnd. In myrn-adapters define an Adapter trait with install(),
   uninstall(), detect(), translate(payload)->Event, and format(output)->agent response.
 - Claude Code adapter: map SessionStart, UserPromptSubmit, PostToolUse (and failure), Stop
   / SessionEnd hook payloads to events. Look up the current Claude Code hooks docs and use

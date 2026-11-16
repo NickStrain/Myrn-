@@ -20,7 +20,7 @@ Myrn remembers what your code is, why it's that way, and what was learned while 
 ---
 
 > [!NOTE]
-> **Phase 0 is done:** the code graph, the CLI and the MCP pull tools work today for Rust, Python, JavaScript and TypeScript. Session capture, learned records and automatic hooks come in later phases; sections below that describe them are the plan, not shipped behaviour.
+> **Phase 0 is done, Phase 1 is half done:** the code graph, the CLI, the MCP pull tools and `myrn connect` (Claude Code and Codex hooks) work today for Rust, Python, JavaScript and TypeScript. Session recording, learned records and the benchmark come next; sections below that describe them are the plan, not shipped behaviour.
 
 ## 🤔 Why
 
@@ -122,14 +122,20 @@ myrn impact TokenStore::lookup     # everything that depends on it, and the test
 myrn context "fix the 401 on expired sessions"   # the pack an agent would get for this task
 ```
 
-### Use it from Claude Code (manual, until `myrn connect` ships)
+### Connect your agent
 
 ```sh
-cd my-project
-claude mcp add myrn -- myrn mcp
+myrn connect                 # Claude Code or Codex, whichever is installed; asks before installing hooks
+myrn connect --pull-only     # just the MCP tools plus one line in CLAUDE.md / AGENTS.md; nothing recorded
+myrn disconnect              # remove everything connect wrote
 ```
 
-The agent then has four tools: `context`, `explain`, `impact` and `history`. The index refreshes itself on every call; a no-op refresh takes about 10 ms.
+`connect` explains what session hooks will see and asks y/N (default no). Then it writes:
+
+- **Claude Code:** hooks in `.claude/settings.local.json` (not committed), each calling `myrn hook claude <event>` directly, with no shell script, and the MCP server through `claude mcp add --scope local`.
+- **Codex:** hooks in `.codex/hooks.json` and the MCP server in `.codex/config.toml`. Codex reads these only in trusted projects. Both files hold this machine's path to `myrn`, so don't commit them.
+
+The agent gets four tools: `context`, `explain`, `impact` and `history`. Automatic context injection is **off** by default (`[context] inject = false` in `.myrn/project.toml`) until the benchmark shows it saves tokens; with it on, the prompt hook adds a context pack in about 20 ms. `myrn doctor` shows exactly what was written and flags anything that has drifted.
 
 ## 🛠️ CLI
 
@@ -144,7 +150,8 @@ If you know Git, you can guess most of these.
 | `myrn doctor` | | Diagnose store, index and setup problems | ✅ |
 | `myrn explain` / `impact` / `history` / `context` / `brief` | | Same answers the MCP tools give | ✅ |
 | `myrn mcp` | | MCP server over stdio, started by the agent | ✅ |
-| `myrn connect` | | Install agent adapters, after asking for consent | planned |
+| `myrn connect` | | Install agent hooks and the MCP server, after asking for consent | ✅ |
+| `myrn disconnect` | | Remove everything `connect` wrote | ✅ |
 | `myrn log` | `git log` | History of episodes, decisions and learned records | planned |
 | `myrn diff` | `git diff` | How project knowledge changed between two points | planned |
 | `myrn trace <id>` | `git blame` | Where a record came from: session, commit or test | planned |
@@ -190,11 +197,19 @@ Add `--json` to any command for machine-readable output.
 - [x] 9. MCP server
 - [x] 🚦 **Gate 0:** are `explain` and `impact` answers correct? Passed; see [docs/gate0.md](docs/gate0.md)
 
+### Phase 1: hooks and session capture (steps 10–13)
+
+- [x] 10. Adapter contract, Claude Code adapter, `myrn connect`, hook latency
+- [x] 11. Codex adapter and pull-only mode
+- [ ] 12. Episode capture and secret redaction
+- [ ] 13. 🚦 **Gate 1:** paired benchmark (fewer tokens, no drop in task success)
+
 ### Later phases
 
-- [ ] Session capture, distillation, validity tracking, agent adapters
-- [ ] Benchmark gate, then automatic injection on by default
-- [ ] `publish` and sharing across developers
+- [ ] **Phase 2:** learned records (Markdown notes, `record` and `recall` tools); gate: hand-reviewed precision
+- [ ] **Phase 3:** validity tracking (hash anchors, suspect records, `verify`, `forget`, `gc`); gate: stale-injection rate
+- [ ] **Phase 4:** learning loop (usage-driven ranking, optional embeddings); gate: benchmark
+- [ ] **Phase 5:** sharing through Git (`publish`, import, injection safety), then releases
 
 Each phase is usable when it ships. The next phase starts only after the gate before it passes.
 

@@ -43,6 +43,9 @@ impl Default for IndexConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ContextConfig {
+    /// Inject context automatically from hooks. Off until the benchmark shows it
+    /// saves more than it costs (design principle 7); with it off, hooks only capture.
+    pub inject: bool,
     pub session_budget: usize,
     pub prompt_budget: usize,
 }
@@ -50,6 +53,7 @@ pub struct ContextConfig {
 impl Default for ContextConfig {
     fn default() -> Self {
         ContextConfig {
+            inject: false,
             session_budget: 500,
             prompt_budget: 1500,
         }
@@ -80,6 +84,9 @@ impl Config {
              history_depth = {}\n\
              \n\
              [context]\n\
+             # Inject context from hooks automatically. Off by default until the\n\
+             # benchmark shows it helps; the MCP tools work either way.\n\
+             inject = false\n\
              # Token budgets for injected context.\n\
              session_budget = {}\n\
              prompt_budget = {}\n",

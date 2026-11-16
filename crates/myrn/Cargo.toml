@@ -13,8 +13,10 @@ path = "src/main.rs"
 
 [dependencies]
 myrn-model.workspace = true
+myrn-store.workspace = true
 myrn-engine.workspace = true
 myrn-mcp.workspace = true
+myrn-adapters.workspace = true
 anyhow.workspace = true
 serde.workspace = true
 clap.workspace = true
@@ -22,3 +24,4 @@ serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+git2.workspace = true

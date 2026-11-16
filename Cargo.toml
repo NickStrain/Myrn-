@@ -24,6 +24,7 @@ myrn-model    = { path = "crates/myrn-model" }
 myrn-store    = { path = "crates/myrn-store" }
 myrn-engine   = { path = "crates/myrn-engine" }
 myrn-mcp      = { path = "crates/myrn-mcp" }
+myrn-adapters = { path = "crates/myrn-adapters" }
 
 anyhow      = "1.0"
 blake3      = "1.8"

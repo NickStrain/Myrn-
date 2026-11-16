@@ -662,6 +662,15 @@ impl Engine {
     }
 
     /// Record which items were injected into a session.
+    /// Consent and connected agents (private, survives rebuild).
+    pub fn state(&self) -> Result<myrn_store::State> {
+        myrn_store::State::load(&self.layout.state_path())
+    }
+
+    pub fn save_state(&self, state: &myrn_store::State) -> Result<()> {
+        state.save(&self.layout.state_path())
+    }
+
     pub fn log_injection(&self, session: &str, items: &[String]) -> Result<()> {
         log::record(&self.db.conn, session, items)
     }
@@ -721,7 +730,7 @@ impl Engine {
                 "SELECT COUNT(*) FROM edges WHERE rel = 'calls' AND status = 'inferred'",
             )?,
             records_by_state: records,
-            connected_agents: Vec::new(),
+            connected_agents: self.state()?.agents.keys().cloned().collect(),
             last_refresh: self
                 .db
                 .get_meta("last_refresh")?

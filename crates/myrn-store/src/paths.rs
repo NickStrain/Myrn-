@@ -62,6 +62,10 @@ impl Layout {
     pub fn knowledge_dir(&self) -> PathBuf {
         self.repo_dir.join("knowledge")
     }
+    /// Consent and connected agents; survives `rebuild`.
+    pub fn state_path(&self) -> PathBuf {
+        self.data_dir.join("state.json")
+    }
     pub fn notes_dir(&self) -> PathBuf {
         self.data_dir.join("notes")
     }

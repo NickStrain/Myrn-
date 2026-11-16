@@ -1,6 +1,9 @@
 //! One module per subcommand.
 
+pub mod connect;
+pub mod disconnect;
 pub mod doctor;
+pub mod hook;
 pub mod init;
 pub mod mcp;
 pub mod query;
@@ -9,11 +12,9 @@ pub mod show;
 pub mod status;
 
 // Not built yet; kept to fix the layout.
-pub mod connect;
 pub mod diff;
 pub mod forget;
 pub mod gc;
-pub mod hook;
 pub mod log;
 pub mod publish;
 pub mod trace;

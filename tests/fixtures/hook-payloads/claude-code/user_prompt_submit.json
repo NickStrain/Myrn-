@@ -1,0 +1,1 @@
+{"session_id": "abc123", "prompt_id": "p1", "transcript_path": "/home/dev/.claude/projects/proj/abc123.jsonl", "cwd": "/home/dev/proj", "permission_mode": "default", "hook_event_name": "UserPromptSubmit", "prompt": "Fix the 401 when a session expires"}

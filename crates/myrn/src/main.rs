@@ -77,6 +77,30 @@ enum Command {
     },
     /// Run the MCP server over stdio (started by the agent)
     Mcp,
+    /// Explain session recording, ask consent, and install agent hooks and the MCP server
+    Connect {
+        /// Every agent found on this machine
+        #[arg(long)]
+        all: bool,
+        /// A specific agent: claude or codex (repeatable)
+        #[arg(long = "agent", value_name = "NAME")]
+        agents: Vec<String>,
+        /// Only the MCP server and an instruction-file line; no hooks, nothing recorded
+        #[arg(long)]
+        pull_only: bool,
+        /// Consent without the interactive prompt
+        #[arg(long, short = 'y')]
+        yes: bool,
+    },
+    /// Remove everything `connect` installed
+    Disconnect {
+        /// A specific agent (default: all connected)
+        #[arg(long = "agent", value_name = "NAME")]
+        agents: Vec<String>,
+    },
+    /// Entry point for agent hooks (reads the hook payload on stdin)
+    #[command(hide = true)]
+    Hook { agent: String, event: String },
 }
 
 fn main() -> ExitCode {
@@ -97,6 +121,22 @@ fn main() -> ExitCode {
         Command::Context { task, budget } => cmd::query::context(&ctx, &task.join(" "), budget),
         Command::Brief { budget } => cmd::query::brief(&ctx, budget),
         Command::Mcp => cmd::mcp::run(&ctx),
+        Command::Connect {
+            all,
+            agents,
+            pull_only,
+            yes,
+        } => cmd::connect::run(
+            &ctx,
+            cmd::connect::Args {
+                all,
+                agents,
+                pull_only,
+                yes,
+            },
+        ),
+        Command::Disconnect { agents } => cmd::disconnect::run(&ctx, agents),
+        Command::Hook { agent, event } => cmd::hook::run(&ctx, &agent, &event),
     };
     match result {
         Ok(code) => code,
