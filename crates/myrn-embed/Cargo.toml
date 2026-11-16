@@ -1,0 +1,9 @@
+[package]
+name = "myrn-embed"
+description = "Optional embedding helper: small CPU model, started on first use, exits when idle"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+

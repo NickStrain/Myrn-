@@ -1,0 +1,9 @@
+[package]
+name = "myrn-model"
+description = "Node, relation and record types shared by every Myrn crate"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+

@@ -1,0 +1,34 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/myrn",
+    "crates/myrn-model",
+    "crates/myrn-store",
+    "crates/myrn-engine",
+    "crates/myrn-mcp",
+    "crates/myrn-adapters",
+    "crates/myrn-embed",
+    "bench",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/NickStrain/Myrn-"
+rust-version = "1.80"
+
+[workspace.dependencies]
+myrn-model    = { path = "crates/myrn-model" }
+myrn-store    = { path = "crates/myrn-store" }
+myrn-engine   = { path = "crates/myrn-engine" }
+myrn-mcp      = { path = "crates/myrn-mcp" }
+myrn-adapters = { path = "crates/myrn-adapters" }
+myrn-embed    = { path = "crates/myrn-embed" }
+# Third-party crates are added here when the phase that needs them starts.
+# See docs/structure.md for the intended choices.
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

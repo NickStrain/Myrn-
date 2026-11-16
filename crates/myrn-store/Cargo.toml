@@ -1,0 +1,11 @@
+[package]
+name = "myrn-store"
+description = "SQLite code graph and index, Markdown notes, and on-disk layout"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+myrn-model.workspace = true

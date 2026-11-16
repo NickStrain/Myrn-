@@ -1,0 +1,12 @@
+[package]
+name = "myrn-bench"
+description = "Paired with/without benchmark for Myrn"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+myrn-engine.workspace = true

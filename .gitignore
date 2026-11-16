@@ -1,0 +1,9 @@
+/target
+**/*.rs.bk
+# local benchmark runs and checkouts
+/bench/runs/
+/bench/repos/checkouts/
+# never commit a dev's private store if pointed inside the repo by accident
+*.db
+*.db-wal
+*.db-shm

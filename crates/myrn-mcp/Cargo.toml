@@ -1,0 +1,12 @@
+[package]
+name = "myrn-mcp"
+description = "MCP server over stdio exposing Myrn's pull tools"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+myrn-model.workspace = true
+myrn-engine.workspace = true

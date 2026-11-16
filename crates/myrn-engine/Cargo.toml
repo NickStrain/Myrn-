@@ -1,0 +1,12 @@
+[package]
+name = "myrn-engine"
+description = "Myrn core engine: indexer, recorder, retriever, packer, distiller, validity tracker"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+myrn-model.workspace = true
+myrn-store.workspace = true
