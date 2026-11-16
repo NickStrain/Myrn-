@@ -1,101 +1,227 @@
 <div align="center">
 
-# 🧠 Myrn
+<h1>Myrn</h1>
 
-### Git for what your coding agent learns.
+<p><strong>Persistent project memory for AI coding agents.</strong></p>
 
-**Persistent, local-first project memory for AI coding agents.**
-Myrn remembers what your code is, why it's that way, and what was learned while working on it, so your agent doesn't start every session from zero.
+<p>
+Myrn maps your codebase into a graph of symbols, calls, tests and history,<br>
+and gives Claude Code, Codex or any MCP agent the context a task needs before it starts exploring.
+</p>
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-pre--alpha-orange.svg)](#roadmap)
-[![Rust](https://img.shields.io/badge/built%20with-Rust-dea584.svg?logo=rust)](https://www.rust-lang.org)
-[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](#platform-support)
-[![MCP](https://img.shields.io/badge/protocol-MCP-8A2BE2.svg)](https://modelcontextprotocol.io)
+<p>
+<a href="https://github.com/NickStrain/Myrn-/actions/workflows/ci.yml"><img src="https://github.com/NickStrain/Myrn-/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License"></a>
+<a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/protocol-MCP-6f42c1.svg" alt="MCP"></a>
+<a href="#roadmap"><img src="https://img.shields.io/badge/status-early%20preview-orange.svg" alt="Status"></a>
+</p>
 
-[Why](#-why) · [How it works](#-how-it-works) · [Quick start](#-quick-start) · [CLI](#-cli) · [Roadmap](#-roadmap) · [Design doc](docs/design/)
+<p>
+<a href="#quick-start">Quick start</a> ·
+<a href="#how-it-works">How it works</a> ·
+<a href="#comparison">Comparison</a> ·
+<a href="#roadmap">Roadmap</a> ·
+<a href="docs/design/">Design doc</a>
+</p>
 
 </div>
 
 ---
 
-> [!NOTE]
-> **Phase 0 is done, Phase 1 is half done:** the code graph, the CLI, the MCP pull tools and `myrn connect` (Claude Code and Codex hooks) work today for Rust, Python, JavaScript and TypeScript. Session recording, learned records and the benchmark come next; sections below that describe them are the plan, not shipped behaviour.
+Coding agents start every session with no memory of the project. They re-read the same files, work out the same architecture again, and repeat mistakes an earlier session already diagnosed. Myrn is a single local binary that keeps that knowledge for them, so it doesn't have to be rediscovered on every task.
 
-## 🤔 Why
+```console
+$ myrn init
+Initialised myrn in ~/code/ripgrep
+  indexed 102 files: 3,469 symbols, 500 commits in 3.3s
 
-Coding agents forget everything between sessions. They re-read the same files, work out the same architecture again, and repeat mistakes an earlier session already diagnosed. You pay for that in **tokens**, **time** and **correctness** on every task.
+$ myrn explain BinaryDetection::quit
+method     searcher::BinaryDetection::quit    crates/searcher/src/searcher/mod.rs:79-81
+signature  pub fn quit(binary_byte: u8) -> BinaryDetection
+summary    Binary detection is performed by looking for the given byte.
+calls       searcher::BinaryDetection  crates/searcher/src/searcher/mod.rs:55
+called by   BinaryDetection::from_low_args  crates/core/flags/hiargs.rs:1159-1175
+            search                          crates/grep/examples/simplegrep.rs:32-69
+tests       json::tests::binary_detection    crates/printer/src/json.rs:922-947
+            standard::tests::reports_binary  crates/printer/src/standard.rs:1804-1827
+            searcher::glue::tests::binary1   crates/searcher/src/searcher/glue.rs:700-709
+            …
+status     current (indexed body hash 886ba5f5364ff42f)
+```
 
-Myrn gives the agent a memory of the project that updates itself:
+<sub>Real output on <a href="https://github.com/BurntSushi/ripgrep">ripgrep</a>. One card replaces a round of file reads: what the function is, who calls it, what it calls, which tests cover it, and the exact lines to open.</sub>
 
-| Without Myrn | With Myrn |
-|---|---|
-| Reads 20 files to find where auth lives | Gets a 1,500-token map of the relevant symbols |
-| Debugs the same `401 on refresh` bug again | Recalls the earlier bug, its root cause and the fix |
-| Re-learns that the refresh window is in config, not code | Already knows, from a verified fact |
-| Trusts notes that went stale three refactors ago | Marks knowledge **suspect** as soon as the code changes |
+## Contents
 
-## ✨ Features
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Usage](#usage)
+- [How it works](#how-it-works)
+- [Comparison](#comparison)
+- [Benchmarks](#benchmarks)
+- [Privacy](#privacy)
+- [Roadmap](#roadmap)
+- [FAQ](#faq)
+- [Contributing](#contributing)
+- [License](#license)
 
-- **🕸️ Code knowledge graph.** Files, symbols, calls, imports and tests, parsed with Tree-sitter. No model needed.
-- **📓 Learned experience.** Decisions, bugs, root causes, fixes and verified workflows captured from agent sessions.
-- **🎯 Context that fits the task.** Before the agent starts, Myrn walks the graph from the task and fits the most relevant knowledge into a hard token budget.
-- **🔁 Recall on failure.** When a test fails, Myrn matches the error to earlier bugs and shows their causes and fixes.
-- **🧪 Never serves stale knowledge as fact.** Every record is tied to hashes of the code it describes. Change that code and the record is marked suspect and ranked down.
-- **🔒 Local and readable.** Plain Markdown notes plus one SQLite file. No account, no server, no cloud. You can trace, edit or delete any record.
-- **🤝 Works with your agent.** Claude Code, Codex or any MCP client. You keep typing `claude` or `codex`.
-- **🌿 Shared through Git.** Publish a record and it goes through code review like any other file.
+## Features
 
-## ⚙️ How it works
+- **Code graph.** Files, symbols, calls, imports, tests and Git history for Rust, Python, JavaScript and TypeScript, parsed with Tree-sitter. No LLM, API key or GPU involved.
+- **Task-sized context.** Describe a task and get the relevant symbols, their callers, callees and tests, packed into a hard token budget. If nothing is relevant, nothing is returned.
+- **Impact analysis.** See everything that depends on a symbol, up to three calls away, and the tests that reach it, before you change it.
+- **Always current.** Only files whose content changed are re-parsed. A refresh with no changes takes about 10 ms, so it runs on every call.
+- **Honest about uncertainty.** Every call link is either resolved through scope, imports and types, or marked as inferred from a name match.
+- **Works with your agent.** Hooks and MCP tools for Claude Code and Codex; any other MCP client can use the server directly.
+- **Local and inspectable.** One binary, one SQLite file, no network calls, and nothing recorded without consent.
+
+## Quick start
+
+Prebuilt binaries are planned. For now, build from source with Rust 1.85 or newer and a C compiler:
+
+```sh
+git clone https://github.com/NickStrain/Myrn-.git
+cargo install --path Myrn-/crates/myrn
+```
+
+Then, in any Git repository:
+
+```sh
+myrn init       # index the code and its history
+myrn connect    # set up Claude Code or Codex (asks before installing hooks)
+```
+
+Keep using `claude` or `codex` as usual. Run `myrn doctor` at any time to see exactly what was configured.
+
+## Usage
+
+### From your agent
+
+`myrn connect` gives the agent four MCP tools:
+
+| Tool | Example input | Returns |
+|---|---|---|
+| `context` | `fix the 401 when a session expires` | Relevant symbols with locations, callers, callees and tests, within a token budget |
+| `explain` | `Session::refresh` | A card for one symbol or file, as shown above |
+| `impact` | `TokenStore::lookup` | Direct and indirect callers, importing files, and covering tests |
+| `history` | `src/auth/` | Commits that changed a file, directory or symbol |
+
+Hooks can also inject this context automatically at session start and on every prompt. That is off by default (`[context] inject = false` in `.myrn/project.toml`) until the benchmark shows it saves more tokens than it adds.
+
+### From the command line
+
+The same answers are available as commands:
+
+```sh
+myrn explain src/auth/session.rs:42           # a symbol by name, qualified name, path or path:line
+myrn impact Session::refresh
+myrn context "why does refresh return 401"
+myrn history src/auth/
+```
+
+<details>
+<summary>All commands</summary>
+
+<br>
+
+| Command | Description | Status |
+|---|---|---|
+| `myrn init` | Index the repository and create the local store | Available |
+| `myrn status` | Index health, record counts, connected agents | Available |
+| `myrn explain <symbol>` | Signature, summary, callers, callees, tests and commits | Available |
+| `myrn impact <symbol>` | Dependents and covering tests | Available |
+| `myrn context "<task>"` | The context pack an agent would receive | Available |
+| `myrn history <path>` | Commits that changed a file, directory or symbol | Available |
+| `myrn brief` | The project overview given at session start | Available |
+| `myrn show <id>` | One node with all its relations | Available |
+| `myrn connect` | Install agent hooks and the MCP server, after consent | Available |
+| `myrn disconnect` | Remove everything `connect` installed | Available |
+| `myrn doctor` | Check the store, the index and each agent's setup | Available |
+| `myrn rebuild` | Recreate the index from scratch | Available |
+| `myrn mcp` | MCP server over stdio, started by the agent | Available |
+| `myrn log`, `trace`, `diff` | History and origin of learned knowledge | Planned |
+| `myrn verify`, `forget`, `gc` | Keep learned knowledge correct and tidy | Planned |
+| `myrn publish <id>` | Share a record with your team through Git | Planned |
+
+Every command accepts `--json`.
+
+</details>
+
+## How it works
 
 ```mermaid
 flowchart LR
-    subgraph Agent["Your agent (Claude Code, Codex, any MCP client)"]
-        H[Hooks<br/><i>push</i>]
-        M[MCP tools<br/><i>pull</i>]
+    A[Agent<br/>Claude Code, Codex, MCP client] -- hooks and MCP tools --> M
+    subgraph M[myrn]
+        direction TB
+        I[Indexer<br/>Tree-sitter, Git] --> G[(Code graph<br/>SQLite)]
+        G --> R[Retriever<br/>seed, walk, rank]
+        R --> P[Context packer<br/>token budget]
     end
-
-    subgraph Myrn["myrn: one binary"]
-        A[Adapters]
-        subgraph Engine["Core engine"]
-            I[Indexer]
-            C[Capture]
-            D[Distiller]
-            V[Validity tracker]
-            R[Retriever]
-            P[Context packer]
-        end
-    end
-
-    subgraph Stores["Stores"]
-        N[(Markdown notes<br/>.myrn/knowledge)]
-        S[(SQLite<br/>graph + index)]
-        E[(Episode logs)]
-    end
-
-    H --> A
-    M --> A
-    A --> Engine
-    Engine --> N & S & E
+    M -- context for this task --> A
 ```
 
-**One prompt, end to end:**
+1. **Index.** Tree-sitter parses each file into symbols with qualified names, signatures, line ranges and a hash of their syntax tree. Calls, imports and tests are resolved across files, and commits are linked to the symbols they changed.
+2. **Refresh.** Each call compares file hashes and re-parses only what changed. Formatting-only edits don't change a symbol's hash.
+3. **Retrieve.** A task is matched to seed symbols by name, path and full-text search. The graph is walked from those seeds, and the results are ranked.
+4. **Pack.** Results are packed into a token budget: one line per item first, then full cards for the most relevant few.
 
-1. You type a prompt in your agent.
-2. The agent's prompt hook calls `myrn`.
-3. The indexer refreshes any files that changed.
-4. The retriever walks the graph from the task, and the packer fits the result to the token budget.
-5. The context goes back to the agent as hook output.
-6. While it works, the agent can call `recall`, `explain` or `impact` for more.
-7. At session end, the agent writes what it learned. Myrn checks each record against its evidence before storing it.
+There is no daemon. Each hook or tool call starts the binary, answers from SQLite and exits.
 
-### What a symbol card looks like
+## Comparison
+
+| | Re-reading files | `CLAUDE.md` notes | Vector search | Myrn |
+|---|---|---|---|---|
+| Knows who calls what | No | No | No | Yes |
+| Knows which tests cover a function | No | No | No | Yes |
+| Updates when code changes | n/a | By hand | Re-embedding | Incremental, ~10 ms |
+| Flags knowledge that went stale | n/a | No | No | Planned (Phase 3) |
+| Remembers bugs and fixes across sessions | No | By hand | No | Planned (Phase 2) |
+| Runs offline without an API key | Yes | Yes | Usually not | Yes |
+
+## Benchmarks
+
+Measured on public repositories with a release build. Methodology and samples are in [docs/gate0.md](docs/gate0.md).
+
+| Measurement | Result |
+|---|---|
+| Index ripgrep (Rust, 102 files, 500 commits) | 3.3 s |
+| Index requests (Python) and ky (TypeScript) | 1.4 s and 5.0 s |
+| Refresh with no changes | ~10 ms |
+| Prompt hook with context injection, on ripgrep | 16–19 ms |
+| Call graph on a hand-checked fixture in three languages | Exact match, no wrong links |
+| Hand-checked call links on real repositories | No wrong links in the final sample |
+| Token savings per task | Not yet measured; this is the next gate |
+
+## Privacy
+
+- The core makes no network calls. There is no account, server or telemetry.
+- Indexing code needs no permission. Recording agent sessions needs explicit consent in `myrn connect`, and the default answer is no.
+- The database lives in your user data directory, outside the repository, so it can't be committed by accident.
+- `myrn disconnect` removes every hook and configuration line that `connect` added.
+
+## Roadmap
+
+Each phase ships something usable, and the next phase starts only after its gate passes.
+
+| Phase | Scope | Status |
+|---|---|---|
+| 0. Code graph | Symbols, calls, imports, tests, Git history, CLI, MCP tools | Done ([gate report](docs/gate0.md)) |
+| 1. Hooks | `myrn connect` for Claude Code and Codex; session recording with secret redaction; benchmark gate | In progress |
+| 2. Memory | Learned records as Markdown notes: decisions, bugs, root causes, workflows | Planned |
+| 3. Validity | Records anchored to code hashes, flagged when the code changes | Planned |
+| 4. Learning loop | Ranking from what actually helped; optional local embeddings | Planned |
+| 5. Team sharing | Publish knowledge through Git and review it in pull requests | Planned |
+
+<details>
+<summary>What a card will look like once Phases 2 and 3 land</summary>
+
+<br>
 
 ```text
 function   auth::session::refresh         src/auth/session.rs:42-88
 signature  fn refresh(token: &Token) -> Result<Session, AuthError>
-summary    Issues a new session when the token is expired but still
-           inside its refresh window.
+summary    Issues a new session when the token is expired but still inside its refresh window.
 calls      TokenStore::lookup, Clock::now, Session::new
 called by  middleware::require_auth, api::login::renew
 tests      tests/auth/refresh_expired.rs
@@ -104,149 +230,42 @@ known      bug-7f3a91 (fixed in 4be2a07): returned 401 for expired sessions
 status     current (body hash matches)
 ```
 
-## 🚀 Quick start
+The `known` lines are what agents learned in earlier sessions, tied to the code they describe. If that code changes, the record is shown as possibly outdated instead of as fact.
 
-There are no prebuilt binaries yet. Build from source with Rust 1.85 or newer and a C compiler:
+</details>
 
-```sh
-cargo install --path crates/myrn
-```
+## FAQ
 
-Then, in any Git repository:
+**Does it send my code anywhere?**
+No. Myrn is one local binary and one SQLite file, and it makes no network calls.
 
-```sh
-cd my-project
-myrn init                          # index the code and Git history (no session data is recorded)
-myrn explain refresh_session       # one symbol: signature, callers, callees, tests, commits
-myrn impact TokenStore::lookup     # everything that depends on it, and the tests that reach it
-myrn context "fix the 401 on expired sessions"   # the pack an agent would get for this task
-```
+**Which agents are supported?**
+Claude Code and Codex get hooks and MCP tools through `myrn connect`. Any other MCP client can run `myrn mcp`, and `myrn connect --pull-only` adds a one-line hint to `CLAUDE.md` or `AGENTS.md`.
 
-### Connect your agent
+**Which languages?**
+Rust, Python, JavaScript and TypeScript (including TSX). Each language is one module in `crates/myrn-engine/src/indexer/lang/`.
 
-```sh
-myrn connect                 # Claude Code or Codex, whichever is installed; asks before installing hooks
-myrn connect --pull-only     # just the MCP tools plus one line in CLAUDE.md / AGENTS.md; nothing recorded
-myrn disconnect              # remove everything connect wrote
-```
+**Do I need an API key, a GPU or a vector database?**
+No. Parsing uses Tree-sitter and search uses SQLite full-text search. Optional local embeddings are planned, but nothing will depend on them.
 
-`connect` explains what session hooks will see and asks y/N (default no). Then it writes:
+**Will it fill my agent's context window?**
+Context packs have a hard budget (about 1,500 tokens per prompt and 500 at session start), and nothing is injected when nothing is relevant. Automatic injection is off by default.
 
-- **Claude Code:** hooks in `.claude/settings.local.json` (not committed), each calling `myrn hook claude <event>` directly, with no shell script, and the MCP server through `claude mcp add --scope local`.
-- **Codex:** hooks in `.codex/hooks.json` and the MCP server in `.codex/config.toml`. Codex reads these only in trusted projects. Both files hold this machine's path to `myrn`, so don't commit them.
+## Contributing
 
-The agent gets four tools: `context`, `explain`, `impact` and `history`. Automatic context injection is **off** by default (`[context] inject = false` in `.myrn/project.toml`) until the benchmark shows it saves tokens; with it on, the prompt hook adds a context pack in about 20 ms. `myrn doctor` shows exactly what was written and flags anything that has drifted.
+Myrn is at an early stage, and feedback shapes it most right now.
 
-## 🛠️ CLI
-
-If you know Git, you can guess most of these.
-
-| Command | Git analogue | What it does | |
-|---|---|---|---|
-| `myrn init` | `git init` | Index the repository and create the local store | ✅ |
-| `myrn status` | `git status` | Index health, record counts by state, connected agents | ✅ |
-| `myrn show <id>` | `git show` | One node with its fields and relations | ✅ |
-| `myrn rebuild` | | Recreate the index from the code and the notes | ✅ |
-| `myrn doctor` | | Diagnose store, index and setup problems | ✅ |
-| `myrn explain` / `impact` / `history` / `context` / `brief` | | Same answers the MCP tools give | ✅ |
-| `myrn mcp` | | MCP server over stdio, started by the agent | ✅ |
-| `myrn connect` | | Install agent hooks and the MCP server, after asking for consent | ✅ |
-| `myrn disconnect` | | Remove everything `connect` wrote | ✅ |
-| `myrn log` | `git log` | History of episodes, decisions and learned records | planned |
-| `myrn diff` | `git diff` | How project knowledge changed between two points | planned |
-| `myrn trace <id>` | `git blame` | Where a record came from: session, commit or test | planned |
-| `myrn verify` | | Re-check suspect records against the current code | planned |
-| `myrn forget <id>` | | Permanently remove a record | planned |
-| `myrn gc` | `git gc` | Merge duplicates, compact episodes, tidy the index | planned |
-| `myrn publish <id>` | `git add` | Move a private record into the shared knowledge directory | planned |
-
-Add `--json` to any command for machine-readable output.
-
-## 🧭 Design principles
-
-1. **Wrong memory is worse than no memory.** Every record carries evidence and a validity state.
-2. **Zero setup.** One binary, two commands. No account, API key, database server or model download.
-3. **Local and readable.** Plain files and one SQLite file, each record traceable to where it came from.
-4. **Derived knowledge can be rebuilt; learned knowledge is kept.** Anything computed from the code can be regenerated. Lessons from sessions are never silently deleted.
-5. **The agent stays the interface.** No new window, no new workflow.
-6. **Consent before capture.** Indexing code needs no permission. Recording sessions is off until you agree.
-7. **Measured, not assumed.** Automatic context injection stays opt-in until a benchmark shows it saves tokens without hurting results.
-
-## 🔐 Privacy
-
-- **Nothing leaves your machine** unless you commit it. The core makes no network calls.
-- **Secrets are redacted** before anything is written.
-- **Private memory lives outside the repo**, so `git add .` can't pick it up.
-- **Shared records are shown to agents as quoted reference**, never as instructions.
-
-## 🗺️ Roadmap
-
-- [x] Architecture and design ([docs/design/](docs/design/))
-- [x] Repository scaffold ([docs/structure.md](docs/structure.md))
-
-### Phase 0: code graph and pull tools (steps 1–9) ✅
-
-- [x] 1. Project setup
-- [x] 2. SQLite store
-- [x] 3. Tree-sitter code indexer (Rust, Python, JavaScript, TypeScript)
-- [x] 4. Call, import and test links
-- [x] 5. Git history
-- [x] 6. First CLI commands: `init`, `status`, `show`, `rebuild`, `doctor`
-- [x] 7. Search
-- [x] 8. Context packing
-- [x] 9. MCP server
-- [x] 🚦 **Gate 0:** are `explain` and `impact` answers correct? Passed; see [docs/gate0.md](docs/gate0.md)
-
-### Phase 1: hooks and session capture (steps 10–13)
-
-- [x] 10. Adapter contract, Claude Code adapter, `myrn connect`, hook latency
-- [x] 11. Codex adapter and pull-only mode
-- [ ] 12. Episode capture and secret redaction
-- [ ] 13. 🚦 **Gate 1:** paired benchmark (fewer tokens, no drop in task success)
-
-### Later phases
-
-- [ ] **Phase 2:** learned records (Markdown notes, `record` and `recall` tools); gate: hand-reviewed precision
-- [ ] **Phase 3:** validity tracking (hash anchors, suspect records, `verify`, `forget`, `gc`); gate: stale-injection rate
-- [ ] **Phase 4:** learning loop (usage-driven ranking, optional embeddings); gate: benchmark
-- [ ] **Phase 5:** sharing through Git (`publish`, import, injection safety), then releases
-
-Each phase is usable when it ships. The next phase starts only after the gate before it passes.
-
-## <a id="platform-support"></a>💻 Platform support
-
-Linux, macOS and Windows from the first release, on x86-64 and ARM64, with the same commands and the same note format everywhere.
-
-## 📂 Project layout
-
-```text
-crates/
-  myrn/           CLI binary
-  myrn-model/     data types and the fixed relation list
-  myrn-store/     SQLite graph and index, Markdown notes
-  myrn-engine/    indexer, capture, distill, validity, retrieve, pack
-  myrn-mcp/       MCP server and tools
-  myrn-adapters/  Claude Code, Codex, pull-only
-  myrn-embed/     optional embedding helper
-bench/            with/without benchmark
-```
-
-See [docs/structure.md](docs/structure.md) for details.
-
-## 🤝 Contributing
-
-Myrn is at an early stage, and design feedback is the most useful contribution right now. Open an issue to discuss the [design doc](docs/design/) before sending large changes.
+- **Report wrong answers.** If `explain` or `impact` gets something wrong on your repository, open an issue with the symbol and what you expected.
+- **Add a language.** Go, Java and C# are the most requested.
+- **Discuss the design.** The [architecture document](docs/design/) describes where the project is going.
 
 ```sh
-git clone https://github.com/NickStrain/Myrn-.git
-cd Myrn-
-cargo test --workspace   # includes the Gate 0 suite
+git clone https://github.com/NickStrain/Myrn-.git && cd Myrn-
+cargo test --workspace
 ```
 
-## 📜 License
+See [docs/structure.md](docs/structure.md) for the code layout and [docs/BUILD_PROMPTS.md](docs/BUILD_PROMPTS.md) for the build plan.
 
-[Apache-2.0](LICENSE)
+## License
 
-<div align="center">
-<sub><code>myrn</code> is a working name.</sub>
-</div>
+Licensed under the [Apache License 2.0](LICENSE). `myrn` is a working name.
