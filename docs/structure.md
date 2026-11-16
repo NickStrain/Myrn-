@@ -40,28 +40,40 @@ myrn (CLI) ──► myrn-adapters ──► myrn-engine ──► myrn-store �
 Only `myrn-engine` talks to `myrn-store`. Adapters, MCP tools and the CLI all
 go through `myrn_engine::api`.
 
-## Intended third-party crates
+## Third-party crates
 
-Added to `[workspace.dependencies]` when the phase that needs them starts:
+| Concern | Crate | Notes |
+|---|---|---|
+| CLI parsing | `clap` | |
+| SQLite | `rusqlite` (bundled) | FTS5 included; no system SQLite needed |
+| Parsing | `tree-sitter` + `tree-sitter-{rust,python,javascript,typescript}` | |
+| Git | `git2` (vendored libgit2, no network features) | Chosen over `gix` for its simpler diff and rename-detection API |
+| Hashing | `blake3` | Content and body hashes |
+| Config | `serde`, `toml` | |
+| Data dirs | `directories` | |
+| Ignore rules | `ignore` | `.gitignore` plus `.myrn/ignore` |
+| MCP | none | JSON-RPC over stdio is small enough to write directly (`myrn-mcp/src/server.rs`) |
 
-| Concern | Crate (candidate) |
-|---|---|
-| CLI parsing | `clap` |
-| SQLite | `rusqlite` (bundled) |
-| Vector search | `sqlite-vec` |
-| Parsing | `tree-sitter` + per-language grammars |
-| Git | `gix` |
-| Hashing | `blake3` |
-| Note headers | `serde`, `serde_yaml` |
-| Config | `toml` |
-| Data dirs | `directories` |
-| MCP | `rmcp` |
-| Ignore rules | `ignore` |
+Not added yet: `sqlite-vec` and an embedding model (optional, later phases),
+`serde_yaml` for note headers (Phase 1).
 
 ## Build order (from the roadmap)
 
-1. `myrn-model`, `myrn-store`, `indexer` — code graph and retrieval, no model needed
-2. `myrn-mcp` pull tools, `myrn init` / `status` / `show`
-3. `capture`, `distill`, `validity`, adapters and hooks
-4. `bench` gate, then automatic injection by default
-5. `publish` and sharing
+**Phase 0 (steps 1–9)**, mapped to crates. Done; Gate 0 passed ([gate0.md](gate0.md)).
+
+| Step | Work | Where |
+|---|---|---|
+| 1 | Project setup | workspace, CI |
+| 2 | SQLite store | `myrn-store` (`db`, `graph`, migrations) |
+| 3 | Tree-sitter code indexer | `myrn-engine::indexer` (`walk`, `parse`, `symbols`, `body_hash`) |
+| 4 | Call, import and test links | `myrn-engine::indexer::symbols` |
+| 5 | Git history | `myrn-engine::indexer::git` |
+| 6 | `init`, `status`, `show`, `rebuild`, `doctor` | `myrn::cmd` |
+| 7 | Search | `myrn-store::fts`, `myrn-engine::retrieve` |
+| 8 | Context packing | `myrn-engine::pack` |
+| 9 | MCP server | `myrn-mcp` (`explain`, `impact`, `context` first) |
+| Gate 0 | Are `explain` and `impact` answers correct? | |
+
+**Later phases** (order to be confirmed): `capture`, `distill`, `validity` and
+adapters with hooks; `bench` gate, then automatic injection by default;
+`publish` and sharing.

@@ -1,1 +1,848 @@
 //! The single internal engine API used by adapters, MCP tools and the CLI.
+//! Nothing else touches the stores.
+
+use std::collections::{BTreeMap, HashSet};
+use std::path::{Path, PathBuf};
+use std::time::Instant;
+
+use anyhow::{anyhow, bail, Context, Result};
+use git2::Repository;
+use myrn_store::graph::{self, Dir, Node};
+use myrn_store::{paths, Db, Layout};
+use serde::Serialize;
+
+use crate::config::{Config, INITIAL_IGNORE};
+use crate::indexer::{self, git, lang::Lang, IndexReport};
+use crate::pack::cards::{FileCard, ImpactReport, Link, SymbolCard};
+use crate::pack::{budget, log, render};
+use crate::retrieve::{rank, seed, walks};
+
+pub struct Engine {
+    pub layout: Layout,
+    pub config: Config,
+    pub project_id: String,
+    /// True when the project id is a stand-in because the repository has no commits yet.
+    pub provisional_id: bool,
+    db: Db,
+    last_refresh: Option<Instant>,
+}
+
+/// Outcome of looking a name up: one match, several, or none.
+#[derive(Debug, Serialize)]
+#[serde(tag = "result", rename_all = "snake_case")]
+pub enum Lookup<T> {
+    Found(T),
+    Ambiguous { candidates: Vec<Link> },
+    NotFound { query: String },
+}
+
+impl<T> Lookup<T> {
+    pub fn render(&self, f: impl Fn(&T) -> String) -> String {
+        match self {
+            Lookup::Found(t) => f(t),
+            Lookup::Ambiguous { candidates } => {
+                let mut s = String::from(
+                    "Several matches; ask again with a qualified name or path:line.\n",
+                );
+                for c in candidates {
+                    s.push_str(&format!("  {}  {}\n", c.name, c.location));
+                }
+                s
+            }
+            Lookup::NotFound { query } => format!("Nothing in the code graph matches `{query}`.\n"),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum Explained {
+    Symbol(SymbolCard),
+    File(FileCard),
+}
+
+impl Explained {
+    pub fn render(&self) -> String {
+        match self {
+            Explained::Symbol(c) => c.render(12),
+            Explained::File(c) => c.render(25),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct Pack {
+    pub text: String,
+    pub items: Vec<String>,
+    pub tokens: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct HistoryEntry {
+    pub sha: String,
+    pub summary: String,
+    pub author: String,
+    pub time: i64,
+    pub change: Option<String>,
+    #[serde(skip)]
+    parents: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Status {
+    pub root: String,
+    pub project_id: String,
+    pub provisional_id: bool,
+    pub db_path: String,
+    pub files_by_language: BTreeMap<String, i64>,
+    pub files_with_errors: i64,
+    pub symbols: i64,
+    pub tests: i64,
+    pub modules: i64,
+    pub commits: i64,
+    pub edges: BTreeMap<String, i64>,
+    pub calls_inferred: i64,
+    pub records_by_state: Vec<(String, i64)>,
+    pub connected_agents: Vec<String>,
+    pub last_refresh: Option<i64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Level {
+    Ok,
+    Warn,
+    Fail,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Check {
+    pub name: String,
+    pub level: Level,
+    pub detail: String,
+}
+
+fn check(name: &str, level: Level, detail: impl Into<String>) -> Check {
+    Check {
+        name: name.into(),
+        level,
+        detail: detail.into(),
+    }
+}
+
+/// Where the repository is and who it is.
+struct Located {
+    root: PathBuf,
+    project_id: String,
+    provisional: bool,
+    worktree: Option<String>,
+}
+
+fn locate(cwd: &Path, config: Option<&Config>) -> Result<Located> {
+    let repo = Repository::discover(cwd).map_err(|_| {
+        anyhow!(
+            "{} is not inside a Git repository; myrn works per repository",
+            cwd.display()
+        )
+    })?;
+    let root = repo
+        .workdir()
+        .ok_or_else(|| anyhow!("bare repositories are not supported"))?
+        .to_path_buf();
+    let root = root.canonicalize().unwrap_or(root);
+    let worktree = repo
+        .is_worktree()
+        .then(|| indexer::content_hash(root.to_string_lossy().as_bytes())[..12].to_string());
+    let cached = config.and_then(|c| c.project.id.clone());
+    let (project_id, provisional) = match cached.or_else(|| git::root_commit(&repo)) {
+        Some(id) => (id, false),
+        None => (
+            format!(
+                "uncommitted-{}",
+                &indexer::content_hash(root.to_string_lossy().as_bytes())[..12]
+            ),
+            true,
+        ),
+    };
+    Ok(Located {
+        root,
+        project_id,
+        provisional,
+        worktree,
+    })
+}
+
+impl Engine {
+    /// Index the repository and create the local store. Safe to run again.
+    pub fn init(cwd: &Path, data_home: Option<&Path>) -> Result<(Engine, IndexReport)> {
+        let first = locate(cwd, None)?;
+        let repo_dir = first.root.join(paths::REPO_DIR);
+        let existing = Config::load(&repo_dir.join("project.toml"))?;
+        let loc = locate(cwd, Some(&existing))?;
+        std::fs::create_dir_all(&repo_dir)?;
+        let config_path = repo_dir.join("project.toml");
+        if !config_path.exists() && !loc.provisional {
+            std::fs::write(&config_path, Config::initial_toml(&loc.project_id))?;
+        }
+        let ignore = repo_dir.join("ignore");
+        if !ignore.exists() {
+            std::fs::write(&ignore, INITIAL_IGNORE)?;
+        }
+        let mut engine = Self::open_located(loc, data_home)?;
+        engine.layout.create_dirs()?;
+        for kind in paths::KNOWLEDGE_KINDS {
+            let keep = engine.layout.knowledge_dir().join(kind).join(".gitkeep");
+            if !keep.exists() {
+                std::fs::write(keep, "")?;
+            }
+        }
+        let report = engine.refresh()?;
+        Ok((engine, report))
+    }
+
+    /// Open an initialised project. Does not refresh the index.
+    pub fn open(cwd: &Path, data_home: Option<&Path>) -> Result<Engine> {
+        let first = locate(cwd, None)?;
+        let config_path = first.root.join(paths::REPO_DIR).join("project.toml");
+        let ignore_path = first.root.join(paths::REPO_DIR).join("ignore");
+        if !config_path.exists() && !ignore_path.exists() {
+            bail!(
+                "myrn is not set up in {}; run `myrn init`",
+                first.root.display()
+            );
+        }
+        let config = Config::load(&config_path)?;
+        let loc = locate(cwd, Some(&config))?;
+        Self::open_located(loc, data_home)
+    }
+
+    fn open_located(loc: Located, data_home: Option<&Path>) -> Result<Engine> {
+        let home = match data_home {
+            Some(h) => h.to_path_buf(),
+            None => paths::data_home()?,
+        };
+        let layout = Layout::new(&loc.root, &home, &loc.project_id, loc.worktree.as_deref());
+        let config = Config::load(&layout.config_path())?;
+        if let Some(parent) = layout.db_path.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("creating {}", parent.display()))?;
+        }
+        let db = Db::open(&layout.db_path)?;
+        Ok(Engine {
+            layout,
+            config,
+            project_id: loc.project_id,
+            provisional_id: loc.provisional,
+            db,
+            last_refresh: None,
+        })
+    }
+
+    pub fn root(&self) -> &Path {
+        &self.layout.repo_root
+    }
+
+    pub fn db(&self) -> &Db {
+        &self.db
+    }
+
+    /// Bring the index up to date with the working tree.
+    pub fn refresh(&mut self) -> Result<IndexReport> {
+        let r = indexer::refresh(
+            &mut self.db.conn,
+            &self.layout.repo_root,
+            &self.config,
+            &self.layout.ignore_path(),
+        )?;
+        self.last_refresh = Some(Instant::now());
+        Ok(r)
+    }
+
+    /// Refresh unless one ran within `secs` seconds (for long-lived servers).
+    pub fn refresh_if_older(&mut self, secs: u64) -> Result<Option<IndexReport>> {
+        if self
+            .last_refresh
+            .is_some_and(|t| t.elapsed().as_secs() < secs)
+        {
+            return Ok(None);
+        }
+        self.refresh().map(Some)
+    }
+
+    /// Recreate the database from the code. Learned notes are never touched.
+    pub fn rebuild(&mut self) -> Result<IndexReport> {
+        let path = self.layout.db_path.clone();
+        self.db = Db::open_in_memory()?; // release the file
+        for suffix in ["", "-wal", "-shm"] {
+            let p = PathBuf::from(format!("{}{suffix}", path.display()));
+            if p.exists() {
+                std::fs::remove_file(&p)?;
+            }
+        }
+        self.db = Db::open(&path)?;
+        self.refresh()
+    }
+
+    // ------------------------------------------------------------ queries
+
+    /// Resolve a name to nodes, best first.
+    pub fn find(&self, query: &str) -> Result<Vec<Node>> {
+        seed::find(&self.db, query)
+    }
+
+    fn pick(&self, query: &str) -> Result<Lookup<Node>> {
+        let hits = self.find(query)?;
+        Ok(match hits.len() {
+            0 => Lookup::NotFound {
+                query: query.to_string(),
+            },
+            1 => Lookup::Found(hits.into_iter().next().unwrap()),
+            _ => {
+                let first = &hits[0];
+                // A bare one-word name never picks silently between several symbols.
+                let qualified = seed::segments(query).len() > 1;
+                let exact = qualified
+                    && seed::segments(first.qname.as_deref().unwrap_or(""))
+                        == seed::segments(query);
+                let second_exact =
+                    seed::segments(hits[1].qname.as_deref().unwrap_or("")) == seed::segments(query);
+                if (exact && !second_exact) || first.ntype == "file" {
+                    Lookup::Found(hits.into_iter().next().unwrap())
+                } else {
+                    Lookup::Ambiguous {
+                        candidates: hits.iter().take(10).map(|n| Link::new(n, None)).collect(),
+                    }
+                }
+            }
+        })
+    }
+
+    fn links(v: Vec<(Node, Option<String>)>) -> Vec<Link> {
+        v.into_iter().map(|(n, s)| Link::new(&n, s)).collect()
+    }
+
+    fn commits_touching(&self, n: &Node, limit: usize) -> Result<Vec<Link>> {
+        let c = &self.db.conn;
+        let mut v: Vec<(Node, i64)> = Vec::new();
+        if n.ntype == "file" {
+            let mut stmt = c.prepare(
+                "SELECT n.id FROM commit_files cf JOIN nodes n ON n.id = 'commit:' || cf.sha
+                 WHERE cf.path = ?1 ORDER BY json_extract(n.extra, '$.time') DESC LIMIT ?2",
+            )?;
+            let ids: Vec<String> = stmt
+                .query_map(rusqlite::params![n.path, limit as i64], |r| r.get(0))?
+                .collect::<rusqlite::Result<_>>()?;
+            for id in ids {
+                if let Some(c) = graph::node(c, &id)? {
+                    v.push((c, 0));
+                }
+            }
+        } else {
+            for (c, _) in graph::neighbors(c, &n.id, "touches", Dir::In)? {
+                let t = c
+                    .extra
+                    .as_deref()
+                    .and_then(|e| serde_json::from_str::<serde_json::Value>(e).ok())
+                    .and_then(|v| v["time"].as_i64())
+                    .unwrap_or(0);
+                v.push((c, t));
+            }
+            v.sort_by_key(|c| std::cmp::Reverse(c.1));
+            v.truncate(limit);
+        }
+        Ok(v.into_iter()
+            .map(|(c, _)| Link {
+                id: c.id.clone(),
+                name: c.qname.clone().unwrap_or_default(),
+                location: c.title.clone().unwrap_or_default(),
+                status: None,
+            })
+            .collect())
+    }
+
+    fn symbol_card(&self, n: Node) -> Result<SymbolCard> {
+        let c = &self.db.conn;
+        let members = walks::members(c, &n)?;
+        let mut tests: Vec<Link> = walks::direct_tests(c, &n.id)?
+            .iter()
+            .map(|t| Link::new(t, None))
+            .collect();
+        // A type's tests include those of its methods.
+        let mut seen: HashSet<String> = tests.iter().map(|t| t.id.clone()).collect();
+        for m in &members {
+            for t in walks::direct_tests(c, &m.id)? {
+                if seen.insert(t.id.clone()) {
+                    tests.push(Link::new(&t, None));
+                }
+            }
+        }
+        Ok(SymbolCard {
+            calls: Self::links(graph::neighbors(c, &n.id, "calls", Dir::Out)?),
+            called_by: Self::links(
+                graph::neighbors(c, &n.id, "calls", Dir::In)?
+                    .into_iter()
+                    .filter(|(n, _)| n.ntype != "test")
+                    .collect(),
+            ),
+            members: members.iter().map(|m| Link::new(m, None)).collect(),
+            tests,
+            commits: self.commits_touching(&n, 3)?,
+            node: n,
+        })
+    }
+
+    fn file_card(&self, n: Node) -> Result<FileCard> {
+        let c = &self.db.conn;
+        let symbols = graph::neighbors(c, &n.id, "defined_in", Dir::In)?;
+        let mut symbols: Vec<Node> = symbols.into_iter().map(|(n, _)| n).collect();
+        symbols.sort_by_key(|s| s.start_line);
+        Ok(FileCard {
+            symbols: symbols.iter().map(|s| Link::new(s, None)).collect(),
+            imports: Self::links(graph::neighbors(c, &n.id, "imports", Dir::Out)?),
+            imported_by: Self::links(graph::neighbors(c, &n.id, "imports", Dir::In)?),
+            commits: self.commits_touching(&n, 5)?,
+            node: n,
+        })
+    }
+
+    /// What a symbol (or file) is, who calls it, and what is known about it.
+    pub fn explain(&self, query: &str) -> Result<Lookup<Explained>> {
+        Ok(match self.pick(query)? {
+            Lookup::Found(n) if n.ntype == "file" => {
+                Lookup::Found(Explained::File(self.file_card(n)?))
+            }
+            Lookup::Found(n) => Lookup::Found(Explained::Symbol(self.symbol_card(n)?)),
+            Lookup::Ambiguous { candidates } => Lookup::Ambiguous { candidates },
+            Lookup::NotFound { query } => Lookup::NotFound { query },
+        })
+    }
+
+    /// What depends on a symbol (or file) and which tests cover it.
+    pub fn impact(&self, query: &str) -> Result<Lookup<ImpactReport>> {
+        let n = match self.pick(query)? {
+            Lookup::Found(n) => n,
+            Lookup::Ambiguous { candidates } => return Ok(Lookup::Ambiguous { candidates }),
+            Lookup::NotFound { query } => return Ok(Lookup::NotFound { query }),
+        };
+        let c = &self.db.conn;
+        let (members, importers) = if n.ntype == "file" {
+            let syms: Vec<Node> = graph::neighbors(c, &n.id, "defined_in", Dir::In)?
+                .into_iter()
+                .map(|(n, _)| n)
+                .collect();
+            (syms, graph::neighbors(c, &n.id, "imports", Dir::In)?)
+        } else {
+            let file = myrn_model::id::file_id(n.path.as_deref().unwrap_or(""));
+            (
+                walks::members(c, &n)?,
+                graph::neighbors(c, &file, "imports", Dir::In)?,
+            )
+        };
+        let mut targets = vec![n.id.clone()];
+        targets.extend(members.iter().map(|m| m.id.clone()));
+        let reach = walks::callers(c, &targets, 3, 300)?;
+        let target_ids: HashSet<&String> = targets.iter().collect();
+        let mut direct_tests = Vec::new();
+        let mut seen = HashSet::new();
+        for t in &targets {
+            for test in walks::direct_tests(c, t)? {
+                if seen.insert(test.id.clone()) {
+                    direct_tests.push(Link::new(&test, None));
+                }
+            }
+        }
+        let indirect_tests: Vec<(Link, usize)> = reach
+            .tests
+            .iter()
+            .filter(|(t, _)| !seen.contains(&t.id))
+            .map(|(t, d)| (Link::new(t, None), *d))
+            .collect();
+        let mut files: HashSet<String> = HashSet::new();
+        let mut direct = Vec::new();
+        let mut indirect = Vec::new();
+        for (caller, d, status) in &reach.callers {
+            if target_ids.contains(&caller.id) {
+                continue;
+            }
+            if let Some(p) = &caller.path {
+                files.insert(p.clone());
+            }
+            if *d == 1 {
+                direct.push(Link::new(caller, status.clone()));
+            } else {
+                indirect.push((Link::new(caller, status.clone()), *d));
+            }
+        }
+        Ok(Lookup::Found(ImpactReport {
+            target: Link::new(&n, None),
+            members: members.iter().map(|m| Link::new(m, None)).collect(),
+            direct_callers: direct,
+            indirect_callers: indirect,
+            importers: Self::links(importers),
+            direct_tests,
+            indirect_tests,
+            files_affected: files.len(),
+            truncated: reach.truncated,
+        }))
+    }
+
+    /// Changes concerning a file, module or symbol, newest first.
+    pub fn history(&self, query: &str, limit: usize) -> Result<Lookup<Vec<HistoryEntry>>> {
+        let c = &self.db.conn;
+        let shas: Vec<(String, Option<String>)> = match self.pick(query)? {
+            Lookup::Found(n) if n.ntype == "file" => {
+                let mut stmt = c.prepare(
+                    "SELECT sha, change FROM commit_files WHERE path = ?1 OR old_path = ?1",
+                )?;
+                let rows = stmt.query_map([&n.path], |r| Ok((r.get(0)?, r.get(1)?)))?;
+                rows.collect::<rusqlite::Result<_>>()?
+            }
+            Lookup::Found(n) => graph::neighbors(c, &n.id, "touches", Dir::In)?
+                .into_iter()
+                .map(|(c, _)| {
+                    (
+                        c.id.trim_start_matches("commit:").to_string(),
+                        Some("modified".to_string()),
+                    )
+                })
+                .collect(),
+            Lookup::Ambiguous { candidates } => return Ok(Lookup::Ambiguous { candidates }),
+            Lookup::NotFound { query: q } => {
+                // A directory prefix.
+                let like = format!("{}/%", q.trim_end_matches('/'));
+                let mut stmt =
+                    c.prepare("SELECT DISTINCT sha, NULL FROM commit_files WHERE path LIKE ?1")?;
+                let rows = stmt.query_map([&like], |r| Ok((r.get(0)?, r.get(1)?)))?;
+                let v: Vec<(String, Option<String>)> = rows.collect::<rusqlite::Result<_>>()?;
+                if v.is_empty() {
+                    return Ok(Lookup::NotFound { query: q });
+                }
+                v
+            }
+        };
+        let mut out = Vec::new();
+        for (sha, change) in shas {
+            let Some(n) = graph::node(c, &myrn_model::id::commit_id(&sha))? else {
+                continue;
+            };
+            let extra: serde_json::Value = n
+                .extra
+                .as_deref()
+                .and_then(|e| serde_json::from_str(e).ok())
+                .unwrap_or_default();
+            out.push(HistoryEntry {
+                sha: sha.clone(),
+                summary: n.title.clone().unwrap_or_default(),
+                author: extra["author"].as_str().unwrap_or("").to_string(),
+                time: extra["time"].as_i64().unwrap_or(0),
+                change,
+                parents: extra["parents"]
+                    .as_array()
+                    .map(|v| {
+                        v.iter()
+                            .filter_map(|p| p.as_str().map(str::to_string))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            });
+        }
+        // Newest first; commits made in the same second are ordered by parentage.
+        out.sort_by(|a, b| {
+            b.time.cmp(&a.time).then_with(|| {
+                if a.parents.contains(&b.sha) {
+                    std::cmp::Ordering::Less
+                } else if b.parents.contains(&a.sha) {
+                    std::cmp::Ordering::Greater
+                } else {
+                    std::cmp::Ordering::Equal
+                }
+            })
+        });
+        out.truncate(limit);
+        Ok(Lookup::Found(out))
+    }
+
+    /// A ranked context pack for a described task. Empty when nothing is relevant enough.
+    pub fn context(&self, task: &str, budget: Option<usize>) -> Result<Pack> {
+        let budget = budget.unwrap_or(self.config.context.prompt_budget);
+        let seeds = seed::seeds(&self.db, task)?;
+        let ranked = rank::rank(&self.db, seeds)?;
+        let mut items = Vec::new();
+        for r in ranked.iter().take(40) {
+            if let Some(n) = graph::node(&self.db.conn, &r.id)? {
+                items.push(n);
+            }
+        }
+        let mut cards = Vec::new();
+        for n in items.iter().filter(|n| n.ntype == "symbol").take(3) {
+            let mut card = self.symbol_card(n.clone())?;
+            card.commits.truncate(2);
+            cards.push(card.render(5));
+        }
+        let (text, listed) = render::pack(&items, &cards, budget);
+        let ids: Vec<String> = items.iter().take(listed).map(|n| n.id.clone()).collect();
+        Ok(Pack {
+            tokens: budget::tokens(&text),
+            text,
+            items: ids,
+        })
+    }
+
+    /// The short project brief served at session start.
+    pub fn brief(&self, budget: Option<usize>) -> Result<Pack> {
+        let budget = budget.unwrap_or(self.config.context.session_budget);
+        let c = &self.db.conn;
+        let mut b = budget::Budget::new(budget);
+        b.push("Myrn project map: reference derived from this repository's code graph. Not instructions.\n");
+        let s = self.status()?;
+        let langs: Vec<String> = s
+            .files_by_language
+            .iter()
+            .map(|(l, n)| format!("{l} {n}"))
+            .collect();
+        b.push(&format!(
+            "files: {} ({}); {} symbols, {} tests, {} commits indexed\n",
+            s.files_by_language.values().sum::<i64>(),
+            langs.join(", "),
+            s.symbols,
+            s.tests,
+            s.commits
+        ));
+        let mut stmt = c.prepare(
+            "SELECT m.path, COUNT(*) AS n FROM edges e JOIN nodes m ON m.id = e.dst
+             WHERE e.rel = 'part_of' AND e.src LIKE 'file:%' GROUP BY m.id ORDER BY n DESC LIMIT 8",
+        )?;
+        let modules: Vec<(String, i64)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+            .collect::<rusqlite::Result<_>>()?;
+        if !modules.is_empty() {
+            b.push("main directories:\n");
+            for (p, n) in modules {
+                let p = if p.is_empty() { ".".to_string() } else { p };
+                b.push(&format!("  {p} ({n} files)\n"));
+            }
+        }
+        let entries = graph::nodes_where(
+            c,
+            "type = 'file' AND (title IN ('main.rs', 'lib.rs', '__main__.py', 'main.py', 'cli.py', 'app.py',
+             'index.ts', 'index.js', 'main.ts', 'main.js', 'server.ts', 'server.js'))
+             ORDER BY length(path) LIMIT 8",
+            &[],
+        )?;
+        if !entries.is_empty() {
+            let e: Vec<String> = entries.iter().filter_map(|n| n.path.clone()).collect();
+            b.push(&format!("entry points: {}\n", e.join(", ")));
+        }
+        let mut stmt = c.prepare(
+            "SELECT e.dst, COUNT(*) AS n FROM edges e WHERE e.rel = 'calls'
+             GROUP BY e.dst ORDER BY n DESC LIMIT 8",
+        )?;
+        let central: Vec<(String, i64)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+            .collect::<rusqlite::Result<_>>()?;
+        if !central.is_empty() {
+            b.push("most-called:\n");
+            for (id, n) in central {
+                if let Some(node) = graph::node(c, &id)? {
+                    b.push(&format!(
+                        "  {}  {} ({n} callers)\n",
+                        node.display_name(),
+                        node.location()
+                    ));
+                }
+            }
+        }
+        b.push("Use the explain, impact and context tools for detail.\n");
+        let text = b.out;
+        Ok(Pack {
+            tokens: budget::tokens(&text),
+            text,
+            items: Vec::new(),
+        })
+    }
+
+    /// Record which items were injected into a session.
+    pub fn log_injection(&self, session: &str, items: &[String]) -> Result<()> {
+        log::record(&self.db.conn, session, items)
+    }
+
+    /// One node with all its edges.
+    pub fn show(&self, query: &str) -> Result<Lookup<(Node, Vec<graph::Edge>)>> {
+        Ok(match self.pick(query)? {
+            Lookup::Found(n) => {
+                let edges = graph::edges_of(&self.db.conn, &n.id)?;
+                Lookup::Found((n, edges))
+            }
+            Lookup::Ambiguous { candidates } => Lookup::Ambiguous { candidates },
+            Lookup::NotFound { query } => Lookup::NotFound { query },
+        })
+    }
+
+    pub fn status(&self) -> Result<Status> {
+        let c = &self.db.conn;
+        let pairs = |sql: &str| -> Result<BTreeMap<String, i64>> {
+            let mut stmt = c.prepare(sql)?;
+            let rows = stmt.query_map([], |r| {
+                Ok((
+                    r.get::<_, Option<String>>(0)?.unwrap_or_default(),
+                    r.get(1)?,
+                ))
+            })?;
+            Ok(rows.collect::<rusqlite::Result<_>>()?)
+        };
+        let earned =
+            pairs("SELECT status, COUNT(*) FROM nodes WHERE origin = 'earned' GROUP BY status")?;
+        let records: Vec<(String, i64)> = myrn_model::Status::ALL
+            .iter()
+            .map(|s| {
+                (
+                    s.as_str().to_string(),
+                    earned.get(s.as_str()).copied().unwrap_or(0),
+                )
+            })
+            .collect();
+        Ok(Status {
+            root: self.layout.repo_root.display().to_string(),
+            project_id: self.project_id.clone(),
+            provisional_id: self.provisional_id,
+            db_path: self.layout.db_path.display().to_string(),
+            files_by_language: pairs("SELECT lang, COUNT(*) FROM files GROUP BY lang")?,
+            files_with_errors: graph::count(
+                c,
+                "SELECT COUNT(*) FROM files WHERE error IS NOT NULL",
+            )?,
+            symbols: graph::count(c, "SELECT COUNT(*) FROM nodes WHERE type = 'symbol'")?,
+            tests: graph::count(c, "SELECT COUNT(*) FROM nodes WHERE type = 'test'")?,
+            modules: graph::count(c, "SELECT COUNT(*) FROM nodes WHERE type = 'module'")?,
+            commits: graph::count(c, "SELECT COUNT(*) FROM nodes WHERE type = 'commit'")?,
+            edges: pairs("SELECT rel, COUNT(*) FROM edges GROUP BY rel")?,
+            calls_inferred: graph::count(
+                c,
+                "SELECT COUNT(*) FROM edges WHERE rel = 'calls' AND status = 'inferred'",
+            )?,
+            records_by_state: records,
+            connected_agents: Vec::new(),
+            last_refresh: self
+                .db
+                .get_meta("last_refresh")?
+                .and_then(|s| s.parse().ok()),
+        })
+    }
+
+    /// Diagnose the installation, the store and the index.
+    pub fn doctor(&mut self) -> Vec<Check> {
+        let mut out = Vec::new();
+        out.push(check(
+            "repository",
+            Level::Ok,
+            self.layout.repo_root.display().to_string(),
+        ));
+        let config_ok = Config::load(&self.layout.config_path());
+        match (&config_ok, self.provisional_id) {
+            (Err(e), _) => out.push(check("project.toml", Level::Fail, format!("{e:#}"))),
+            (Ok(_), true) => out.push(check(
+                "project id",
+                Level::Warn,
+                "no commits yet; knowledge is stored under a temporary id until the first commit",
+            )),
+            (Ok(cfg), false) => {
+                let actual = Repository::discover(self.root())
+                    .ok()
+                    .and_then(|r| git::root_commit(&r));
+                match (&cfg.project.id, actual) {
+                    (Some(id), Some(a)) if *id != a => out.push(check(
+                        "project id",
+                        Level::Warn,
+                        format!("project.toml says {id} but the root commit is {a}"),
+                    )),
+                    _ => out.push(check("project id", Level::Ok, self.project_id.clone())),
+                }
+            }
+        }
+        let probe = self.layout.data_dir.join(".write-test");
+        match std::fs::write(&probe, b"ok").and_then(|_| std::fs::remove_file(&probe)) {
+            Ok(_) => out.push(check(
+                "data directory",
+                Level::Ok,
+                self.layout.data_dir.display().to_string(),
+            )),
+            Err(e) => out.push(check(
+                "data directory",
+                Level::Fail,
+                format!("{}: {e}", self.layout.data_dir.display()),
+            )),
+        }
+        match (self.db.schema_version(), self.db.integrity_ok()) {
+            (Ok(v), Ok(true)) => out.push(check(
+                "database",
+                Level::Ok,
+                format!("schema v{v}, integrity ok"),
+            )),
+            (Ok(v), Ok(false)) => out.push(check(
+                "database",
+                Level::Fail,
+                format!("schema v{v}, integrity check failed; run `myrn rebuild`"),
+            )),
+            (Err(e), _) | (_, Err(e)) => out.push(check("database", Level::Fail, format!("{e:#}"))),
+        }
+        for l in Lang::ALL {
+            let mut p = tree_sitter::Parser::new();
+            if let Err(e) = p.set_language(&l.grammar()) {
+                out.push(check(
+                    &format!("grammar {}", l.name()),
+                    Level::Fail,
+                    e.to_string(),
+                ));
+            }
+        }
+        out.push(check(
+            "grammars",
+            Level::Ok,
+            "rust, python, javascript, typescript, tsx",
+        ));
+        match self.refresh() {
+            Ok(r) => out.push(check(
+                "index",
+                if r.errors.is_empty() {
+                    Level::Ok
+                } else {
+                    Level::Warn
+                },
+                format!(
+                    "{} files, {} re-parsed, {} removed in {} ms{}",
+                    r.files,
+                    r.parsed,
+                    r.removed,
+                    r.millis,
+                    if r.errors.is_empty() {
+                        String::new()
+                    } else {
+                        format!("; {}", r.errors.join("; "))
+                    }
+                ),
+            )),
+            Err(e) => out.push(check("index", Level::Fail, format!("{e:#}"))),
+        }
+        let errors: Vec<String> = self
+            .db
+            .conn
+            .prepare("SELECT path FROM files WHERE error IS NOT NULL ORDER BY path LIMIT 5")
+            .and_then(|mut s| s.query_map([], |r| r.get(0))?.collect())
+            .unwrap_or_default();
+        if errors.is_empty() {
+            out.push(check("parse errors", Level::Ok, "none"));
+        } else {
+            out.push(check(
+                "parse errors",
+                Level::Warn,
+                format!("indexed as far as possible: {}", errors.join(", ")),
+            ));
+        }
+        out.push(check(
+            "agents",
+            Level::Warn,
+            "none connected (`myrn connect` is not available yet)",
+        ));
+        out
+    }
+}

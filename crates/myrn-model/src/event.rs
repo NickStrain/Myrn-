@@ -1,1 +1,2 @@
-//! Normalized agent events: SessionStart, Prompt, ToolResult (failure / file edit), SessionEnd.
+//! Normalized agent events: SessionStart, Prompt, ToolResult, SessionEnd.
+//! Session capture is not built yet.

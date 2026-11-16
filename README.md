@@ -19,8 +19,8 @@ Myrn remembers what your code is, why it's that way, and what was learned while 
 
 ---
 
-> [!WARNING]
-> **Myrn is in the design and scaffolding stage.** Nothing below works yet. This README describes what Myrn will do. Star or watch the repo to follow along.
+> [!NOTE]
+> **Phase 0 is done:** the code graph, the CLI and the MCP pull tools work today for Rust, Python, JavaScript and TypeScript. Session capture, learned records and automatic hooks come in later phases; sections below that describe them are the plan, not shipped behaviour.
 
 ## 🤔 Why
 
@@ -106,35 +106,54 @@ status     current (body hash matches)
 
 ## 🚀 Quick start
 
-> Not released yet. This is the intended setup.
+There are no prebuilt binaries yet. Build from source with Rust 1.85 or newer and a C compiler:
+
+```sh
+cargo install --path crates/myrn
+```
+
+Then, in any Git repository:
 
 ```sh
 cd my-project
-myrn init           # index the repository, create the local store
-myrn connect --all  # explain session recording, ask consent, install adapters
+myrn init                          # index the code and Git history (no session data is recorded)
+myrn explain refresh_session       # one symbol: signature, callers, callees, tests, commits
+myrn impact TokenStore::lookup     # everything that depends on it, and the tests that reach it
+myrn context "fix the 401 on expired sessions"   # the pack an agent would get for this task
 ```
 
-That's it. Go back to your agent.
+### Use it from Claude Code (manual, until `myrn connect` ships)
+
+```sh
+cd my-project
+claude mcp add myrn -- myrn mcp
+```
+
+The agent then has four tools: `context`, `explain`, `impact` and `history`. The index refreshes itself on every call; a no-op refresh takes about 10 ms.
 
 ## 🛠️ CLI
 
 If you know Git, you can guess most of these.
 
-| Command | Git analogue | What it does |
-|---|---|---|
-| `myrn init` | `git init` | Index the repository and create the local store |
-| `myrn connect` | | Install agent adapters, after asking for consent |
-| `myrn status` | `git status` | Index health, record counts by state, connected agents |
-| `myrn log` | `git log` | History of episodes, decisions and learned records |
-| `myrn show <id>` | `git show` | One record with its evidence and relations |
-| `myrn diff` | `git diff` | How project knowledge changed between two points |
-| `myrn trace <id>` | `git blame` | Where a record came from: session, commit or test |
-| `myrn verify` | | Re-check suspect records against the current code |
-| `myrn forget <id>` | | Permanently remove a record |
-| `myrn gc` | `git gc` | Merge duplicates, compact episodes, tidy the index |
-| `myrn rebuild` | | Recreate the index from the code and the notes |
-| `myrn publish <id>` | `git add` | Move a private record into the shared knowledge directory |
-| `myrn doctor` | | Diagnose hook, adapter and index problems |
+| Command | Git analogue | What it does | |
+|---|---|---|---|
+| `myrn init` | `git init` | Index the repository and create the local store | ✅ |
+| `myrn status` | `git status` | Index health, record counts by state, connected agents | ✅ |
+| `myrn show <id>` | `git show` | One node with its fields and relations | ✅ |
+| `myrn rebuild` | | Recreate the index from the code and the notes | ✅ |
+| `myrn doctor` | | Diagnose store, index and setup problems | ✅ |
+| `myrn explain` / `impact` / `history` / `context` / `brief` | | Same answers the MCP tools give | ✅ |
+| `myrn mcp` | | MCP server over stdio, started by the agent | ✅ |
+| `myrn connect` | | Install agent adapters, after asking for consent | planned |
+| `myrn log` | `git log` | History of episodes, decisions and learned records | planned |
+| `myrn diff` | `git diff` | How project knowledge changed between two points | planned |
+| `myrn trace <id>` | `git blame` | Where a record came from: session, commit or test | planned |
+| `myrn verify` | | Re-check suspect records against the current code | planned |
+| `myrn forget <id>` | | Permanently remove a record | planned |
+| `myrn gc` | `git gc` | Merge duplicates, compact episodes, tidy the index | planned |
+| `myrn publish <id>` | `git add` | Move a private record into the shared knowledge directory | planned |
+
+Add `--json` to any command for machine-readable output.
 
 ## 🧭 Design principles
 
@@ -157,11 +176,27 @@ If you know Git, you can guess most of these.
 
 - [x] Architecture and design ([docs/design/](docs/design/))
 - [x] Repository scaffold ([docs/structure.md](docs/structure.md))
-- [ ] **Phase 1:** code graph, indexer, SQLite store
-- [ ] **Phase 2:** MCP pull tools, `init` / `status` / `show`
-- [ ] **Phase 3:** session capture, distillation, validity tracking, agent adapters
-- [ ] **Phase 4:** benchmark gate, then automatic injection on by default
-- [ ] **Phase 5:** `publish` and sharing across developers
+
+### Phase 0: code graph and pull tools (steps 1–9) ✅
+
+- [x] 1. Project setup
+- [x] 2. SQLite store
+- [x] 3. Tree-sitter code indexer (Rust, Python, JavaScript, TypeScript)
+- [x] 4. Call, import and test links
+- [x] 5. Git history
+- [x] 6. First CLI commands: `init`, `status`, `show`, `rebuild`, `doctor`
+- [x] 7. Search
+- [x] 8. Context packing
+- [x] 9. MCP server
+- [x] 🚦 **Gate 0:** are `explain` and `impact` answers correct? Passed; see [docs/gate0.md](docs/gate0.md)
+
+### Later phases
+
+- [ ] Session capture, distillation, validity tracking, agent adapters
+- [ ] Benchmark gate, then automatic injection on by default
+- [ ] `publish` and sharing across developers
+
+Each phase is usable when it ships. The next phase starts only after the gate before it passes.
 
 ## <a id="platform-support"></a>💻 Platform support
 
@@ -190,7 +225,7 @@ Myrn is at an early stage, and design feedback is the most useful contribution r
 ```sh
 git clone https://github.com/NickStrain/Myrn-.git
 cd Myrn-
-cargo check --workspace
+cargo test --workspace   # includes the Gate 0 suite
 ```
 
 ## 📜 License

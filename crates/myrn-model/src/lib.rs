@@ -2,8 +2,12 @@
 //!
 //! Design doc: "Knowledge graph model".
 
+pub mod event;
 pub mod id;
 pub mod node;
-pub mod relation;
 pub mod record;
-pub mod event;
+pub mod relation;
+
+pub use node::{NodeType, Origin};
+pub use record::{EdgeStatus, Status, Visibility};
+pub use relation::Relation;

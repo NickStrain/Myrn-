@@ -8,4 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-myrn-model.workspace = true
+anyhow.workspace = true
+directories.workspace = true
+rusqlite.workspace = true
+serde.workspace = true

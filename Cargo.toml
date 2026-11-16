@@ -10,23 +10,37 @@ members = [
     "crates/myrn-embed",
     "bench",
 ]
+exclude = ["tests/fixtures"]
 
 [workspace.package]
 version = "0.0.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/NickStrain/Myrn-"
-rust-version = "1.80"
+rust-version = "1.85"
 
 [workspace.dependencies]
 myrn-model    = { path = "crates/myrn-model" }
 myrn-store    = { path = "crates/myrn-store" }
 myrn-engine   = { path = "crates/myrn-engine" }
 myrn-mcp      = { path = "crates/myrn-mcp" }
-myrn-adapters = { path = "crates/myrn-adapters" }
-myrn-embed    = { path = "crates/myrn-embed" }
-# Third-party crates are added here when the phase that needs them starts.
-# See docs/structure.md for the intended choices.
+
+anyhow      = "1.0"
+blake3      = "1.8"
+clap        = { version = "4.6", features = ["derive", "env"] }
+directories = "6.0"
+git2        = { version = "0.21", default-features = false, features = ["vendored-libgit2"] }
+ignore      = "0.4"
+rusqlite    = { version = "0.43", features = ["bundled"] }
+serde       = { version = "1.0", features = ["derive"] }
+serde_json  = "1.0"
+tempfile    = "3.27"
+toml        = "1.2"
+tree-sitter            = "0.27"
+tree-sitter-javascript = "0.25"
+tree-sitter-python     = "0.25"
+tree-sitter-rust       = "0.24"
+tree-sitter-typescript = "0.23"
 
 [profile.release]
 lto = true

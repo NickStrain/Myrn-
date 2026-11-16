@@ -6,9 +6,9 @@
 pub mod api;
 pub mod config;
 
-pub mod indexer;
 pub mod capture;
 pub mod distill;
-pub mod validity;
-pub mod retrieve;
+pub mod indexer;
 pub mod pack;
+pub mod retrieve;
+pub mod validity;

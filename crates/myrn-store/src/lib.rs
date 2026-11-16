@@ -5,11 +5,15 @@
 //!
 //! Design doc: "Storage layout", "Code graph and index", "Notes".
 
-pub mod paths;
 pub mod db;
-pub mod graph;
-pub mod fts;
-pub mod vector;
-pub mod notes;
-pub mod sync;
 pub mod episodes;
+pub mod fts;
+pub mod graph;
+pub mod notes;
+pub mod paths;
+pub mod sync;
+pub mod vector;
+
+pub use db::Db;
+pub use graph::{Edge, Node};
+pub use paths::Layout;

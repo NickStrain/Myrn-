@@ -4,7 +4,7 @@
 //! Design doc: "Evaluation".
 
 mod metrics;
-mod runner;
 mod report;
+mod runner;
 
 fn main() {}

@@ -6,5 +6,5 @@
 pub mod adapter;
 pub mod claude_code;
 pub mod codex;
-pub mod pull_only;
 pub mod detect;
+pub mod pull_only;
