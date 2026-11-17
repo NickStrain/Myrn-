@@ -1,0 +1,63 @@
+id: remeda/bugfix/clamp-zero-limit
+repo: remeda
+kind: bugfix
+prompt: |
+  `clamp` ignores a limit of zero: `clamp(-5, { min: 0 })` returns `-5` instead of
+  `0`, and `clamp(5, { max: 0 })` returns `5` instead of `0`. Other limits work.
+  Find the cause and fix it.
+  npm dependencies are not installed and there is no network access. Node 24 is
+  available and can run TypeScript files directly.
+setup:
+  patch: |
+    diff --git a/packages/remeda/src/clamp.ts b/packages/remeda/src/clamp.ts
+    index 551326a..14ee815 100644
+    --- a/packages/remeda/src/clamp.ts
+    +++ b/packages/remeda/src/clamp.ts
+    @@ -44,8 +44,8 @@ export function clamp(
+     }
+     
+     const clampImplementation = (value: number, { min, max }: Limits): number =>
+    -  min !== undefined && value < min
+    +  min && value < min
+         ? min
+    -    : max !== undefined && value > max
+    +    : max && value > max
+           ? max
+           : value;
+check:
+  files:
+    packages/remeda/test/bench-loader.mjs: |
+      // Resolve remeda's extensionless relative imports to .ts files, so Node 24
+      // can run the sources directly (types are stripped) without npm install.
+      import { registerHooks } from "node:module";
+
+      registerHooks({
+        resolve(specifier, context, nextResolve) {
+          try {
+            return nextResolve(specifier, context);
+          } catch (error) {
+            if (!specifier.startsWith(".")) throw error;
+            try {
+              return nextResolve(`${specifier}.ts`, context);
+            } catch {
+              return nextResolve(`${specifier}/index.ts`, context);
+            }
+          }
+        },
+      });
+    packages/remeda/test/bench-check.test.ts: |
+      import assert from "node:assert/strict";
+      import { test } from "node:test";
+      import { clamp } from "../src/index.ts";
+
+      test("clamp honours zero limits", () => {
+        assert.equal(clamp(-5, { min: 0 }), 0);
+        assert.equal(clamp(5, { max: 0 }), 0);
+        assert.equal(clamp(5, { min: 0, max: 10 }), 5);
+        assert.equal(clamp(20, { min: 1, max: 10 }), 10);
+        assert.equal(clamp(-1, { min: 1 }), 1);
+        assert.equal(clamp({ min: 0 })(-3), 0);
+      });
+  run: cd packages/remeda && node --no-warnings --import ./test/bench-loader.mjs --test test/bench-check.test.ts
+touches:
+  - packages/remeda/src/clamp.ts

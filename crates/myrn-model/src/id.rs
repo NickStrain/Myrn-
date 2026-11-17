@@ -33,6 +33,11 @@ pub fn commit_id(sha: &str) -> String {
     format!("commit:{sha}")
 }
 
+/// `episode:<session>`
+pub fn episode_id(session: &str) -> String {
+    format!("episode:{session}")
+}
+
 /// Directory part of a repo-relative, forward-slash path ("" for the root).
 pub fn parent_dir(path: &str) -> &str {
     match path.rfind('/') {

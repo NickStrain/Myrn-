@@ -1,0 +1,12 @@
+id: ripgrep/question/gitignore-matcher
+repo: ripgrep
+kind: question
+prompt: |
+  Which type compiles the patterns of a single .gitignore file into a matcher,
+  which type builds it line by line, and which method answers whether a path is
+  ignored? Answer from the code; do not change any files.
+answer_contains:
+  - Gitignore
+  - GitignoreBuilder
+  - matched
+timeout_secs: 600

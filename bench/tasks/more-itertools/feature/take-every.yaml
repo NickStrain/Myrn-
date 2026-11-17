@@ -1,0 +1,74 @@
+id: more-itertools/feature/take-every
+repo: more-itertools
+kind: feature
+prompt: |
+  Add a function `take_every(iterable, n, start=0)` to more-itertools. It yields
+  every n-th item, beginning with the item at index `start`:
+  `list(take_every('abcdefg', 3)) == ['a', 'd', 'g']` and
+  `list(take_every(range(10), 4, start=1)) == [1, 5, 9]`. It raises `ValueError`
+  if `n` is less than 1 or `start` is negative. It must be importable as
+  `from more_itertools import take_every`, and documented like its neighbours.
+solution:
+  patch: |
+    diff --git a/more_itertools/more.py b/more_itertools/more.py
+    index 068ed68..8ea55a8 100755
+    --- a/more_itertools/more.py
+    +++ b/more_itertools/more.py
+    @@ -166,6 +166,7 @@ __all__ = [
+         'strip',
+         'subfactorial',
+         'substrings',
+    +    'take_every',
+         'substrings_indexes',
+         'synchronized',
+         'takewhile_inclusive',
+    @@ -5662,3 +5663,21 @@ def random_ordered_range(*args):
+         n = len(range_object)
+         for index in _random_ordered_indices(n):
+             yield range_object[index]
+    +
+    +
+    +def take_every(iterable, n, start=0):
+    +    """Yield every *n*-th item of *iterable*, beginning with the item at
+    +    index *start*.
+    +
+    +        >>> list(take_every('abcdefg', 3))
+    +        ['a', 'd', 'g']
+    +        >>> list(take_every(range(10), 4, start=1))
+    +        [1, 5, 9]
+    +
+    +    Raises ``ValueError`` if *n* is less than 1 or *start* is negative.
+    +    """
+    +    if n < 1:
+    +        raise ValueError('n must be at least 1')
+    +    if start < 0:
+    +        raise ValueError('start must not be negative')
+    +    return islice(iterable, start, None, n)
+check:
+  files:
+    tests/test_bench_check.py: |
+      from unittest import TestCase
+
+      import more_itertools
+      from more_itertools import take_every
+
+
+      class TakeEvery(TestCase):
+          def test_values(self):
+              self.assertEqual(list(take_every('abcdefg', 3)), ['a', 'd', 'g'])
+              self.assertEqual(list(take_every(range(10), 4, start=1)), [1, 5, 9])
+              self.assertEqual(list(take_every(iter(range(5)), 1)), [0, 1, 2, 3, 4])
+              self.assertEqual(list(take_every([], 2)), [])
+              self.assertEqual(list(take_every('ab', 1, start=5)), [])
+
+          def test_errors(self):
+              with self.assertRaises(ValueError):
+                  list(take_every('abc', 0))
+              with self.assertRaises(ValueError):
+                  list(take_every('abc', 1, start=-1))
+
+          def test_exported(self):
+              self.assertIn('take_every', more_itertools.more.__all__)
+  run: python3 -m unittest -q tests.test_bench_check tests.test_more
+touches:
+  - more_itertools/more.py

@@ -60,6 +60,7 @@ pub fn find(db: &Db, query: &str) -> Result<Vec<Node>> {
         )?;
     }
     hits.retain(|n| ends_with_segments(n.qname.as_deref().unwrap_or(""), &segs));
+    drop_shadowed_stubs(&mut hits);
     hits.sort_by_key(|n| {
         let qn = n.qname.as_deref().unwrap_or("");
         (
@@ -70,6 +71,25 @@ pub fn find(db: &Db, query: &str) -> Result<Vec<Node>> {
         )
     });
     Ok(hits)
+}
+
+/// Type stubs (`.pyi`, `.d.ts`) only declare what the implementation defines.
+pub fn is_stub(path: &str) -> bool {
+    path.ends_with(".pyi") || path.ends_with(".d.ts") || path.ends_with(".d.mts")
+}
+
+/// Remove stub declarations whose implementation is also in the list, so one
+/// function never shows up twice.
+pub fn drop_shadowed_stubs(nodes: &mut Vec<Node>) {
+    let real: HashSet<String> = nodes
+        .iter()
+        .filter(|n| !n.path.as_deref().is_some_and(is_stub))
+        .filter_map(|n| n.qname.clone())
+        .collect();
+    nodes.retain(|n| {
+        !(n.path.as_deref().is_some_and(is_stub)
+            && n.qname.as_ref().is_some_and(|q| real.contains(q)))
+    });
 }
 
 fn myrn_index_lang(q: &str) -> bool {
@@ -148,10 +168,35 @@ fn code_tokens(task: &str) -> Vec<String> {
     .collect()
 }
 
+/// Identifiers written in backticks: `` `chunk` ``, `` `chunk([1, 2], 2)` ``,
+/// `` `GlobSet::new` ``. A plain word in backticks is code, even lowercase.
+fn backticked(task: &str) -> Vec<String> {
+    task.split('`')
+        .skip(1)
+        .step_by(2)
+        .filter_map(|span| {
+            let ident: String = span
+                .trim()
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || matches!(c, '_' | ':' | '.'))
+                .collect();
+            let ident = ident.trim_end_matches(['.', ':']).to_string();
+            (ident.len() >= 3 && ident.chars().next().is_some_and(|c| c.is_alphabetic()))
+                .then_some(ident)
+        })
+        .collect()
+}
+
 /// Seeds for a free-text task.
 pub fn seeds(db: &Db, task: &str) -> Result<Vec<Seed>> {
     let mut out: Vec<Seed> = Vec::new();
-    for tok in code_tokens(task) {
+    let mut tokens = code_tokens(task);
+    for t in backticked(task) {
+        if !tokens.contains(&t) {
+            tokens.push(t);
+        }
+    }
+    for tok in tokens {
         let hits = find(db, &tok)?;
         if hits.is_empty() || hits.len() > 12 {
             continue;
@@ -220,6 +265,14 @@ mod tests {
         assert!(t.contains(&"src/auth/session.rs:42".to_string()));
         assert!(t.contains(&"refresh_token".to_string()));
         assert!(!t.contains(&"Fix".to_string()));
+    }
+
+    #[test]
+    fn backticked_identifiers() {
+        assert_eq!(
+            backticked("`chunk` drops it: `chunk([1, 2], 2)` and `*.gz`, `GlobSet::new`."),
+            ["chunk", "chunk", "GlobSet::new"]
+        );
     }
 
     #[test]

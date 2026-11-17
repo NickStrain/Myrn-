@@ -1,0 +1,59 @@
+id: remeda/bugfix/chunk-drops-remainder
+repo: remeda
+kind: bugfix
+prompt: |
+  `chunk` drops the last, shorter chunk: `chunk([1, 2, 3, 4, 5], 2)` returns
+  `[[1, 2], [3, 4]]` instead of `[[1, 2], [3, 4], [5]]`. Find the cause and fix it.
+  npm dependencies are not installed and there is no network access. Node 24 is
+  available and can run TypeScript files directly.
+setup:
+  patch: |
+    diff --git a/packages/remeda/src/chunk.ts b/packages/remeda/src/chunk.ts
+    index 6084efe..44fc2ea 100644
+    --- a/packages/remeda/src/chunk.ts
+    +++ b/packages/remeda/src/chunk.ts
+    @@ -248,7 +248,7 @@ function chunkImplementation<T>(data: readonly T[], size: number): T[][] {
+         return [data.concat()];
+       }
+     
+    -  const chunks = Math.ceil(data.length / size);
+    +  const chunks = Math.floor(data.length / size);
+     
+       // eslint-disable-next-line unicorn/no-new-array -- This is OK, a sparse array allows us to handle very large arrays more efficiently.
+       const result = new Array<T[]>(chunks);
+check:
+  files:
+    packages/remeda/test/bench-loader.mjs: |
+      // Resolve remeda's extensionless relative imports to .ts files, so Node 24
+      // can run the sources directly (types are stripped) without npm install.
+      import { registerHooks } from "node:module";
+
+      registerHooks({
+        resolve(specifier, context, nextResolve) {
+          try {
+            return nextResolve(specifier, context);
+          } catch (error) {
+            if (!specifier.startsWith(".")) throw error;
+            try {
+              return nextResolve(`${specifier}.ts`, context);
+            } catch {
+              return nextResolve(`${specifier}/index.ts`, context);
+            }
+          }
+        },
+      });
+    packages/remeda/test/bench-check.test.ts: |
+      import assert from "node:assert/strict";
+      import { test } from "node:test";
+      import { chunk } from "../src/index.ts";
+
+      test("chunk keeps the remainder", () => {
+        assert.deepEqual(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+        assert.deepEqual(chunk([1, 2, 3, 4], 2), [[1, 2], [3, 4]]);
+        assert.deepEqual(chunk([1, 2, 3], 5), [[1, 2, 3]]);
+        assert.deepEqual(chunk([], 3), []);
+        assert.deepEqual(chunk(2)([1, 2, 3]), [[1, 2], [3]]);
+      });
+  run: cd packages/remeda && node --no-warnings --import ./test/bench-loader.mjs --test test/bench-check.test.ts
+touches:
+  - packages/remeda/src/chunk.ts

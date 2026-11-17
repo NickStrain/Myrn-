@@ -91,10 +91,10 @@ pub fn callers(
     })
 }
 
-/// Number of incoming call edges: a rough measure of how central a symbol is.
+/// Callers from code, not tests: how central a symbol is to the program.
 pub fn in_degree(conn: &Connection, id: &str) -> Result<i64> {
     Ok(conn.query_row(
-        "SELECT COUNT(*) FROM edges WHERE dst = ?1 AND rel = 'calls'",
+        "SELECT COUNT(*) FROM edges WHERE dst = ?1 AND rel = 'calls' AND src NOT LIKE 'test:%'",
         [id],
         |r| r.get(0),
     )?)

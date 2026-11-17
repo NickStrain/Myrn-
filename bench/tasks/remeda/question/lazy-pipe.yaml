@@ -1,0 +1,11 @@
+id: remeda/question/lazy-pipe
+repo: remeda
+kind: question
+prompt: |
+  When several utilities are combined with `pipe`, how does remeda avoid building
+  an intermediate array after every step? Name the mechanism and where it is
+  implemented. Answer from the code; do not change any files.
+answer_contains:
+  - lazy
+  - pipe
+timeout_secs: 600

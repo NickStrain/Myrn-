@@ -61,7 +61,7 @@ Where it goes: only this machine, in myrn's private data directory. Nothing is s
 anywhere, and paths in .myrn/ignore are never recorded. Secrets are redacted before
 anything is written.
 Automatic context injection stays OFF ([context] inject = false in .myrn/project.toml);
-the hooks refresh the index and, once session recording ships, record the above.
+the hooks refresh the index and record the above. See it with `myrn log`.
 Undo at any time with `myrn disconnect`.";
 
 fn ask(question: &str) -> Result<bool> {

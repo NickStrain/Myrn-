@@ -1,0 +1,46 @@
+id: ripgrep/bugfix/gitignore-negation-order
+repo: ripgrep
+kind: bugfix
+prompt: |
+  ripgrep ignores files that a .gitignore explicitly re-includes. With a .gitignore
+  containing `*.log` followed by `!important.log`, `rg` still skips important.log.
+  In gitignore files a later line must take precedence over an earlier one. Find
+  the cause and fix it. Make sure the ignore crate's tests still pass.
+setup:
+  patch: |
+    diff --git a/crates/ignore/src/gitignore.rs b/crates/ignore/src/gitignore.rs
+    index eb8b89e..9f9ebff 100644
+    --- a/crates/ignore/src/gitignore.rs
+    +++ b/crates/ignore/src/gitignore.rs
+    @@ -268,7 +268,7 @@ impl Gitignore {
+             let mut matches = self.matches.as_ref().unwrap().get();
+             let candidate = Candidate::new(path);
+             self.set.matches_candidate_into(&candidate, &mut *matches);
+    -        for &i in matches.iter().rev() {
+    +        for &i in matches.iter() {
+                 let glob = &self.globs[i];
+                 if !glob.is_only_dir() || is_dir {
+                     return if glob.is_whitelist() {
+check:
+  files:
+    crates/ignore/tests/bench_check.rs: |
+      use ignore::gitignore::GitignoreBuilder;
+
+      #[test]
+      fn later_lines_take_precedence() {
+          let mut b = GitignoreBuilder::new("/repo");
+          b.add_line(None, "*.log").unwrap();
+          b.add_line(None, "!important.log").unwrap();
+          let gi = b.build().unwrap();
+          assert!(gi.matched("debug.log", false).is_ignore());
+          assert!(gi.matched("important.log", false).is_whitelist());
+
+          let mut b = GitignoreBuilder::new("/repo");
+          b.add_line(None, "!keep.txt").unwrap();
+          b.add_line(None, "*.txt").unwrap();
+          let gi = b.build().unwrap();
+          assert!(gi.matched("keep.txt", false).is_ignore());
+      }
+  run: cargo test -q -p ignore
+touches:
+  - crates/ignore/src/gitignore.rs

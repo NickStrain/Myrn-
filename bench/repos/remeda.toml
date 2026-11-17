@@ -1,0 +1,5 @@
+name = "remeda"
+url = "https://github.com/remeda/remeda"
+commit = "3baf05ffdb3c366ccebd733cb4dab6f2991ad92b"
+language = "typescript"
+size = "medium"   # ~480 files in packages/remeda/src, one utility per file

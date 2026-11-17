@@ -255,7 +255,17 @@ impl Resolver {
             }
             return None;
         };
-        if glob {
+        if glob && alias.is_some_and(|a| a != "*") {
+            // A named namespace import (`import * as R from "./index"`): `R`
+            // stands for the whole file; `R.f()` resolves through it.
+            self.bindings.entry(file.to_string()).or_default().insert(
+                alias.unwrap().to_string(),
+                Binding {
+                    file: Some(target.clone()),
+                    qname: None,
+                },
+            );
+        } else if glob {
             self.globs
                 .entry(file.to_string())
                 .or_default()
@@ -406,7 +416,9 @@ impl Resolver {
             "" | "*" | "default" => None,
             m => Some(m.to_string()),
         };
-        Some((target, qname, false))
+        // `export * from "./x"` (no alias) re-exports everything; a named
+        // `import * as R` becomes a binding in `add_import`.
+        Some((target, qname, member == "*"))
     }
 
     // -------------------------------------------------------------- calls
@@ -665,8 +677,39 @@ impl Resolver {
                 file: bf,
                 qname: Some(q),
             }) => self.lookup(q, bf.as_deref()),
-            _ => Vec::new(),
+            _ => self.exported_from(file, name, 3),
         }
+    }
+
+    /// `name` as seen from outside `file`: a top-level symbol of the file, a
+    /// named re-export, or a wildcard re-export (`from .recipes import *`,
+    /// `export * from "./chunk"`), followed up to `depth` files deep.
+    fn exported_from(&self, file: &str, name: &str, depth: usize) -> Vec<usize> {
+        let own = self.in_file(file, |t| t.name == name && self.is_top_level(t));
+        if !own.is_empty() || depth == 0 {
+            return own;
+        }
+        if let Some(Binding {
+            file: bf,
+            qname: Some(q),
+        }) = self.binding(file, name)
+        {
+            let hits = self.lookup(q, bf.as_deref());
+            if !hits.is_empty() {
+                return hits;
+            }
+        }
+        if let Some(globs) = self.globs.get(file) {
+            for (target, _) in globs {
+                if target != file {
+                    let hits = self.exported_from(target, name, depth - 1);
+                    if !hits.is_empty() {
+                        return hits;
+                    }
+                }
+            }
+        }
+        Vec::new()
     }
 
     fn resolve_method(&self, s: &Sym, name: &str, q: &str) -> Vec<(usize, EdgeStatus)> {
@@ -714,10 +757,13 @@ impl Resolver {
                 }
             }
             if let (Some(f), true) = (&b.file, tail.is_empty()) {
-                // Namespace import: a top-level symbol of the target file.
-                let hits = self.in_file(f, |t| {
-                    t.name == name && t.callable() && self.is_top_level(t)
-                });
+                // Namespace import: a top-level symbol of the target file,
+                // or one it re-exports (`import pkg as p; p.f()`).
+                let hits: Vec<usize> = self
+                    .exported_from(f, name, 3)
+                    .into_iter()
+                    .filter(|&i| self.syms[i].callable())
+                    .collect();
                 if !hits.is_empty() {
                     return Self::resolved(hits);
                 }

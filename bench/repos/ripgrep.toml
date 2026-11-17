@@ -1,0 +1,5 @@
+name = "ripgrep"
+url = "https://github.com/BurntSushi/ripgrep"
+commit = "178cc027e283fd965cb72d0a7395b219eada170c"
+language = "rust"
+size = "medium"   # ~100 Rust files in 10 crates

@@ -1,0 +1,5 @@
+name = "more-itertools"
+url = "https://github.com/more-itertools/more-itertools"
+commit = "ceafee8ce96f4bc1eb74c528bc247c91d648a0bb"
+language = "python"
+size = "small"   # 3 modules, ~7k lines; tests run on the standard library's unittest

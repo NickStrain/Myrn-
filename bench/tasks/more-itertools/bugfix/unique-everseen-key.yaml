@@ -1,0 +1,41 @@
+id: more-itertools/bugfix/unique-everseen-key
+repo: more-itertools
+kind: bugfix
+prompt: |
+  `unique_everseen` returns duplicates when given a key function:
+  `list(unique_everseen('aAbACCc', key=str.lower))` returns
+  `['a', 'b', 'C', 'C', 'c']` instead of `['a', 'b', 'C']`, and
+  `unique_everseen([[1], [1]], key=tuple)` raises `TypeError`.
+  Find the cause and fix it. Make sure the test suite still passes
+  (`python3 -m unittest discover -s tests -t .`).
+setup:
+  patch: |
+    diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+    index 4ab1721..9b89db4 100644
+    --- a/more_itertools/recipes.py
+    +++ b/more_itertools/recipes.py
+    @@ -501,7 +501,7 @@ def unique_everseen(iterable, key=None):
+             for element in iterable:
+                 k = key(element)
+                 if k not in seen:
+    -                seen.add(k)
+    +                seen.add(element)
+                     yield element
+     
+     
+check:
+  files:
+    tests/test_bench_check.py: |
+      from unittest import TestCase
+
+      from more_itertools import unique_everseen
+
+
+      class UniqueEverseenKey(TestCase):
+          def test_key(self):
+              self.assertEqual(list(unique_everseen('aAbACCc', key=str.lower)), ['a', 'b', 'C'])
+              self.assertEqual(list(unique_everseen([[1], [1], [2]], key=tuple)), [[1], [2]])
+              self.assertEqual(list(unique_everseen('AAB')), ['A', 'B'])
+  run: python3 -m unittest -q tests.test_bench_check tests.test_recipes
+touches:
+  - more_itertools/recipes.py

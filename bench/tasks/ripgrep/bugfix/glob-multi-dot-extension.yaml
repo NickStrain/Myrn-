@@ -1,0 +1,42 @@
+id: ripgrep/bugfix/glob-multi-dot-extension
+repo: ripgrep
+kind: bugfix
+prompt: |
+  A glob set built from `*.gz` matches `archive.gz` but not `archive.tar.gz`, so
+  `rg -g '*.gz'` skips files whose names contain more than one dot. Find the cause
+  and fix it. Make sure the globset crate's tests still pass.
+setup:
+  patch: |
+    diff --git a/crates/globset/src/pathutil.rs b/crates/globset/src/pathutil.rs
+    index 64273c7..c0de590 100644
+    --- a/crates/globset/src/pathutil.rs
+    +++ b/crates/globset/src/pathutil.rs
+    @@ -43,7 +43,7 @@ pub(crate) fn file_name_ext<'a>(
+         if name.is_empty() {
+             return None;
+         }
+    -    let last_dot_at = match name.rfind_byte(b'.') {
+    +    let last_dot_at = match name.find_byte(b'.') {
+             None => return None,
+             Some(i) => i,
+         };
+check:
+  files:
+    crates/globset/tests/bench_check.rs: |
+      use globset::{Glob, GlobSetBuilder};
+
+      #[test]
+      fn extension_globs_match_names_with_several_dots() {
+          let mut b = GlobSetBuilder::new();
+          b.add(Glob::new("*.gz").unwrap());
+          b.add(Glob::new("*.rs").unwrap());
+          let set = b.build().unwrap();
+          assert!(set.is_match("archive.gz"));
+          assert!(set.is_match("archive.tar.gz"));
+          assert!(set.is_match("dir/sub/archive.tar.gz"));
+          assert!(set.is_match("src/foo.test.rs"));
+          assert!(!set.is_match("archive.gz.txt"));
+      }
+  run: cargo test -q -p globset
+touches:
+  - crates/globset/src/pathutil.rs

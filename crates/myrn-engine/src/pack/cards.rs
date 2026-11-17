@@ -153,6 +153,73 @@ impl SymbolCard {
     }
 }
 
+/// `9 in tests/test_recipes.py (7), tests/test_more.py (2)`
+pub fn tests_summary(tests: &[Link]) -> String {
+    if tests.is_empty() {
+        return "none found".into();
+    }
+    let mut by_file: Vec<(String, usize)> = Vec::new();
+    for t in tests {
+        let file = t.location.split(':').next().unwrap_or("").to_string();
+        match by_file.iter_mut().find(|(f, _)| *f == file) {
+            Some((_, n)) => *n += 1,
+            None => by_file.push((file, 1)),
+        }
+    }
+    by_file.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    let files: Vec<String> = by_file
+        .iter()
+        .take(3)
+        .map(|(f, n)| format!("{f} ({n})"))
+        .collect();
+    let more = if by_file.len() > 3 {
+        format!(", {} more files", by_file.len() - 3)
+    } else {
+        String::new()
+    };
+    format!("{} in {}{more}", tests.len(), files.join(", "))
+}
+
+impl SymbolCard {
+    /// The card injected into a prompt: short relation lists, tests as one
+    /// line, commits only when asked for, and the code when it is short.
+    pub fn render_compact(&self, code: Option<&str>, with_commits: bool) -> String {
+        let n = &self.node;
+        let mut out = String::new();
+        let _ = writeln!(
+            out,
+            "{:<LABEL$}{}    {}",
+            kind_of(n),
+            n.display_name(),
+            n.location()
+        );
+        if code.is_none() {
+            if let Some(s) = n.signature.as_deref().filter(|s| !s.is_empty()) {
+                row(&mut out, "signature", s);
+            }
+        }
+        if let Some(s) = n.summary.as_deref().or(n.doc.as_deref()) {
+            let first: String = s.lines().next().unwrap_or(s).chars().take(160).collect();
+            row(&mut out, "summary", &first);
+        }
+        if !self.calls.is_empty() {
+            list(&mut out, "calls", &self.calls, 3);
+        }
+        if !self.called_by.is_empty() {
+            list(&mut out, "called by", &self.called_by, 3);
+        }
+        row(&mut out, "tests", &tests_summary(&self.tests));
+        if with_commits && !self.commits.is_empty() {
+            list(&mut out, "changed in", &self.commits, 2);
+        }
+        if let Some(code) = code {
+            let lang = n.lang.as_deref().unwrap_or("");
+            let _ = writeln!(out, "```{lang}\n{}\n```", code.trim_end());
+        }
+        out
+    }
+}
+
 impl FileCard {
     pub fn render(&self, limit: usize) -> String {
         let n = &self.node;

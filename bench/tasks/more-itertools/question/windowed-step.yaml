@@ -1,0 +1,13 @@
+id: more-itertools/question/windowed-step
+repo: more-itertools
+kind: question
+prompt: |
+  How does `windowed` produce windows when `step` is greater than 1, and what
+  happens to the last window when there are not enough items to fill it? Name
+  the data structure it keeps the current window in. Answer from the code; do
+  not change any files.
+answer_contains:
+  - deque
+  - fillvalue
+  - step
+timeout_secs: 600

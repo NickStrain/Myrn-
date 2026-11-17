@@ -1,0 +1,11 @@
+id: more-itertools/question/unhashable-everseen
+repo: more-itertools
+kind: question
+prompt: |
+  Which module defines `unique_everseen`, and what does it do with items that
+  cannot be hashed? Answer from the code; do not change any files.
+answer_contains:
+  - recipes
+  - TypeError
+  - key
+timeout_secs: 600

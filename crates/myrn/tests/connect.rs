@@ -211,3 +211,149 @@ fn connect_hooks_doctor_disconnect() {
     assert!(!env.repo.join(".codex").exists());
     assert!(text(&env.myrn(&["status"])).contains("none connected"));
 }
+
+#[test]
+fn sessions_are_recorded_redacted_and_listed() {
+    let env = setup();
+    std::fs::write(env.repo.join(".myrn/ignore"), "secrets/\n").unwrap();
+
+    // Before consent: hooks record nothing.
+    let o = env.myrn(&["connect", "--agent", "codex", "--pull-only"]);
+    assert!(o.status.success(), "{}", text(&o));
+    let ev = |name: &str, extra: Value| {
+        let mut v = json!({"session_id": "sess-42", "cwd": env.repo, "hook_event_name": name});
+        v.as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        v.to_string()
+    };
+    env.hook(
+        "codex",
+        "SessionStart",
+        &ev("SessionStart", json!({"source": "startup"})),
+        &env.repo,
+    );
+    assert!(text(&env.myrn(&["log"])).contains("Recording is off"));
+
+    let o = env.myrn(&["connect", "--agent", "claude", "--yes"]);
+    assert!(o.status.success(), "{}", text(&o));
+    let lib = env.repo.join("src/lib.rs");
+    let session = [
+        ("SessionStart", json!({"source": "startup"})),
+        (
+            "UserPromptSubmit",
+            json!({"prompt": "fix refresh_session; the key is ghp_1234567890abcdefghijABCDEFGHIJ123456"}),
+        ),
+        (
+            "PostToolUse",
+            json!({"tool_name": "Read", "tool_input": {"file_path": lib}, "tool_response": {}}),
+        ),
+        (
+            "PostToolUse",
+            json!({"tool_name": "Read", "tool_input": {"file_path": env.repo.join("secrets/prod.env")}}),
+        ),
+    ];
+    for (name, extra) in session {
+        let (o, _) = env.hook("claude", name, &ev(name, extra), &env.repo);
+        assert!(
+            o.status.success() && o.stdout.is_empty(),
+            "{name}: {}",
+            text(&o)
+        );
+    }
+    // The agent edits one function.
+    let src = std::fs::read_to_string(&lib)
+        .unwrap()
+        .replace("{ validate_token(t) }", "{ validate_token(t + 1) }");
+    std::fs::write(&lib, src).unwrap();
+    for (name, extra) in [
+        (
+            "PostToolUse",
+            json!({"tool_name": "Edit", "tool_input": {"file_path": lib, "old_string": "a", "new_string": "b"}}),
+        ),
+        (
+            "PostToolUseFailure",
+            json!({"tool_name": "Bash", "tool_input": {"command": "DB_PASSWORD=hunter2 cargo test"},
+                   "error": "test refresh ... FAILED"}),
+        ),
+        (
+            "PostToolUse",
+            json!({"tool_name": "Bash", "tool_input": {"command": "cargo test"},
+                   "tool_response": {"stdout": "ok"}}),
+        ),
+    ] {
+        env.hook("claude", name, &ev(name, extra), &env.repo);
+    }
+    // A commit lands during the session.
+    let r = git2::Repository::open(&env.repo).unwrap();
+    let mut index = r.index().unwrap();
+    index.add_path(Path::new("src/lib.rs")).unwrap();
+    let tree = r.find_tree(index.write_tree().unwrap()).unwrap();
+    let sig = git2::Signature::now("t", "t@example.invalid").unwrap();
+    let parent = r.head().unwrap().peel_to_commit().unwrap();
+    r.commit(Some("HEAD"), &sig, &sig, "fix refresh", &tree, &[&parent])
+        .unwrap();
+    env.hook("claude", "Stop", &ev("Stop", json!({})), &env.repo);
+
+    // The raw log: redacted, no ignored path, nothing from before consent.
+    let logs: Vec<_> = std::fs::read_dir(env.home.join("projects"))
+        .unwrap()
+        .flat_map(|p| std::fs::read_dir(p.unwrap().path().join("episodes")).unwrap())
+        .map(|e| e.unwrap().path())
+        .collect();
+    assert_eq!(logs.len(), 1, "{logs:?}");
+    let raw = std::fs::read_to_string(&logs[0]).unwrap();
+    assert!(!raw.contains("ghp_") && !raw.contains("hunter2"), "{raw}");
+    assert!(!raw.contains("secrets/"), "{raw}");
+    assert!(raw.contains("[REDACTED:github-token]") && raw.contains("[REDACTED:secret]"));
+    assert_eq!(
+        raw.lines().filter(|l| l.contains("session_start")).count(),
+        1
+    );
+
+    let o = env.myrn(&["log", "--json"]);
+    let v: Value =
+        serde_json::from_slice(&o.stdout).unwrap_or_else(|e| panic!("{e}: {}", text(&o)));
+    let ep = &v[0];
+    assert_eq!(ep["session"], "sess-42");
+    assert_eq!(ep["files_edited"], json!(["src/lib.rs"]));
+    assert_eq!(
+        ep["symbols_touched"],
+        json!(["sym:src/lib.rs#refresh_session"])
+    );
+    assert_eq!(
+        (ep["tests_failed"].as_i64(), ep["tests_passed"].as_i64()),
+        (Some(1), Some(1))
+    );
+    assert!(
+        ep["commits"][0].as_str().unwrap().ends_with("fix refresh"),
+        "{ep}"
+    );
+
+    let t = text(&env.myrn(&["log"]));
+    assert!(
+        t.contains("tests_passed") && t.contains("fix refresh_session"),
+        "{t}"
+    );
+    let t = text(&env.myrn(&["log", "sess"]));
+    assert!(
+        t.contains("[test fail]") && t.contains("sym:src/lib.rs#refresh_session"),
+        "{t}"
+    );
+
+    // The Episode node is in the graph with a touches edge, and survives rebuild.
+    for _ in 0..2 {
+        let t = text(&env.myrn(&["show", "episode:sess-42"]));
+        assert!(
+            t.contains("touches") && t.contains("refresh_session"),
+            "{t}"
+        );
+        assert!(env.myrn(&["rebuild"]).status.success());
+    }
+
+    // Disconnect withdraws consent: later events are not recorded.
+    assert!(env.myrn(&["disconnect"]).status.success());
+    let before = std::fs::read_to_string(&logs[0]).unwrap();
+    env.hook("claude", "Stop", &ev("Stop", json!({})), &env.repo);
+    assert_eq!(std::fs::read_to_string(&logs[0]).unwrap(), before);
+}

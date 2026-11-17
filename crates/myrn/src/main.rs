@@ -41,6 +41,14 @@ enum Command {
     },
     /// Recreate the index from the code
     Rebuild,
+    /// Recorded agent sessions, newest first; one session in full with its id
+    Log {
+        /// Session id or unique prefix
+        session: Option<String>,
+        /// Maximum sessions
+        #[arg(short = 'n', long, default_value_t = 20)]
+        limit: usize,
+    },
     /// Diagnose store, index and setup problems
     Doctor,
     /// What a symbol or file is, who calls it, which tests cover it
@@ -121,6 +129,7 @@ fn main() -> ExitCode {
         Command::Context { task, budget } => cmd::query::context(&ctx, &task.join(" "), budget),
         Command::Brief { budget } => cmd::query::brief(&ctx, budget),
         Command::Mcp => cmd::mcp::run(&ctx),
+        Command::Log { session, limit } => cmd::log::run(&ctx, session.as_deref(), limit),
         Command::Connect {
             all,
             agents,

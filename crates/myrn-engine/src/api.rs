@@ -11,6 +11,7 @@ use myrn_store::graph::{self, Dir, Node};
 use myrn_store::{paths, Db, Layout};
 use serde::Serialize;
 
+use crate::capture::{self, episode::Episode};
 use crate::config::{Config, INITIAL_IGNORE};
 use crate::indexer::{self, git, lang::Lang, IndexReport};
 use crate::pack::cards::{FileCard, ImpactReport, Link, SymbolCard};
@@ -280,7 +281,9 @@ impl Engine {
             }
         }
         self.db = Db::open(&path)?;
-        self.refresh()
+        let report = self.refresh()?;
+        self.reindex_episodes()?;
+        Ok(report)
     }
 
     // ------------------------------------------------------------ queries
@@ -564,28 +567,72 @@ impl Engine {
 
     /// A ranked context pack for a described task. Empty when nothing is relevant enough.
     pub fn context(&self, task: &str, budget: Option<usize>) -> Result<Pack> {
-        let budget = budget.unwrap_or(self.config.context.prompt_budget);
+        let cfg = &self.config.context;
+        let budget = budget.unwrap_or(cfg.prompt_budget);
         let seeds = seed::seeds(&self.db, task)?;
         let ranked = rank::rank(&self.db, seeds)?;
+        let Some(top) = ranked.first() else {
+            return Ok(Pack::empty());
+        };
+        // Only items close to the best match; never pad to fill the budget.
+        let cutoff = (top.score * RELATIVE_CUTOFF).max(rank::MIN_SCORE);
+        let history = asks_about_history(task);
+        let tests = asks_about_tests(task);
         let mut items = Vec::new();
-        for r in ranked.iter().take(40) {
-            if let Some(n) = graph::node(&self.db.conn, &r.id)? {
-                items.push(n);
+        for r in ranked.iter().filter(|r| r.score >= cutoff) {
+            // Tests of a match are summarised on its card, not listed.
+            if r.why == "tests a match" {
+                continue;
+            }
+            let Some(n) = graph::node(&self.db.conn, &r.id)? else {
+                continue;
+            };
+            let in_tests = n.ntype == "test" || n.path.as_deref().is_some_and(is_test_path);
+            if (n.ntype == "commit" && !history) || (in_tests && !tests) {
+                continue;
+            }
+            items.push(n);
+            if items.len() >= cfg.max_items * 2 {
+                break;
             }
         }
+        seed::drop_shadowed_stubs(&mut items);
+        items.truncate(cfg.max_items);
+
         let mut cards = Vec::new();
-        for n in items.iter().filter(|n| n.ntype == "symbol").take(3) {
-            let mut card = self.symbol_card(n.clone())?;
-            card.commits.truncate(2);
-            cards.push(card.render(5));
+        let mut rest = Vec::new();
+        for n in items {
+            if n.ntype == "symbol" && cards.len() < 2 {
+                // The best match is usually what the task is about: allow it more.
+                let limit = if cards.is_empty() {
+                    cfg.code_lines * 2
+                } else {
+                    cfg.code_lines
+                };
+                let code = self.source_if_short(&n, limit);
+                let card = self.symbol_card(n.clone())?;
+                cards.push((n.id.clone(), card.render_compact(code.as_deref(), history)));
+            } else {
+                rest.push(n);
+            }
         }
-        let (text, listed) = render::pack(&items, &cards, budget);
-        let ids: Vec<String> = items.iter().take(listed).map(|n| n.id.clone()).collect();
+        let (text, ids) = render::pack(&cards, &rest, budget);
         Ok(Pack {
             tokens: budget::tokens(&text),
             text,
             items: ids,
         })
+    }
+
+    /// The symbol's current source, when it is short enough to inject whole.
+    fn source_if_short(&self, n: &Node, max_lines: usize) -> Option<String> {
+        let (start, end) = (n.start_line? as usize, n.end_line? as usize);
+        if start == 0 || end < start || end - start + 1 > max_lines {
+            return None;
+        }
+        let text = std::fs::read_to_string(self.root().join(n.path.as_deref()?)).ok()?;
+        let lines: Vec<&str> = text.lines().skip(start - 1).take(end - start + 1).collect();
+        (!lines.is_empty()).then(|| lines.join("\n"))
     }
 
     /// The short project brief served at session start.
@@ -633,25 +680,6 @@ impl Engine {
             let e: Vec<String> = entries.iter().filter_map(|n| n.path.clone()).collect();
             b.push(&format!("entry points: {}\n", e.join(", ")));
         }
-        let mut stmt = c.prepare(
-            "SELECT e.dst, COUNT(*) AS n FROM edges e WHERE e.rel = 'calls'
-             GROUP BY e.dst ORDER BY n DESC LIMIT 8",
-        )?;
-        let central: Vec<(String, i64)> = stmt
-            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
-            .collect::<rusqlite::Result<_>>()?;
-        if !central.is_empty() {
-            b.push("most-called:\n");
-            for (id, n) in central {
-                if let Some(node) = graph::node(c, &id)? {
-                    b.push(&format!(
-                        "  {}  {} ({n} callers)\n",
-                        node.display_name(),
-                        node.location()
-                    ));
-                }
-            }
-        }
         b.push("Use the explain, impact and context tools for detail.\n");
         let text = b.out;
         Ok(Pack {
@@ -673,6 +701,137 @@ impl Engine {
 
     pub fn log_injection(&self, session: &str, items: &[String]) -> Result<()> {
         log::record(&self.db.conn, session, items)
+    }
+
+    // ------------------------------------------------------------ capture
+
+    /// Record one hook event in the session's episode log, if the developer
+    /// consented and this agent is connected with hooks. Returns whether
+    /// anything was written.
+    pub fn capture(&mut self, agent: &str, event: &myrn_model::event::Event) -> Result<bool> {
+        use myrn_model::event::{EventKind, ToolOutcome};
+        use myrn_store::episodes;
+
+        if !capture::consent::may_record(&self.state()?, agent) {
+            return Ok(false);
+        }
+        let ignore = indexer::walk::load_ignore(&self.layout.repo_root, &self.layout.ignore_path());
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        let root = self.layout.repo_root.clone();
+        let Some(mut entry) = capture::to_entry(agent, event, &root, &ignore, now) else {
+            return Ok(false);
+        };
+        let session = event.session_id.as_str();
+        let dir = self.layout.episodes_dir();
+        let log_path = episodes::path_for(&dir, session);
+
+        match &event.kind {
+            EventKind::ToolResult(r) if r.outcome == ToolOutcome::FileEdit => {
+                entry.symbols = self.touched_symbols(&entry.files)?;
+            }
+            EventKind::SessionEnd { .. } => {
+                let started = episodes::read(&log_path)
+                    .ok()
+                    .and_then(|e| e.first().map(|e| e.t))
+                    .unwrap_or(now);
+                entry.commits = capture::outcome::commits_since(&root, started, 50);
+            }
+            _ => {}
+        }
+        episodes::append(&dir, session, &entry)?;
+        let ep = capture::episode::fold(&episode_key(&log_path), &episodes::read(&log_path)?);
+        capture::episode::persist(&self.db.conn, &ep)?;
+        Ok(true)
+    }
+
+    /// Re-parse the edited files and return the symbols whose body changed,
+    /// appeared or disappeared.
+    fn touched_symbols(&mut self, files: &[String]) -> Result<Vec<String>> {
+        let snapshot = |conn: &rusqlite::Connection| -> Result<BTreeMap<String, Option<String>>> {
+            let mut out = BTreeMap::new();
+            let mut stmt = conn.prepare_cached(
+                "SELECT id, body_hash FROM nodes WHERE path = ?1 AND type IN ('symbol', 'test')",
+            )?;
+            for f in files {
+                let rows = stmt.query_map([f], |r| Ok((r.get::<_, String>(0)?, r.get(1)?)))?;
+                for row in rows {
+                    let (id, h) = row?;
+                    out.insert(id, h);
+                }
+            }
+            Ok(out)
+        };
+        let before = snapshot(&self.db.conn)?;
+        self.refresh()?;
+        let after = snapshot(&self.db.conn)?;
+        let mut out: Vec<String> = after
+            .iter()
+            .filter(|(id, h)| before.get(*id) != Some(h))
+            .map(|(id, _)| id.clone())
+            .collect();
+        out.extend(before.keys().filter(|id| !after.contains_key(*id)).cloned());
+        out.sort();
+        Ok(out)
+    }
+
+    /// Recreate Episode nodes from the logs (after `rebuild`).
+    pub fn reindex_episodes(&self) -> Result<usize> {
+        let mut n = 0;
+        for (key, path) in myrn_store::episodes::list(&self.layout.episodes_dir())? {
+            let entries = myrn_store::episodes::read(&path)?;
+            if entries.is_empty() {
+                continue;
+            }
+            capture::episode::persist(&self.db.conn, &capture::episode::fold(&key, &entries))?;
+            n += 1;
+        }
+        Ok(n)
+    }
+
+    /// Recorded sessions, newest first.
+    pub fn episodes(&self, limit: usize) -> Result<Vec<Episode>> {
+        let mut out = Vec::new();
+        for (key, path) in myrn_store::episodes::list(&self.layout.episodes_dir())?
+            .into_iter()
+            .take(limit)
+        {
+            let entries = myrn_store::episodes::read(&path)?;
+            if !entries.is_empty() {
+                out.push(capture::episode::fold(&key, &entries));
+            }
+        }
+        out.sort_by_key(|e| std::cmp::Reverse(e.started));
+        Ok(out)
+    }
+
+    /// One session's log, by id or unique prefix.
+    pub fn episode_log(
+        &self,
+        session: &str,
+    ) -> Result<Option<(Episode, Vec<myrn_store::episodes::Entry>)>> {
+        let all = myrn_store::episodes::list(&self.layout.episodes_dir())?;
+        let wanted = myrn_store::episodes::file_name(session);
+        let wanted = wanted.trim_end_matches(".jsonl");
+        let matches: Vec<_> = all
+            .iter()
+            .filter(|(k, _)| k == wanted || k.starts_with(wanted))
+            .collect();
+        let pick = matches
+            .iter()
+            .find(|(k, _)| k == wanted)
+            .or(if matches.len() == 1 {
+                matches.first()
+            } else {
+                None
+            });
+        let Some((key, path)) = pick else {
+            return Ok(None);
+        };
+        let entries = myrn_store::episodes::read(path)?;
+        Ok(Some((capture::episode::fold(key, &entries), entries)))
     }
 
     /// One node with all its edges.
@@ -854,4 +1013,70 @@ impl Engine {
         ));
         out
     }
+}
+
+impl Pack {
+    pub fn empty() -> Pack {
+        Pack {
+            text: String::new(),
+            items: Vec::new(),
+            tokens: 0,
+        }
+    }
+}
+
+/// Items scoring below this share of the best match are left out.
+const RELATIVE_CUTOFF: f64 = 0.4;
+
+/// Does the task ask about history (so commits are worth showing)?
+fn asks_about_history(task: &str) -> bool {
+    let t = task.to_lowercase();
+    if t.contains("used to") {
+        return true;
+    }
+    t.split(|c: char| !c.is_alphanumeric()).any(|w| {
+        matches!(
+            w,
+            "commit"
+                | "commits"
+                | "history"
+                | "historical"
+                | "regression"
+                | "regressed"
+                | "regressions"
+                | "broke"
+                | "introduced"
+                | "changed"
+                | "revert"
+                | "reverted"
+                | "blame"
+                | "previously"
+                | "recently"
+        )
+    })
+}
+
+/// A file that holds tests: `tests/…`, `test_x.py`, `x_test.go`, `x.test.ts`, `x.spec.js`.
+fn is_test_path(path: &str) -> bool {
+    let file = path.rsplit('/').next().unwrap_or(path);
+    path.split('/')
+        .any(|d| matches!(d, "test" | "tests" | "__tests__" | "spec"))
+        || file.starts_with("test_")
+        || file.contains("_test.")
+        || file.contains(".test.")
+        || file.contains(".spec.")
+}
+
+/// Is the task about tests themselves?
+fn asks_about_tests(task: &str) -> bool {
+    task.to_lowercase()
+        .split(|c: char| !c.is_alphanumeric())
+        .any(|w| w.starts_with("test") || w == "spec" || w == "specs")
+}
+
+/// The session key an episode log is stored under (its file stem).
+fn episode_key(path: &Path) -> String {
+    path.file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }

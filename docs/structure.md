@@ -54,8 +54,8 @@ go through `myrn_engine::api`.
 | Ignore rules | `ignore` | `.gitignore` plus `.myrn/ignore` |
 | MCP | none | JSON-RPC over stdio is small enough to write directly (`myrn-mcp/src/server.rs`) |
 
-Not added yet: `sqlite-vec` and an embedding model (optional, later phases),
-`serde_yaml` for note headers (Phase 1).
+Also used: `regex` (secret redaction) and, in `bench/` only, `serde_yaml` for task files.
+Not added yet: `sqlite-vec` and an embedding model (optional, later phases).
 
 ## Build order (from the roadmap)
 
@@ -74,6 +74,14 @@ Not added yet: `sqlite-vec` and an embedding model (optional, later phases),
 | 9 | MCP server | `myrn-mcp` (`explain`, `impact`, `context` first) |
 | Gate 0 | Are `explain` and `impact` answers correct? | |
 
-**Later phases** (order to be confirmed): `capture`, `distill`, `validity` and
-adapters with hooks; `bench` gate, then automatic injection by default;
-`publish` and sharing.
+**Phase 1 (steps 10–13)**: built; the Gate 1 run is pending ([gate1.md](gate1.md)).
+
+| Step | Work | Where |
+|---|---|---|
+| 10 | Adapter contract, Claude Code adapter, `connect`, hooks | `myrn-adapters`, `myrn::cmd::{connect,hook}` |
+| 11 | Codex adapter, pull-only mode | `myrn-adapters::{codex,pull_only}` |
+| 12 | Episode capture, secret redaction, `myrn log` | `myrn-engine::capture`, `myrn-store::episodes`, `myrn::cmd::log` |
+| 13 | Paired benchmark | `bench/` ([README](../bench/README.md)) |
+
+**Later phases**: `distill` and the record tool; `validity`; usage-driven
+ranking; `publish` and sharing.

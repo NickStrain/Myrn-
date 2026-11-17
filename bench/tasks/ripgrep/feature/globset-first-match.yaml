@@ -1,0 +1,55 @@
+id: ripgrep/feature/globset-first-match
+repo: ripgrep
+kind: feature
+prompt: |
+  Add a public method to globset's `GlobSet`:
+
+      pub fn first_match<P: AsRef<Path>>(&self, path: P) -> Option<usize>
+
+  It returns the index of the first glob, in the order globs were added to the
+  builder, that matches the path, or `None` if no glob matches. Document it and
+  make sure the globset crate's tests pass.
+solution:
+  patch: |
+    diff --git a/crates/globset/src/lib.rs b/crates/globset/src/lib.rs
+    index 24fd6b1..ee3be79 100644
+    --- a/crates/globset/src/lib.rs
+    +++ b/crates/globset/src/lib.rs
+    @@ -396,6 +396,12 @@ impl GlobSet {
+             true
+         }
+     
+    +    /// Returns the sequence number of the first glob, in the order they were
+    +    /// added, that matches the given path.
+    +    pub fn first_match<P: AsRef<Path>>(&self, path: P) -> Option<usize> {
+    +        self.matches(path).into_iter().min()
+    +    }
+    +
+         /// Returns the sequence number of every glob pattern that matches the
+         /// given path.
+         pub fn matches<P: AsRef<Path>>(&self, path: P) -> Vec<usize> {
+check:
+  files:
+    crates/globset/tests/bench_check.rs: |
+      use globset::{Glob, GlobSet, GlobSetBuilder};
+
+      fn set(globs: &[&str]) -> GlobSet {
+          let mut b = GlobSetBuilder::new();
+          for g in globs {
+              b.add(Glob::new(g).unwrap());
+          }
+          b.build().unwrap()
+      }
+
+      #[test]
+      fn first_match_is_the_lowest_index() {
+          let s = set(&["*.txt", "src/**", "*.rs", "src/lib.rs"]);
+          assert_eq!(s.first_match("src/lib.rs"), Some(1));
+          assert_eq!(s.first_match("main.rs"), Some(2));
+          assert_eq!(s.first_match("a.txt"), Some(0));
+          assert_eq!(s.first_match("README.md"), None);
+          assert_eq!(set(&[]).first_match("x"), None);
+      }
+  run: cargo test -q -p globset
+touches:
+  - crates/globset/src/lib.rs

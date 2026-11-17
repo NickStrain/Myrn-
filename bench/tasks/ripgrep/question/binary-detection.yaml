@@ -1,0 +1,12 @@
+id: ripgrep/question/binary-detection
+repo: ripgrep
+kind: question
+prompt: |
+  How does ripgrep's searcher decide what to do when a file looks binary? Name the
+  type that configures this, the constructors for each of its modes, and what each
+  mode does. Answer from the code; do not change any files.
+answer_contains:
+  - BinaryDetection
+  - quit
+  - convert
+timeout_secs: 600

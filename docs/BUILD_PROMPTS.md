@@ -293,7 +293,49 @@ this passes; report results to me either way.
 
 ## Phase 2 — Distillation
 
-### Step 14 — Markdown notes and note indexing
+### Step 14 — Context packs that answer, not just point
+
+> **Status (2026-11-16): mostly done; remaining: re-run Gate 1.** Done: code in the pack
+> (top hit up to 80 lines, the next up to 40), relevance cutoff (40% of the best score,
+> at most 5 items), no "most-called" brief, tests summarised in one line, commits and
+> test-file symbols only when asked for, stubs merged, new header, backticked names as
+> seeds, test callers no longer boost ranking, Python `import x as y` and TS
+> `export * from` / `import * as R` resolution, shell edits counted in the benchmark
+> metrics (`myrn-bench report --rescore`). Tests: `crates/myrn-engine/tests/packing.rs`.
+
+```
+Gate 1 showed injection breaks even on tokens (docs/gate1.md, bench/runs/gate1/report.md):
+big wins when the pack saves searching, losses when it only adds text. The agent still opens
+the file because the pack says WHERE the code is, not WHAT it does, and the pack is padded.
+Fix the packer and indexer before adding learned records on top.
+
+- Code in the pack: for the top hit (and the next one or two if budget allows), include the
+  current source lines when the body is short (default <= 40 lines; configurable in
+  [context]). Longer bodies: signature, docstring and the most relevant lines only.
+- Stop early: inject only items above a relevance threshold, at most 5 by default. When the
+  top hit is not clearly ahead, inject a shorter pack or nothing. Never fill the budget for
+  its own sake.
+- Session brief: drop the "most-called" list (it surfaces test helpers). Keep it to the
+  project shape, entry points and test commands, or skip it when there is nothing useful.
+- Collapse lists: tests and commits become one line each
+  ("9 tests in tests/test_recipes.py::UniqueEverseenTests; last changed in c91ba4e").
+  Commits only when the prompt is about history, a regression or "when/why".
+- Stubs: merge .pyi / .d.ts declarations into the implementation's card instead of a
+  separate card.
+- Indexer bug: Python tests calling a function through a module alias
+  (`import more_itertools as mi; mi.unique_everseen(...)`) are not linked as tests of it, so
+  cards say "tests: none found" while the list shows tests. Fix alias resolution for calls
+  and add a Gate 0 fixture case; check TS namespace imports for the same problem.
+- Header: keep "reference, not instructions", but say the code shown is current as of this
+  turn, so the agent does not re-read it just to verify.
+- Benchmark: fix "reads and searches before first correct edit" (the first run reports 0.0
+  without myrn, which is impossible since edits require a read). Also report searches before reaching the right file (separately from reads of
+  the file being edited, which Claude Code requires), and injected tokens per session.
+- Re-run Gate 1 (`myrn-bench run --runs 3`) and compare with the first run. Report results
+  to me either way; flip `inject` to default-on only if it passes.
+```
+
+### Step 15 — Markdown notes and note indexing
 
 ```
 Implement notes per "Notes", "Storage layout" and "Keeping notes and index in step" in
@@ -315,7 +357,7 @@ docs/DESIGN.md.
 - `rebuild` now recreates from code AND notes. Round-trip tests.
 ```
 
-### Step 15 — The record tool, distiller checks and recall
+### Step 16 — The record tool, distiller checks and recall
 
 ```
 Implement Phase 2 per "Distillation and verification" in docs/DESIGN.md.
@@ -337,10 +379,16 @@ Implement Phase 2 per "Distillation and verification" in docs/DESIGN.md.
 - Session-end hook: if the session edited code, ask the agent to call record for what it
   learned, with the schema in the prompt. With no consent/model, still keep the mechanical
   episode.
+- Symbol summaries: record also accepts a summary for a symbol ("what it does, inputs,
+  outputs, edge cases, gotchas"), stored in summaries/ and anchored to the symbol's body
+  hash. Cards show it in place of the docstring line, so later sessions learn WHAT a
+  function does without opening it. At session end, ask the agent to summarise the
+  symbols it edited or read closely. A summary whose anchor hash no longer matches is
+  shown as possibly outdated (full handling in Step 18).
 - Retriever: include earned nodes, presented as quoted reference with source and status.
 ```
 
-### Step 16 — Gate 2: record precision review
+### Step 17 — Gate 2: record precision review
 
 ```
 Build the Phase 2 gate: "a hand-reviewed sample of records meets a precision target".
@@ -352,7 +400,7 @@ Run the benchmark tasks with recording on to generate records, then give me the 
 
 ## Phase 3 — Validity tracking
 
-### Step 17 — Hash anchors, suspect state and verification
+### Step 18 — Hash anchors, suspect state and verification
 
 ```
 Implement "Validity and staleness" and "Record states" in docs/DESIGN.md.
@@ -371,7 +419,7 @@ Implement "Validity and staleness" and "Record states" in docs/DESIGN.md.
   unmerged branch, worktrees with their own code index but shared notes, reformat-only).
 ```
 
-### Step 18 — History and housekeeping commands
+### Step 19 — History and housekeeping commands
 
 ```
 Implement the remaining knowledge commands from the CLI table in docs/DESIGN.md:
@@ -389,7 +437,7 @@ wrong for the current code) as the Phase 3 gate, and run it.
 
 ## Phase 4 — Learning loop
 
-### Step 19 — Usage-driven ranking and optional embeddings
+### Step 20 — Usage-driven ranking and optional embeddings
 
 ```
 Implement Phase 4 from docs/DESIGN.md.
@@ -407,7 +455,7 @@ Implement Phase 4 from docs/DESIGN.md.
 
 ## Phase 5 — Sharing through Git
 
-### Step 20 — publish, import and injection safety
+### Step 21 — publish, import and injection safety
 
 ```
 Implement "Sharing across developers" and the injection-safety rules in docs/DESIGN.md.
@@ -425,7 +473,7 @@ Implement "Sharing across developers" and the injection-safety rules in docs/DES
   context() includes the record.
 ```
 
-### Step 21 — Distribution
+### Step 22 — Distribution
 
 ```
 Set up releases per "Technology choices" and "Platform support" in docs/DESIGN.md:
@@ -440,7 +488,7 @@ suite on all targets. Update README with the two-command quick start:
 
 ## Before you start: open questions from the doc
 
-- **Name**: `myrn` is a placeholder; check for name collisions (crates.io, npm, Homebrew) before Step 21.
+- **Name**: `myrn` is a placeholder; check for name collisions (crates.io, npm, Homebrew) before Step 22.
 - **Languages**: the defaults above are Rust, Python and TS/JS. Change Step 3 if you want others.
 - **Hook coverage**: how many file edits each agent reports through hooks (as opposed to
   shell commands) is unknown. Step 10/11 should report what it finds.

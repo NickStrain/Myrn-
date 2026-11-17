@@ -1,0 +1,50 @@
+id: ripgrep/feature/glob-is-literal
+repo: ripgrep
+kind: feature
+prompt: |
+  Add a public method to globset's `Glob`:
+
+      pub fn is_literal(&self) -> bool
+
+  It returns true when the pattern has no wildcards (`*`, `?`, `**`), character
+  classes or `{a,b}` alternations. Case-insensitivity doesn't matter: a glob
+  built with `GlobBuilder::new("Foo.TXT").case_insensitive(true)` is literal
+  too. Document it and make sure the globset crate's tests pass.
+solution:
+  patch: |
+    diff --git a/crates/globset/src/glob.rs b/crates/globset/src/glob.rs
+    index 8f84804..7f3669f 100644
+    --- a/crates/globset/src/glob.rs
+    +++ b/crates/globset/src/glob.rs
+    @@ -337,6 +337,12 @@ impl Glob {
+             &self.re
+         }
+     
+    +    /// Returns true if this pattern has no wildcards, classes or
+    +    /// alternations, so it can only match one exact path.
+    +    pub fn is_literal(&self) -> bool {
+    +        self.tokens.iter().all(|t| matches!(t, Token::Literal(_)))
+    +    }
+    +
+         /// Returns the pattern as a literal if and only if the pattern must match
+         /// an entire path exactly.
+         ///
+check:
+  files:
+    crates/globset/tests/bench_check.rs: |
+      use globset::{Glob, GlobBuilder};
+
+      #[test]
+      fn literal_globs() {
+          for p in ["foo/bar.rs", "README.md", "a-b_c.txt"] {
+              assert!(Glob::new(p).unwrap().is_literal(), "{p}");
+          }
+          for p in ["*.rs", "foo/**/bar", "a?c", "[ab].txt", "{a,b}.rs", "src/**"] {
+              assert!(!Glob::new(p).unwrap().is_literal(), "{p}");
+          }
+          let ci = GlobBuilder::new("Foo.TXT").case_insensitive(true).build().unwrap();
+          assert!(ci.is_literal());
+      }
+  run: cargo test -q -p globset
+touches:
+  - crates/globset/src/glob.rs

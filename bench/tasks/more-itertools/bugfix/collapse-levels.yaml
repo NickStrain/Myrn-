@@ -1,0 +1,42 @@
+id: more-itertools/bugfix/collapse-levels
+repo: more-itertools
+kind: bugfix
+prompt: |
+  `collapse` with `levels` flattens one level too few:
+  `list(collapse([('a', ['b']), ('c', ['d'])], levels=1))` returns
+  `[('a', ['b']), ('c', ['d'])]` instead of `['a', ['b'], 'c', ['d']]`.
+  Find the cause and fix it. Make sure the test suite still passes
+  (`python3 -m unittest discover -s tests -t .`).
+setup:
+  patch: |
+    diff --git a/more_itertools/more.py b/more_itertools/more.py
+    index 068ed68..4b60384 100755
+    --- a/more_itertools/more.py
+    +++ b/more_itertools/more.py
+    @@ -1453,7 +1453,7 @@ def collapse(iterable, base_type=None, levels=None):
+             level, nodes = node_group
+     
+             # Check if beyond max level
+    -        if levels is not None and level > levels:
+    +        if levels is not None and level >= levels:
+                 yield from nodes
+                 continue
+     
+check:
+  files:
+    tests/test_bench_check.py: |
+      from unittest import TestCase
+
+      from more_itertools import collapse
+
+
+      class CollapseLevels(TestCase):
+          def test_levels(self):
+              data = [('a', ['b']), ('c', ['d'])]
+              self.assertEqual(list(collapse(data, levels=1)), ['a', ['b'], 'c', ['d']])
+              self.assertEqual(list(collapse(data, levels=2)), ['a', 'b', 'c', 'd'])
+              self.assertEqual(list(collapse(data)), ['a', 'b', 'c', 'd'])
+              self.assertEqual(list(collapse([[1, [2]], 3], levels=0)), [[1, [2]], 3])
+  run: python3 -m unittest -q tests.test_bench_check tests.test_more
+touches:
+  - more_itertools/more.py

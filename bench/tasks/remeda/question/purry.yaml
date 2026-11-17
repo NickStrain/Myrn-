@@ -1,0 +1,12 @@
+id: remeda/question/purry
+repo: remeda
+kind: question
+prompt: |
+  How does remeda let the same utility be called both data-first
+  (`clamp(5, { min: 0 })`) and data-last (`clamp({ min: 0 })(5)`)? Name the helper
+  functions involved and how they decide which call style was used. Answer from
+  the code; do not change any files.
+answer_contains:
+  - purry
+  - arguments.length
+timeout_secs: 600

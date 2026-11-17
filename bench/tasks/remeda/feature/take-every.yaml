@@ -1,0 +1,105 @@
+id: remeda/feature/take-every
+repo: remeda
+kind: feature
+prompt: |
+  Add a data-first utility `takeEvery(data, n, start = 0)` to remeda in
+  `packages/remeda/src/takeEvery.ts`, exported from the package index like the
+  other utilities. It returns every n-th item of the array, beginning with the
+  item at index `start`: `takeEvery([1, 2, 3, 4, 5, 6, 7], 3)` is `[1, 4, 7]` and
+  `takeEvery([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 4, 1)` is `[1, 5, 9]`. It throws a
+  `RangeError` if `n` is less than 1 or `start` is negative. Document it like the
+  neighbouring utilities.
+  npm dependencies are not installed and there is no network access. Node 24 is
+  available and can run TypeScript files directly.
+solution:
+  patch: |
+    diff --git a/packages/remeda/src/index.ts b/packages/remeda/src/index.ts
+    index ed5b86a..319cd8c 100644
+    --- a/packages/remeda/src/index.ts
+    +++ b/packages/remeda/src/index.ts
+    @@ -140,6 +140,7 @@ export * from "./sumBy";
+     export * from "./swapIndices";
+     export * from "./swapProps";
+     export * from "./take";
+    +export * from "./takeEvery";
+     export * from "./takeFirstBy";
+     export * from "./takeLast";
+     export * from "./takeLastWhile";
+    diff --git a/packages/remeda/src/takeEvery.ts b/packages/remeda/src/takeEvery.ts
+    new file mode 100644
+    index 0000000..a7d1fc6
+    --- /dev/null
+    +++ b/packages/remeda/src/takeEvery.ts
+    @@ -0,0 +1,33 @@
+    +/**
+    + * Takes every `n`-th item of the array, starting with the item at index
+    + * `start` (default 0).
+    + *
+    + * @param data - The array.
+    + * @param n - The distance between taken items; at least 1.
+    + * @param start - The index of the first item taken; not negative.
+    + * @signature
+    + *    R.takeEvery(data, n, start?)
+    + * @example
+    + *    R.takeEvery([1, 2, 3, 4, 5, 6, 7], 3); // => [1, 4, 7]
+    + *    R.takeEvery([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 4, 1); // => [1, 5, 9]
+    + * @category Array
+    + */
+    +export function takeEvery<T>(
+    +  data: readonly T[],
+    +  n: number,
+    +  start = 0,
+    +): T[] {
+    +  if (n < 1) {
+    +    throw new RangeError(`takeEvery: n must be at least 1, got ${n.toString()}`);
+    +  }
+    +  if (start < 0) {
+    +    throw new RangeError(
+    +      `takeEvery: start must not be negative, got ${start.toString()}`,
+    +    );
+    +  }
+    +  const result: T[] = [];
+    +  for (let index = start; index < data.length; index += n) {
+    +    result.push(data[index]!);
+    +  }
+    +  return result;
+    +}
+check:
+  files:
+    packages/remeda/test/bench-loader.mjs: |
+      // Resolve remeda's extensionless relative imports to .ts files, so Node 24
+      // can run the sources directly (types are stripped) without npm install.
+      import { registerHooks } from "node:module";
+
+      registerHooks({
+        resolve(specifier, context, nextResolve) {
+          try {
+            return nextResolve(specifier, context);
+          } catch (error) {
+            if (!specifier.startsWith(".")) throw error;
+            try {
+              return nextResolve(`${specifier}.ts`, context);
+            } catch {
+              return nextResolve(`${specifier}/index.ts`, context);
+            }
+          }
+        },
+      });
+    packages/remeda/test/bench-check.test.ts: |
+      import assert from "node:assert/strict";
+      import { test } from "node:test";
+      import { takeEvery } from "../src/index.ts";
+
+      test("takeEvery", () => {
+        assert.deepEqual(takeEvery([1, 2, 3, 4, 5, 6, 7], 3), [1, 4, 7]);
+        assert.deepEqual(takeEvery([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 4, 1), [1, 5, 9]);
+        assert.deepEqual(takeEvery([1, 2, 3], 1), [1, 2, 3]);
+        assert.deepEqual(takeEvery([], 2), []);
+        assert.deepEqual(takeEvery([1, 2], 1, 5), []);
+        assert.throws(() => takeEvery([1], 0), RangeError);
+        assert.throws(() => takeEvery([1], 1, -1), RangeError);
+      });
+  run: cd packages/remeda && node --no-warnings --import ./test/bench-loader.mjs --test test/bench-check.test.ts
+touches:
+  - packages/remeda/src/takeEvery.ts
+  - packages/remeda/src/index.ts

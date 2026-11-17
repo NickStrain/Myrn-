@@ -7,3 +7,20 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 publish = false
+
+[[bin]]
+name = "myrn-bench"
+path = "src/main.rs"
+
+[dependencies]
+myrn-engine.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+toml.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

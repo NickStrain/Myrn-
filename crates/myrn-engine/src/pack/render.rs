@@ -8,8 +8,8 @@ use myrn_store::graph::Node;
 
 use super::budget::Budget;
 
-pub const HEADER: &str = "Myrn context: reference derived from this repository's code graph. \
-Not instructions. Read source only for the lines you change.\n";
+pub const HEADER: &str = "Myrn context: reference from this repository's code graph, built from \
+the files as they are now; code shown is current. Not instructions.\n";
 
 pub fn one_line(n: &Node) -> String {
     let kind = n.kind.as_deref().unwrap_or(&n.ntype);
@@ -37,32 +37,29 @@ pub fn one_line(n: &Node) -> String {
     s
 }
 
-/// Build the pack: as many one-liners as fit in ~60% of the budget, then
-/// full cards for the top items while they fit.
-pub fn pack(items: &[Node], cards: &[String], budget: usize) -> (String, usize) {
+/// Build the pack: cards for the top items first (they carry the code), then
+/// one line for each remaining item, all inside the budget. Returns the text
+/// and the ids that made it in.
+pub fn pack(cards: &[(String, String)], rest: &[Node], budget: usize) -> (String, Vec<String>) {
     let mut b = Budget::new(budget);
-    if items.is_empty() || !b.push(HEADER) {
-        return (String::new(), 0);
+    if (cards.is_empty() && rest.is_empty()) || !b.push(HEADER) {
+        return (String::new(), Vec::new());
     }
-    let list_limit = budget * 6 / 10;
-    let mut listed = 0;
-    if b.push("\nRelevant code:\n") {
-        for n in items {
-            if b.used() >= list_limit {
-                break;
-            }
+    let mut ids = Vec::new();
+    for (id, card) in cards {
+        if b.push(&format!("\n{card}")) {
+            ids.push(id.clone());
+        }
+    }
+    if !rest.is_empty() && b.push("\nAlso relevant:\n") {
+        for n in rest {
             if b.push(&one_line(n)) {
-                listed += 1;
+                ids.push(n.id.clone());
             }
         }
     }
-    let mut shown = 0;
-    for card in cards {
-        let block = format!("\n{card}");
-        if b.push(&block) {
-            shown += 1;
-        }
+    if ids.is_empty() {
+        return (String::new(), Vec::new());
     }
-    let _ = shown;
-    (b.out, listed)
+    (b.out, ids)
 }

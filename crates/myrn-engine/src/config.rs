@@ -48,6 +48,10 @@ pub struct ContextConfig {
     pub inject: bool,
     pub session_budget: usize,
     pub prompt_budget: usize,
+    /// Most items in a prompt pack. Fewer is better than padding.
+    pub max_items: usize,
+    /// Include a top hit's source when its body has at most this many lines.
+    pub code_lines: usize,
 }
 
 impl Default for ContextConfig {
@@ -56,6 +60,8 @@ impl Default for ContextConfig {
             inject: false,
             session_budget: 500,
             prompt_budget: 1500,
+            max_items: 5,
+            code_lines: 40,
         }
     }
 }
@@ -89,11 +95,16 @@ impl Config {
              inject = false\n\
              # Token budgets for injected context.\n\
              session_budget = {}\n\
-             prompt_budget = {}\n",
+             prompt_budget = {}\n\
+             # Most items per prompt pack, and the longest function body shown as code.\n\
+             max_items = {}\n\
+             code_lines = {}\n",
             d.index.max_file_bytes,
             d.index.history_depth,
             d.context.session_budget,
-            d.context.prompt_budget
+            d.context.prompt_budget,
+            d.context.max_items,
+            d.context.code_lines
         )
     }
 }

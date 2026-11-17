@@ -137,9 +137,10 @@ myrn history src/auth/
 | `myrn connect` | Install agent hooks and the MCP server, after consent | Available |
 | `myrn disconnect` | Remove everything `connect` installed | Available |
 | `myrn doctor` | Check the store, the index and each agent's setup | Available |
+| `myrn log [session]` | Recorded agent sessions: task, files, symbols touched, tests, commits | Available |
 | `myrn rebuild` | Recreate the index from scratch | Available |
 | `myrn mcp` | MCP server over stdio, started by the agent | Available |
-| `myrn log`, `trace`, `diff` | History and origin of learned knowledge | Planned |
+| `myrn trace`, `diff` | History and origin of learned knowledge | Planned |
 | `myrn verify`, `forget`, `gc` | Keep learned knowledge correct and tidy | Planned |
 | `myrn publish <id>` | Share a record with your team through Git | Planned |
 
@@ -191,12 +192,13 @@ Measured on public repositories with a release build. Methodology and samples ar
 | Prompt hook with context injection, on ripgrep | 16–19 ms |
 | Call graph on a hand-checked fixture in three languages | Exact match, no wrong links |
 | Hand-checked call links on real repositories | No wrong links in the final sample |
-| Token savings per task | Not yet measured; this is the next gate |
+| Token savings per task | Harness ready ([bench/](bench/)); full Gate 1 run pending |
 
 ## Privacy
 
 - The core makes no network calls. There is no account, server or telemetry.
 - Indexing code needs no permission. Recording agent sessions needs explicit consent in `myrn connect`, and the default answer is no.
+- Session logs hold what the agent did (prompts, files, commands, errors, test results), never the model's replies. Tokens, keys, passwords and long random strings are redacted before anything is written, and paths in `.myrn/ignore` are never recorded.
 - The database lives in your user data directory, outside the repository, so it can't be committed by accident.
 - `myrn disconnect` removes every hook and configuration line that `connect` added.
 
@@ -207,7 +209,7 @@ Each phase ships something usable, and the next phase starts only after its gate
 | Phase | Scope | Status |
 |---|---|---|
 | 0. Code graph | Symbols, calls, imports, tests, Git history, CLI, MCP tools | Done ([gate report](docs/gate0.md)) |
-| 1. Hooks | `myrn connect` for Claude Code and Codex; session recording with secret redaction; benchmark gate | In progress |
+| 1. Hooks | `myrn connect` for Claude Code and Codex; session recording with secret redaction; benchmark gate | Built; gate run pending |
 | 2. Memory | Learned records as Markdown notes: decisions, bugs, root causes, workflows | Planned |
 | 3. Validity | Records anchored to code hashes, flagged when the code changes | Planned |
 | 4. Learning loop | Ranking from what actually helped; optional local embeddings | Planned |

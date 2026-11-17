@@ -3,7 +3,8 @@
 //!
 //! A hook must never get in the agent's way: every failure is swallowed and the
 //! process exits 0 with nothing on stdout. Projects that are not set up, or not
-//! connected for this agent, are ignored.
+//! connected for this agent, are ignored. With consent, every event is also
+//! appended (redacted) to the session's episode log.
 
 use std::io::Read;
 use std::process::ExitCode;
@@ -63,7 +64,11 @@ fn handle(ctx: &Ctx, agent: &str, event_arg: &str, started: Instant) -> Result<S
         EventKind::SessionStart { .. } => {
             engine.refresh()?;
             if inject {
-                engine.brief(None)?.text
+                let pack = engine.brief(None)?;
+                if !pack.text.is_empty() {
+                    engine.log_injection(&event.session_id, &pack.items)?;
+                }
+                pack.text
             } else {
                 String::new()
             }
@@ -76,9 +81,12 @@ fn handle(ctx: &Ctx, agent: &str, event_arg: &str, started: Instant) -> Result<S
             }
             pack.text
         }
-        // Tool results and session ends are recorded by session capture (next step).
         _ => String::new(),
     };
+    // Recording must never cost the agent its context: report and carry on.
+    if let Err(e) = engine.capture(agent, &event) {
+        eprintln!("myrn hook: recording failed: {e:#}");
+    }
     let out = adapter.format(event_arg, &context);
 
     let mut state = engine.state()?;
