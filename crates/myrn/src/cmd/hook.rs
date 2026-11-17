@@ -12,7 +12,7 @@ use std::time::Instant;
 
 use anyhow::Result;
 use myrn_engine::api::Engine;
-use myrn_model::event::EventKind;
+use myrn_model::event::{EventKind, ToolOutcome};
 use myrn_store::state::HookTiming;
 
 use super::Ctx;
@@ -81,12 +81,42 @@ fn handle(ctx: &Ctx, agent: &str, event_arg: &str, started: Instant) -> Result<S
             }
             pack.text
         }
+        // A failing tool: if the error matches a known bug, hand over its cause and fix.
+        EventKind::ToolResult(r)
+            if r.outcome == ToolOutcome::Failure && engine.config.records.recall_on_failure =>
+        {
+            match r.error.as_deref().or(r.command.as_deref()) {
+                Some(err) => {
+                    let (text, ids) =
+                        engine.recall_text(err, engine.config.records.failure_budget)?;
+                    if !ids.is_empty() {
+                        engine.log_injection(&event.session_id, &ids)?;
+                    }
+                    text
+                }
+                None => String::new(),
+            }
+        }
         _ => String::new(),
     };
     // Recording must never cost the agent its context: report and carry on.
     if let Err(e) = engine.capture(agent, &event) {
         eprintln!("myrn hook: recording failed: {e:#}");
     }
+    // End of a turn that edited code: ask the agent to record what it learned.
+    let context = match &event.kind {
+        EventKind::SessionEnd { reason, continued } if reason.as_deref() == Some("stop") => {
+            match engine.records_request(&event.session_id, *continued) {
+                Ok(Some(ask)) => ask,
+                Ok(None) => context,
+                Err(e) => {
+                    eprintln!("myrn hook: record request failed: {e:#}");
+                    context
+                }
+            }
+        }
+        _ => context,
+    };
     let out = adapter.format(event_arg, &context);
 
     let mut state = engine.state()?;

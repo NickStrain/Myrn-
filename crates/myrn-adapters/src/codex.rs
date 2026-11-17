@@ -374,9 +374,14 @@ impl Adapter for Codex {
             }
             "Stop" => EventKind::SessionEnd {
                 reason: Some("stop".into()),
+                continued: p
+                    .get("stop_hook_active")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
             },
             "SessionEnd" => EventKind::SessionEnd {
                 reason: str_field(p, "reason"),
+                continued: false,
             },
             _ => return Ok(None),
         };
@@ -388,10 +393,18 @@ impl Adapter for Codex {
     }
 
     fn format(&self, event: &str, context: &str) -> String {
-        if context.trim().is_empty() || !matches!(event, "SessionStart" | "UserPromptSubmit") {
+        if context.trim().is_empty() {
             return String::new();
         }
-        json!({ "hookSpecificOutput": { "hookEventName": event, "additionalContext": clip(context) } }).to_string()
+        match event {
+            // Keep the agent going for one more step with this instruction.
+            // The agent marks the next Stop with `stop_hook_active`, so it is asked once.
+            "Stop" => json!({ "decision": "block", "reason": clip(context) }).to_string(),
+            "SessionStart" | "UserPromptSubmit" | "PostToolUse" => {
+                json!({ "hookSpecificOutput": { "hookEventName": event, "additionalContext": clip(context) } }).to_string()
+            }
+            _ => String::new(),
+        }
     }
 }
 
@@ -517,7 +530,8 @@ mod tests {
         assert_eq!(
             e.kind,
             EventKind::SessionEnd {
-                reason: Some("stop".into())
+                reason: Some("stop".into()),
+                continued: false,
             }
         );
     }

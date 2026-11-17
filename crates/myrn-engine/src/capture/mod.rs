@@ -89,7 +89,7 @@ pub fn to_entry(
                 return None; // web searches, todo lists and the like
             }
         }
-        EventKind::SessionEnd { reason } => {
+        EventKind::SessionEnd { reason, .. } => {
             e.event = "session_end".into();
             e.reason = reason.clone();
         }

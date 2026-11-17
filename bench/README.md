@@ -31,8 +31,8 @@ transcripts in `raw/`, and `report.md` with the Gate 1 verdict.
    **With myrn:** `myrn init`, `myrn connect --agent claude --yes`,
    `[context] inject = true`, and myrn's MCP server via `--mcp-config`.
    Each run gets a fresh myrn data directory.
-3. Runs `claude -p <prompt> --output-format stream-json --setting-sources project,local --strict-mcp-config`,
-   so user-level settings, hooks and MCP servers don't leak into either side.
+3. Runs `claude -p <prompt> --output-format stream-json --setting-sources local --strict-mcp-config`,
+   so user-level settings, hooks and MCP servers don't leak into either side. Only `local` settings load: myrn writes its hooks to `.claude/settings.local.json`, and a repository's own committed `.claude/settings.json` (hooks, plugins) stays out of every condition.
 4. Scores it: bug fixes and features write hidden test files and run the
    task's check command; questions must mention every `answer_contains` term.
 

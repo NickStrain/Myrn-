@@ -13,6 +13,32 @@ pub struct Config {
     pub index: IndexConfig,
     #[serde(default)]
     pub context: ContextConfig,
+    #[serde(default)]
+    pub records: RecordsConfig,
+}
+
+/// Learned records: asking for them, and recalling them on failures.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct RecordsConfig {
+    /// When a session edited code, ask the agent at the end of its turn to
+    /// call `record` for what it learned (needs recording consent).
+    pub ask_at_session_end: bool,
+    /// When a tool fails, inject the known bug, cause and fix if the error
+    /// matches a recorded one.
+    pub recall_on_failure: bool,
+    /// Token budget for a recall injected on failure.
+    pub failure_budget: usize,
+}
+
+impl Default for RecordsConfig {
+    fn default() -> Self {
+        RecordsConfig {
+            ask_at_session_end: true,
+            recall_on_failure: true,
+            failure_budget: 500,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -98,13 +124,23 @@ impl Config {
              prompt_budget = {}\n\
              # Most items per prompt pack, and the longest function body shown as code.\n\
              max_items = {}\n\
-             code_lines = {}\n",
+             code_lines = {}\n\
+             \n\
+             [records]\n\
+             # At the end of a turn that edited code, ask the agent to record what it learned.\n\
+             ask_at_session_end = {}\n\
+             # On a failing tool, inject a matching known bug with its cause and fix.\n\
+             recall_on_failure = {}\n\
+             failure_budget = {}\n",
             d.index.max_file_bytes,
             d.index.history_depth,
             d.context.session_budget,
             d.context.prompt_budget,
             d.context.max_items,
-            d.context.code_lines
+            d.context.code_lines,
+            d.records.ask_at_session_end,
+            d.records.recall_on_failure,
+            d.records.failure_budget
         )
     }
 }

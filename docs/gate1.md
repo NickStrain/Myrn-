@@ -1,5 +1,10 @@
 # Gate 1: paired benchmark
 
+> **Partial re-run (2026-11-17), after Step 14–16:** 6 tasks × 3 conditions
+> (without myrn / myrn with injection off / injection on) × 2 runs, Opus.
+> Result **INCONCLUSIVE**, leaning positive. Details in "Partial run" below and
+> `bench/runs/partial-gate/report.md` (not committed). Injection stays off.
+
 **Status: first run stopped at 46 of 96 sessions; result INCONCLUSIVE (break-even).
 Injection stays off. Packing fixes are planned as Phase 2's first step (`docs/BUILD_PROMPTS.md`, Step 14), followed by a re-run.**
 The gate is fewer total tokens with no drop in task success. Until it passes,
@@ -125,3 +130,33 @@ Measured on ripgrep with a release build:
 - Edits made through shell commands (`sed -i`, scripts) are recorded as
   commands, not as file edits. How common they are is an open question from
   the design doc. `myrn log <session>` shows it for real sessions.
+
+## Partial run (2026-11-17)
+
+36 sessions with `--model opus` (the default model on this account needed usage credits, so the first attempt was refused by the API and is excluded). Tasks: `collapse-levels`, `windowed-step` (more-itertools), `clamp-zero-limit`, `purry` (remeda), `gitignore-negation-order`, `globset-first-match` (ripgrep). Every session passed its check in every condition.
+
+The metric is **task tokens**: the session total minus myrn's end-of-session recording phase, so it measures what injection does to the task.
+
+| Comparison | All 6 tasks (12 pairs) | Without `clamp-zero-limit` (10 pairs) |
+|---|---|---|
+| Without → injection on | −12% (−20.8k ± 42.2k) | **−30% (−37.7k ± 17.4k), cheaper in 9 of 10** |
+| Without → injection off | −10% (−18.3k ± 21.2k) | −15% (−18.9k ± 18.2k) |
+| Injection off → on | −2% (−2.5k ± 39.8k) | −17% (−18.8k ± 28.7k) |
+
+- `clamp-zero-limit` is dominated by noise. The remeda repo ships its own Claude Code Stop hook (`npm … check`), which fails without `npm install` and makes the agent loop about 10 times in every condition (about 400k tokens).
+- "Injection off" injects nothing, and the agent made no myrn tool calls, yet it reads 10–15% below "without". That gap is the noise floor for this many pairs. Injection's own effect (off → on) is −17% ± 29% without remeda: positive but not established.
+- **Where injection clearly helps:** reads and searches before the first correct edit fall from 2.1 to 0.8. `windowed-step` (a question) costs 19k with injection in both runs, against 44–61k without. Injected items were opened in 54% of cases.
+- **Recording:** only 4 of 24 myrn sessions were asked to record. Most bug fixes were made with `sed -i`, which session capture does not see. An asked session spent 77–102k tokens on recording.
+
+Next: shell-edit capture, ignore repositories' own hooks in the harness, a cheaper `record` (several items per call), and more pairs.
+
+## Proof run: protocol (written before the run, 2026-11-17)
+
+Question: does using myrn reduce the tokens an agent spends?
+
+- Conditions: **without myrn**, and **myrn as a user runs it**: `myrn connect` (hooks, recording, the record request at the end), MCP server, `[context] inject = true`.
+- All 16 tasks × 3 runs, `--model opus`, paired by (task, run), order alternated per run. Only local settings load, so repositories' own hooks don't run. Shell edits are captured; `record` takes a batch.
+- **Claim A (the task):** task tokens (session total minus the API calls after myrn's record request) are lower with myrn. Supported if the 95% interval of the mean paired difference is below zero **and** a two-sided sign test over pairs gives p < 0.05.
+- **Claim B (what you pay):** total tokens including recording are lower, by the same tests.
+- Either claim fails if task success with myrn is lower than without.
+- Both results are reported whatever they show. Runs that fail to run (API errors) are excluded and listed; no other exclusions.

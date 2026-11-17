@@ -45,6 +45,29 @@ pub struct Session {
     /// Repo-relative files the agent read or edited.
     pub files_seen: BTreeSet<String>,
     pub myrn_tool_calls: usize,
+    /// myrn asked the agent at the end to record what it learned (Stop hook).
+    #[serde(default)]
+    pub asked_to_record: bool,
+    /// Tokens spent after that request (included in `tokens`).
+    #[serde(default)]
+    pub record_tokens: u64,
+    /// `record` calls after the request, and how many were rejected.
+    #[serde(default)]
+    pub record_calls: usize,
+    #[serde(default)]
+    pub record_rejected: usize,
+}
+
+/// Opens the user turn Claude Code adds when a Stop hook keeps the agent going.
+const STOP_FEEDBACK: &str = "Stop hook feedback:";
+/// myrn's request; other Stop hooks (a repository's own CI check) are not recording.
+const RECORD_REQUEST: &str = "record what this session learned";
+
+impl Session {
+    /// Tokens for the task itself, without the end-of-session recording.
+    pub fn task_tokens(&self) -> u64 {
+        self.tokens.total().saturating_sub(self.record_tokens)
+    }
 }
 
 const EDIT_TOOLS: &[&str] = &["Edit", "MultiEdit", "Write", "NotebookEdit"];
@@ -78,6 +101,8 @@ pub fn parse(stream: &str, root: &str, touches: &[String]) -> Session {
     let mut s = Session::default();
     let mut explored = 0usize;
     let mut last_text = String::new();
+    // Usage per API message, counted once (a message spans several lines).
+    let mut record_usage: std::collections::BTreeMap<String, u64> = Default::default();
     let rel = |p: &str| -> String {
         let p = p.strip_prefix(root).unwrap_or(p);
         p.trim_start_matches('/').to_string()
@@ -89,7 +114,62 @@ pub fn parse(stream: &str, root: &str, touches: &[String]) -> Session {
         if s.session_id.is_none() {
             s.session_id = v["session_id"].as_str().map(String::from);
         }
+        // After myrn's record request, only count the recording phase.
+        if s.asked_to_record {
+            match v["type"].as_str() {
+                Some("assistant") => {
+                    let u = &v["message"]["usage"];
+                    let n = |k: &str| u[k].as_u64().unwrap_or(0);
+                    let total = n("input_tokens")
+                        + n("cache_creation_input_tokens")
+                        + n("cache_read_input_tokens")
+                        + n("output_tokens");
+                    let id = v["message"]["id"].as_str().unwrap_or("").to_string();
+                    let e = record_usage.entry(id).or_default();
+                    *e = (*e).max(total);
+                    for block in v["message"]["content"].as_array().into_iter().flatten() {
+                        if block["type"] == "tool_use" && block["name"] == "mcp__myrn__record" {
+                            s.record_calls += 1;
+                        }
+                    }
+                }
+                Some("user") => {
+                    for block in v["message"]["content"].as_array().into_iter().flatten() {
+                        let text = match &block["content"] {
+                            Value::String(t) => t.clone(),
+                            Value::Array(parts) => parts
+                                .iter()
+                                .filter_map(|p| p["text"].as_str())
+                                .collect::<Vec<_>>()
+                                .join(""),
+                            _ => String::new(),
+                        };
+                        if text.starts_with("Rejected;") {
+                            s.record_rejected += 1;
+                        }
+                    }
+                }
+                Some("result") => {}
+                _ => continue,
+            }
+        }
         match v["type"].as_str() {
+            Some("user") if !s.asked_to_record => {
+                let starts_feedback = v["message"]["content"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .any(|b| {
+                        b["text"].as_str().is_some_and(|t| {
+                            t.starts_with(STOP_FEEDBACK) && t.contains(RECORD_REQUEST)
+                        })
+                    });
+                if starts_feedback {
+                    s.asked_to_record = true;
+                }
+            }
+            Some("assistant") if s.asked_to_record => {}
+            Some("user") => {}
             Some("assistant") => {
                 for block in v["message"]["content"].as_array().into_iter().flatten() {
                     match block["type"].as_str() {
@@ -156,14 +236,18 @@ pub fn parse(stream: &str, root: &str, touches: &[String]) -> Session {
                 s.duration_ms = v["duration_ms"].as_u64();
                 s.num_turns = v["num_turns"].as_u64();
                 s.is_error = v["is_error"].as_bool().unwrap_or(false);
-                if let Some(r) = v["result"].as_str() {
-                    last_text = r.to_string();
+                // The answer is the last text before any record request.
+                if !s.asked_to_record {
+                    if let Some(r) = v["result"].as_str() {
+                        last_text = r.to_string();
+                    }
                 }
             }
             _ => {}
         }
     }
     s.answer = last_text;
+    s.record_tokens = record_usage.values().sum();
     s
 }
 
@@ -369,5 +453,28 @@ mod tests {
         assert!((ci - 4.303 * (1.0f64 / 3.0).sqrt()).abs() < 1e-9);
         assert_eq!(ci95(&[1.0]), None);
         assert_eq!(median(&mut [5, 1, 3]), Some(3));
+    }
+
+    #[test]
+    fn recording_phase_is_split_off() {
+        let stream = r#"{"type":"system","subtype":"init","session_id":"s"}
+{"type":"assistant","message":{"id":"m1","usage":{"input_tokens":10,"cache_read_input_tokens":1000,"output_tokens":5},"content":[{"type":"tool_use","name":"Read","input":{"file_path":"/r/a.py"}}]}}
+{"type":"assistant","message":{"id":"m2","usage":{"input_tokens":10,"cache_read_input_tokens":1200,"output_tokens":20},"content":[{"type":"text","text":"The answer is 42."}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Stop hook feedback:\nlocal-ci-checks: npm run check failed"}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Stop hook feedback:\nBefore finishing: record what this session learned so ..."}]}}
+{"type":"assistant","message":{"id":"m3","usage":{"input_tokens":5,"cache_read_input_tokens":1300,"output_tokens":30},"content":[{"type":"thinking","thinking":""}]}}
+{"type":"assistant","message":{"id":"m3","usage":{"input_tokens":5,"cache_read_input_tokens":1300,"output_tokens":30},"content":[{"type":"tool_use","name":"mcp__myrn__record","input":{}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","content":[{"type":"text","text":"Rejected; nothing was stored."}]}]}}
+{"type":"assistant","message":{"id":"m4","usage":{"input_tokens":5,"cache_read_input_tokens":1400,"output_tokens":10},"content":[{"type":"tool_use","name":"mcp__myrn__record","input":{}},{"type":"text","text":"Recorded one item."}]}}
+{"type":"result","subtype":"success","result":"Recorded one item.","num_turns":4,"usage":{"input_tokens":30,"cache_read_input_tokens":4900,"output_tokens":65}}"#;
+        let s = parse(stream, "/r", &[]);
+        assert!(s.asked_to_record);
+        assert_eq!(s.answer, "The answer is 42.");
+        assert_eq!(s.record_calls, 2);
+        assert_eq!(s.record_rejected, 1);
+        assert_eq!(s.record_tokens, 1335 + 1415);
+        assert_eq!(s.task_tokens(), 4995 - 2750);
+        assert_eq!(s.tool_calls, 1, "record calls are not task tool calls");
+        assert_eq!(s.myrn_tool_calls, 0);
     }
 }

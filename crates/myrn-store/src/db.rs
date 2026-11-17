@@ -5,7 +5,10 @@ use std::path::Path;
 use anyhow::{bail, Context, Result};
 use rusqlite::{Connection, OptionalExtension};
 
-const MIGRATIONS: &[&str] = &[include_str!("../migrations/0001_init.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("../migrations/0001_init.sql"),
+    include_str!("../migrations/0002_notes.sql"),
+];
 
 /// Schema version this binary writes.
 pub const SCHEMA_VERSION: i64 = MIGRATIONS.len() as i64;

@@ -25,6 +25,10 @@ pub enum EventKind {
     /// End of a session, or of a turn when the agent stops (`reason` says which).
     SessionEnd {
         reason: Option<String>,
+        /// The agent is already continuing because a stop hook asked it to
+        /// (`stop_hook_active`); never ask again, or it would loop.
+        #[serde(default)]
+        continued: bool,
     },
 }
 

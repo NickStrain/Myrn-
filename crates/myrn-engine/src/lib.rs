@@ -11,4 +11,5 @@ pub mod distill;
 pub mod indexer;
 pub mod pack;
 pub mod retrieve;
+pub mod review;
 pub mod validity;

@@ -50,13 +50,13 @@ enum Cmd {
         /// Runs per task and condition
         #[arg(long, default_value_t = 3)]
         runs: usize,
-        /// Only tasks whose id starts with this
+        /// Only tasks whose id starts with one of these (comma-separated)
         #[arg(long)]
         task: Option<String>,
         /// Model passed to `claude --model`
         #[arg(long)]
         model: Option<String>,
-        /// Comma-separated: with,without
+        /// Comma-separated: without (no myrn), off (myrn, injection off), with (myrn, injection on)
         #[arg(long, default_value = "without,with")]
         conditions: String,
         /// Output directory (default: <bench-dir>/runs/<time>)
@@ -81,6 +81,18 @@ enum Cmd {
         #[arg(long)]
         rescore: bool,
     },
+    /// Gate 2: sample the records a run produced into a checklist (review.md),
+    /// or score the marked checklist
+    Review {
+        dir: PathBuf,
+        #[arg(long, default_value_t = 30)]
+        sample: usize,
+        #[arg(long, default_value_t = 1)]
+        seed: u64,
+        /// Score <dir>/review.md after marking it
+        #[arg(long)]
+        score: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -102,10 +114,20 @@ fn real_main() -> Result<ExitCode> {
         .clone()
         .unwrap_or_else(|| cli.bench_dir.join("repos/checkouts"));
     let checkouts = absolute(&checkouts)?;
+    // `--task a,b`: tasks whose id starts with any of the prefixes.
     let pick = |prefix: &Option<String>| -> Vec<&task::Task> {
+        let prefixes: Vec<&str> = prefix
+            .as_deref()
+            .map(|p| {
+                p.split(',')
+                    .map(str::trim)
+                    .filter(|p| !p.is_empty())
+                    .collect()
+            })
+            .unwrap_or_default();
         tasks
             .iter()
-            .filter(|t| prefix.as_deref().is_none_or(|p| t.id.starts_with(p)))
+            .filter(|t| prefixes.is_empty() || prefixes.iter().any(|p| t.id.starts_with(p)))
             .collect()
     };
 
@@ -279,9 +301,11 @@ fn real_main() -> Result<ExitCode> {
                         match &rec.error {
                             Some(e) => println!("error: {}", e.lines().next().unwrap_or("")),
                             None => println!(
-                                "{} {:.1}k tokens {:.0}s",
+                                "{} {:.1}k tokens ({:.1}k recording, {} records) {:.0}s",
                                 if rec.success { "pass" } else { "fail" },
                                 rec.session.tokens.total() as f64 / 1000.0,
+                                rec.session.record_tokens as f64 / 1000.0,
+                                rec.records,
                                 rec.wall_ms as f64 / 1000.0
                             ),
                         }
@@ -291,6 +315,46 @@ fn real_main() -> Result<ExitCode> {
             }
             let _ = std::fs::remove_dir_all(&paths.work);
             write_report(&out)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Cmd::Review {
+            dir,
+            sample,
+            seed,
+            score,
+        } => {
+            let file = dir.join("review.md");
+            if score {
+                let s = myrn_engine::review::score(&std::fs::read_to_string(&file)?);
+                println!("{}", serde_json::to_string_pretty(&s)?);
+                return Ok(ExitCode::SUCCESS);
+            }
+            let mut all: Vec<myrn_engine::review::ReviewItem> = Vec::new();
+            let mut files: Vec<PathBuf> = std::fs::read_dir(dir.join("records"))
+                .context("no records/ in that run")?
+                .filter_map(|e| e.ok().map(|e| e.path()))
+                .filter(|p| p.extension().is_some_and(|x| x == "json"))
+                .collect();
+            files.sort();
+            for f in files {
+                let items: Vec<myrn_engine::review::ReviewItem> =
+                    serde_json::from_str(&std::fs::read_to_string(&f)?)?;
+                all.extend(items);
+            }
+            let total = all.len();
+            let picked = myrn_engine::review::sample(all, sample, seed);
+            let text = myrn_engine::review::checklist(
+                &picked,
+                &format!(
+                    "Gate 2 record review: {} of {total} records from {} (seed {seed})",
+                    picked.len(),
+                    dir.file_name()
+                        .map(|n| n.to_string_lossy())
+                        .unwrap_or_default()
+                ),
+            );
+            std::fs::write(&file, text)?;
+            println!("{} of {total} records -> {}", picked.len(), file.display());
             Ok(ExitCode::SUCCESS)
         }
         Cmd::Report { dir, rescore } => {
@@ -339,6 +403,14 @@ fn rescore_runs(dir: &Path, tasks: &[task::Task]) -> Result<()> {
             rec.session.edits = s.edits;
             rec.session.shell_edits = s.shell_edits;
             rec.session.tool_calls = s.tool_calls;
+            rec.session.myrn_tool_calls = s.myrn_tool_calls;
+            rec.session.asked_to_record = s.asked_to_record;
+            rec.session.record_tokens = s.record_tokens;
+            rec.session.record_calls = s.record_calls;
+            rec.session.record_rejected = s.record_rejected;
+            if s.asked_to_record {
+                rec.session.answer = s.answer;
+            }
             n += 1;
         }
         out.push_str(&serde_json::to_string(&rec)?);

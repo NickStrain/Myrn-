@@ -28,6 +28,10 @@ impl Status {
             Status::Superseded => "superseded",
         }
     }
+
+    pub fn parse(s: &str) -> Option<Status> {
+        Self::ALL.into_iter().find(|t| t.as_str() == s)
+    }
 }
 
 /// How a derived edge was established. Tree-sitter alone cannot resolve every
@@ -53,4 +57,13 @@ impl EdgeStatus {
 pub enum Visibility {
     Private,
     Shared,
+}
+
+impl Visibility {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Visibility::Private => "private",
+            Visibility::Shared => "shared",
+        }
+    }
 }

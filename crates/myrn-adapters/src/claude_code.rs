@@ -287,9 +287,14 @@ impl Adapter for ClaudeCode {
             }
             "Stop" => EventKind::SessionEnd {
                 reason: Some("stop".into()),
+                continued: p
+                    .get("stop_hook_active")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
             },
             "SessionEnd" => EventKind::SessionEnd {
                 reason: str_field(p, "reason"),
+                continued: false,
             },
             _ => return Ok(None),
         };
@@ -301,10 +306,18 @@ impl Adapter for ClaudeCode {
     }
 
     fn format(&self, event: &str, context: &str) -> String {
-        if context.trim().is_empty() || !matches!(event, "SessionStart" | "UserPromptSubmit") {
+        if context.trim().is_empty() {
             return String::new();
         }
-        json!({ "hookSpecificOutput": { "hookEventName": event, "additionalContext": clip(context) } }).to_string()
+        match event {
+            // Keep the agent going for one more step with this instruction.
+            // The agent marks the next Stop with `stop_hook_active`, so it is asked once.
+            "Stop" => json!({ "decision": "block", "reason": clip(context) }).to_string(),
+            "SessionStart" | "UserPromptSubmit" | "PostToolUse" | "PostToolUseFailure" => {
+                json!({ "hookSpecificOutput": { "hookEventName": event, "additionalContext": clip(context) } }).to_string()
+            }
+            _ => String::new(),
+        }
     }
 }
 
@@ -451,7 +464,8 @@ mod tests {
         assert_eq!(
             e.kind,
             EventKind::SessionEnd {
-                reason: Some("prompt_input_exit".into())
+                reason: Some("prompt_input_exit".into()),
+                continued: false,
             }
         );
         assert!(a
@@ -470,7 +484,18 @@ mod tests {
         );
         assert_eq!(out["hookSpecificOutput"]["additionalContext"], "ctx");
         assert_eq!(a.format("UserPromptSubmit", ""), "");
-        assert_eq!(a.format("PostToolUse", "ctx"), "");
+        // Recall on a failed tool goes alongside the error.
+        let out: Value = serde_json::from_str(&a.format("PostToolUseFailure", "bug")).unwrap();
+        assert_eq!(
+            out["hookSpecificOutput"]["hookEventName"],
+            "PostToolUseFailure"
+        );
+        assert_eq!(out["hookSpecificOutput"]["additionalContext"], "bug");
+        // The record request keeps the agent going once.
+        let out: Value = serde_json::from_str(&a.format("Stop", "record this")).unwrap();
+        assert_eq!(out, json!({"decision": "block", "reason": "record this"}));
+        assert_eq!(a.format("Stop", ""), "");
+        assert_eq!(a.format("SessionEnd", "ctx"), "");
         let big = "x".repeat(20_000);
         let out: Value = serde_json::from_str(&a.format("SessionStart", &big)).unwrap();
         assert!(

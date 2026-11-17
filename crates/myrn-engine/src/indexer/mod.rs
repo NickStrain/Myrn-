@@ -30,6 +30,11 @@ pub struct IndexReport {
     pub symbols: usize,
     pub edges: Option<symbols::EdgeCounts>,
     pub commits: usize,
+    /// Repo-relative paths re-parsed or removed in this refresh.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub changed_paths: Vec<String>,
+    /// Note files scanned and re-indexed (filled in by the engine).
+    pub notes: myrn_store::sync::NotesReport,
     pub errors: Vec<String>,
     pub millis: u128,
 }
@@ -108,6 +113,12 @@ pub fn refresh(
     }
     report.parsed = parsed.len();
     report.removed = removed.len();
+    report.changed_paths = parsed
+        .iter()
+        .map(|(st, _, _)| st.path.clone())
+        .chain(removed.iter().map(|p| p.to_string()))
+        .collect();
+    report.changed_paths.sort();
     let never_resolved = tx
         .query_row("SELECT 1 FROM meta WHERE key = 'resolved'", [], |_| Ok(()))
         .is_err();

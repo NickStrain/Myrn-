@@ -1,5 +1,5 @@
-//! One module per MCP tool. `recall`, `record`, `confirm` and `supersede`
-//! need learned records and are not offered yet.
+//! One module per MCP tool. `confirm` and `supersede` (resolving suspect
+//! records) come with validity tracking.
 
 pub mod context;
 pub mod explain;
@@ -19,12 +19,18 @@ pub fn list() -> Vec<Value> {
         explain::spec(),
         impact::spec(),
         history::spec(),
+        recall::spec(),
+        record::spec(),
     ]
 }
 
 /// Run a tool; `None` if no tool has that name.
 pub fn call(engine: &mut Engine, name: &str, args: &Value) -> Option<Result<String>> {
-    if !["context", "explain", "impact", "history"].contains(&name) {
+    if ![
+        "context", "explain", "impact", "history", "recall", "record",
+    ]
+    .contains(&name)
+    {
         return None;
     }
     // Keep the index current without re-walking the tree on every call in a burst.
@@ -35,6 +41,8 @@ pub fn call(engine: &mut Engine, name: &str, args: &Value) -> Option<Result<Stri
         "context" => context::call(engine, args),
         "explain" => explain::call(engine, args),
         "impact" => impact::call(engine, args),
+        "recall" => recall::call(engine, args),
+        "record" => record::call(engine, args),
         _ => history::call(engine, args),
     })
 }

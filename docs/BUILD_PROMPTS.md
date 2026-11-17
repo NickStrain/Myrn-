@@ -337,6 +337,13 @@ Fix the packer and indexer before adding learned records on top.
 
 ### Step 15 — Markdown notes and note indexing
 
+> **Status (2026-11-17): done.** Gate 1 re-run skipped by decision; Phase 2 started.
+> Header parse/render: `myrn-store/src/notes/frontmatter.rs`; ids and Windows-safe names:
+> `notes/layout.rs`; scan + link passes: `myrn-store/src/sync.rs` (migration 0002); run from
+> `Engine::refresh`, written with `Engine::write_note`. Summary notes set the `summary` of the
+> code node they are `about` instead of becoming nodes. Earned nodes are kept out of context
+> packs until Step 16. Tests: `crates/myrn-engine/tests/notes.rs`, fixtures in `tests/fixtures/notes/`.
+
 ```
 Implement notes per "Notes", "Storage layout" and "Keeping notes and index in step" in
 docs/DESIGN.md.
@@ -358,6 +365,15 @@ docs/DESIGN.md.
 ```
 
 ### Step 16 — The record tool, distiller checks and recall
+
+> **Status (2026-11-17): done.** `Engine::record` (`distill/record.rs`) with checks
+> (`checks.rs`), bug/summary/id dedupe (`dedupe.rs`), negation-based contradictions
+> (`contradiction.rs`), signatures (`signature.rs`); `Engine::recall`/`recall_text`
+> (`retrieve/recall.rs`); MCP `record` and `recall`; hooks: recall on a failed tool,
+> record request on Stop (once per batch of edits, never when `stop_hook_active`).
+> Config `[records]`: `ask_at_session_end`, `recall_on_failure` (both default on),
+> `failure_budget`. Cards show known records and flag outdated summaries; packs quote
+> earned records ranked by state. Tests: `crates/myrn-engine/tests/records.rs`.
 
 ```
 Implement Phase 2 per "Distillation and verification" in docs/DESIGN.md.

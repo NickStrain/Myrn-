@@ -44,6 +44,9 @@ pub struct Entry {
     pub test: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
+    /// How an edit was made when not through an edit tool: `shell`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
     /// Commits made since the session started (`sha summary`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub commits: Vec<String>,

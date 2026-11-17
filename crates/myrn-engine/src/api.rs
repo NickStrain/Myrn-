@@ -7,14 +7,16 @@ use std::time::Instant;
 
 use anyhow::{anyhow, bail, Context, Result};
 use git2::Repository;
+use myrn_model::Visibility;
 use myrn_store::graph::{self, Dir, Node};
-use myrn_store::{paths, Db, Layout};
+use myrn_store::notes::{self, Note};
+use myrn_store::{paths, sync, Db, Layout};
 use serde::Serialize;
 
 use crate::capture::{self, episode::Episode};
 use crate::config::{Config, INITIAL_IGNORE};
 use crate::indexer::{self, git, lang::Lang, IndexReport};
-use crate::pack::cards::{FileCard, ImpactReport, Link, SymbolCard};
+use crate::pack::cards::{FileCard, ImpactReport, Known, Link, SymbolCard};
 use crate::pack::{budget, log, render};
 use crate::retrieve::{rank, seed, walks};
 
@@ -24,7 +26,7 @@ pub struct Engine {
     pub project_id: String,
     /// True when the project id is a stand-in because the repository has no commits yet.
     pub provisional_id: bool,
-    db: Db,
+    pub(crate) db: Db,
     last_refresh: Option<Instant>,
 }
 
@@ -104,6 +106,7 @@ pub struct Status {
     pub edges: BTreeMap<String, i64>,
     pub calls_inferred: i64,
     pub records_by_state: Vec<(String, i64)>,
+    pub notes: sync::NotesSummary,
     pub connected_agents: Vec<String>,
     pub last_refresh: Option<i64>,
 }
@@ -247,16 +250,61 @@ impl Engine {
         &self.db
     }
 
-    /// Bring the index up to date with the working tree.
+    /// Bring the index up to date with the working tree and the notes.
     pub fn refresh(&mut self) -> Result<IndexReport> {
-        let r = indexer::refresh(
+        let started = Instant::now();
+        let mut r = indexer::refresh(
             &mut self.db.conn,
             &self.layout.repo_root,
             &self.config,
             &self.layout.ignore_path(),
         )?;
+        // Links from notes follow the code, so re-link when the code changed.
+        let code_changed = r.parsed > 0 || r.removed > 0;
+        let roots = self.note_roots();
+        r.notes = sync::sync(&mut self.db.conn, &roots, code_changed)?;
+        r.millis = started.elapsed().as_millis();
         self.last_refresh = Some(Instant::now());
         Ok(r)
+    }
+
+    /// Shared knowledge first: a shared note wins over a private copy of the same id.
+    pub(crate) fn note_roots(&self) -> Vec<sync::NoteRoot> {
+        vec![
+            sync::NoteRoot {
+                dir: self.layout.knowledge_dir(),
+                visibility: Visibility::Shared,
+                label: format!("{}/knowledge", paths::REPO_DIR),
+            },
+            sync::NoteRoot {
+                dir: self.layout.notes_dir(),
+                visibility: Visibility::Private,
+                label: "notes".into(),
+            },
+        ]
+    }
+
+    /// Write a note, then index it (the file is always written first). A note
+    /// without an id gets one from its content. Returns the file written.
+    pub fn write_note(&mut self, note: &mut Note, visibility: Visibility) -> Result<PathBuf> {
+        let root = match visibility {
+            Visibility::Shared => self.layout.knowledge_dir(),
+            Visibility::Private => self.layout.notes_dir(),
+        };
+        let c = &self.db.conn;
+        let is_note = |id: &str| {
+            c.query_row("SELECT 1 FROM notes WHERE id = ?1", [id], |_| Ok(()))
+                .is_ok()
+        };
+        let path = notes::write(&root, note, &is_note)?;
+        let roots = self.note_roots();
+        sync::sync(&mut self.db.conn, &roots, false)?;
+        Ok(path)
+    }
+
+    /// Problems found in the notes: malformed headers, dangling links, duplicate ids.
+    pub fn note_issues(&self, limit: usize) -> Result<Vec<sync::Issue>> {
+        sync::issues(&self.db.conn, limit)
     }
 
     /// Refresh unless one ran within `secs` seconds (for long-lived servers).
@@ -270,7 +318,7 @@ impl Engine {
         self.refresh().map(Some)
     }
 
-    /// Recreate the database from the code. Learned notes are never touched.
+    /// Recreate the database from the code and the notes. The note files are only read.
     pub fn rebuild(&mut self) -> Result<IndexReport> {
         let path = self.layout.db_path.clone();
         self.db = Db::open_in_memory()?; // release the file
@@ -293,7 +341,7 @@ impl Engine {
         seed::find(&self.db, query)
     }
 
-    fn pick(&self, query: &str) -> Result<Lookup<Node>> {
+    pub(crate) fn pick(&self, query: &str) -> Result<Lookup<Node>> {
         let hits = self.find(query)?;
         Ok(match hits.len() {
             0 => Lookup::NotFound {
@@ -380,6 +428,8 @@ impl Engine {
             }
         }
         Ok(SymbolCard {
+            known: self.known_about(&n.id)?,
+            summary_outdated: self.summary_outdated(&n)?,
             calls: Self::links(graph::neighbors(c, &n.id, "calls", Dir::Out)?),
             called_by: Self::links(
                 graph::neighbors(c, &n.id, "calls", Dir::In)?
@@ -392,6 +442,37 @@ impl Engine {
             commits: self.commits_touching(&n, 3)?,
             node: n,
         })
+    }
+
+    /// Learned records about a symbol: facts and decisions `about` it, root
+    /// causes `located_in` it and the bugs they caused. Superseded ones are left out.
+    fn known_about(&self, id: &str) -> Result<Vec<Known>> {
+        let c = &self.db.conn;
+        let mut out: Vec<Known> = Vec::new();
+        let mut push = |n: &Node| {
+            if n.origin == "earned"
+                && n.status.as_deref() != Some("superseded")
+                && !out.iter().any(|k| k.id == n.id)
+            {
+                out.push(Known {
+                    id: n.id.clone(),
+                    ntype: n.ntype.clone(),
+                    status: n.status.clone().unwrap_or_default(),
+                    title: n.title.clone().unwrap_or_default(),
+                });
+            }
+        };
+        for (n, _) in graph::neighbors(c, id, "about", Dir::In)? {
+            push(&n);
+        }
+        for (rc, _) in graph::neighbors(c, id, "located_in", Dir::In)? {
+            for (bug, _) in graph::neighbors(c, &rc.id, "caused_by", Dir::In)? {
+                push(&bug);
+            }
+            push(&rc);
+        }
+        out.sort_by_key(|k| k.status != "verified");
+        Ok(out)
     }
 
     fn file_card(&self, n: Node) -> Result<FileCard> {
@@ -601,8 +682,11 @@ impl Engine {
 
         let mut cards = Vec::new();
         let mut rest = Vec::new();
+        let mut known = Vec::new();
         for n in items {
-            if n.ntype == "symbol" && cards.len() < 2 {
+            if n.origin == "earned" {
+                known.push(n);
+            } else if n.ntype == "symbol" && cards.len() < 2 {
                 // The best match is usually what the task is about: allow it more.
                 let limit = if cards.is_empty() {
                     cfg.code_lines * 2
@@ -616,7 +700,7 @@ impl Engine {
                 rest.push(n);
             }
         }
-        let (text, ids) = render::pack(&cards, &rest, budget);
+        let (text, ids) = render::pack(&cards, &rest, &known, budget);
         Ok(Pack {
             tokens: budget::tokens(&text),
             text,
@@ -728,9 +812,28 @@ impl Engine {
         let dir = self.layout.episodes_dir();
         let log_path = episodes::path_for(&dir, session);
 
+        // Files a shell command changed (`sed -i`, formatters, code generators):
+        // recorded as an edit of its own, next to the command.
+        let mut shell_edit = None;
         match &event.kind {
             EventKind::ToolResult(r) if r.outcome == ToolOutcome::FileEdit => {
                 entry.symbols = self.touched_symbols(&entry.files)?;
+            }
+            EventKind::ToolResult(r) if r.command.is_some() => {
+                let (files, symbols) = self.shell_changes()?;
+                if !files.is_empty() {
+                    shell_edit = Some(myrn_store::episodes::Entry {
+                        t: now,
+                        agent: agent.to_string(),
+                        event: "tool".into(),
+                        tool: entry.tool.clone(),
+                        outcome: Some("file_edit".into()),
+                        files,
+                        symbols,
+                        via: Some("shell".into()),
+                        ..Default::default()
+                    });
+                }
             }
             EventKind::SessionEnd { .. } => {
                 let started = episodes::read(&log_path)
@@ -742,9 +845,55 @@ impl Engine {
             _ => {}
         }
         episodes::append(&dir, session, &entry)?;
+        if let Some(e) = &shell_edit {
+            episodes::append(&dir, session, e)?;
+        }
         let ep = capture::episode::fold(&episode_key(&log_path), &episodes::read(&log_path)?);
         capture::episode::persist(&self.db.conn, &ep)?;
         Ok(true)
+    }
+
+    /// After a shell command: refresh, and return the files it changed and the
+    /// symbols whose body changed, appeared or disappeared. Files are compared
+    /// with the index, so anything changed since the last refresh counts.
+    fn shell_changes(&mut self) -> Result<(Vec<String>, Vec<String>)> {
+        let before: BTreeMap<String, (String, Option<String>)> = {
+            let mut stmt = self.db.conn.prepare(
+                "SELECT id, path, body_hash FROM nodes WHERE type IN ('symbol', 'test')",
+            )?;
+            let rows =
+                stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, (r.get(1)?, r.get(2)?))))?;
+            rows.collect::<rusqlite::Result<_>>()?
+        };
+        let report = self.refresh()?;
+        if report.changed_paths.is_empty() {
+            return Ok((Vec::new(), Vec::new()));
+        }
+        let changed: HashSet<&str> = report.changed_paths.iter().map(String::as_str).collect();
+        let mut symbols = Vec::new();
+        let mut stmt = self.db.conn.prepare_cached(
+            "SELECT id, body_hash FROM nodes WHERE path = ?1 AND type IN ('symbol', 'test')",
+        )?;
+        for path in &report.changed_paths {
+            let rows = stmt.query_map([path], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
+            })?;
+            for row in rows {
+                let (id, h) = row?;
+                if before.get(&id).map(|(_, bh)| bh) != Some(&h) {
+                    symbols.push(id);
+                }
+            }
+        }
+        // Symbols that disappeared from a changed file.
+        for (id, (p, _)) in &before {
+            if changed.contains(p.as_str()) && graph::node(&self.db.conn, id)?.is_none() {
+                symbols.push(id.clone());
+            }
+        }
+        symbols.sort();
+        symbols.dedup();
+        Ok((report.changed_paths, symbols))
     }
 
     /// Re-parse the edited files and return the symbols whose body changed,
@@ -858,8 +1007,10 @@ impl Engine {
             })?;
             Ok(rows.collect::<rusqlite::Result<_>>()?)
         };
-        let earned =
-            pairs("SELECT status, COUNT(*) FROM nodes WHERE origin = 'earned' GROUP BY status")?;
+        let earned = pairs(
+            "SELECT status, COUNT(*) FROM nodes WHERE origin = 'earned' AND type != 'episode'
+             GROUP BY status",
+        )?;
         let records: Vec<(String, i64)> = myrn_model::Status::ALL
             .iter()
             .map(|s| {
@@ -889,6 +1040,7 @@ impl Engine {
                 "SELECT COUNT(*) FROM edges WHERE rel = 'calls' AND status = 'inferred'",
             )?,
             records_by_state: records,
+            notes: sync::summary(c)?,
             connected_agents: self.state()?.agents.keys().cloned().collect(),
             last_refresh: self
                 .db
@@ -1005,6 +1157,36 @@ impl Engine {
                 Level::Warn,
                 format!("indexed as far as possible: {}", errors.join(", ")),
             ));
+        }
+        match (sync::summary(&self.db.conn), self.note_issues(5)) {
+            (Ok(sum), Ok(issues)) => {
+                let total = sum.private + sum.shared;
+                let detail = format!(
+                    "{total} notes ({} private, {} shared)",
+                    sum.private, sum.shared
+                );
+                if issues.is_empty() {
+                    out.push(check("notes", Level::Ok, detail));
+                } else {
+                    let list: Vec<String> = issues
+                        .iter()
+                        .map(|i| format!("{}: {}", i.path, i.detail))
+                        .collect();
+                    out.push(check(
+                        "notes",
+                        Level::Warn,
+                        format!(
+                            "{detail}; indexed as far as possible: {} malformed, {} dangling links, \
+                             {} duplicate ids; first: {}",
+                            sum.malformed,
+                            sum.dangling,
+                            sum.duplicates,
+                            list.join("; ")
+                        ),
+                    ));
+                }
+            }
+            (Err(e), _) | (_, Err(e)) => out.push(check("notes", Level::Fail, format!("{e:#}"))),
         }
         out.push(check(
             "agents",

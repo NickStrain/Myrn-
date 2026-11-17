@@ -57,7 +57,10 @@ fn handshake_list_and_call() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names, ["context", "explain", "impact", "history"]);
+    assert_eq!(
+        names,
+        ["context", "explain", "impact", "history", "recall", "record"]
+    );
 
     let r = call(
         &mut e,

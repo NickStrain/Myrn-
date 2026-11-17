@@ -177,7 +177,11 @@ pub fn persist(conn: &Connection, ep: &Episode) -> Result<()> {
             extra: Some(serde_json::to_string(ep)?),
         },
     )?;
-    conn.execute("DELETE FROM edges WHERE src = ?1", params![id])?;
+    // Only the edges computed here; `produced` edges come from the notes.
+    conn.execute(
+        "DELETE FROM edges WHERE src = ?1 AND rel = 'touches'",
+        params![id],
+    )?;
     let exists = |nid: &str| -> Result<bool> { Ok(graph::node(conn, nid)?.is_some()) };
     let mut with_symbol = BTreeSet::new();
     for s in &ep.symbols_touched {

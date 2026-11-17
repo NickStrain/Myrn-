@@ -6,8 +6,9 @@
 //! the only difference between conditions is myrn:
 //!
 //! - `without`: no hooks, no MCP servers.
-//! - `with`: `myrn init`, `myrn connect` (hooks), injection on, and myrn's MCP
-//!   server.
+//! - `off`: `myrn init`, `myrn connect` (hooks: recording, records requested at
+//!   the end), myrn's MCP server, injection off.
+//! - `with`: the same with injection on.
 
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -24,6 +25,9 @@ use crate::task::{Kind, Repo, Task};
 #[serde(rename_all = "snake_case")]
 pub enum Condition {
     Without,
+    /// myrn connected, injection off.
+    Off,
+    /// myrn connected, injection on.
     With,
 }
 
@@ -31,14 +35,27 @@ impl Condition {
     pub fn as_str(self) -> &'static str {
         match self {
             Condition::Without => "without",
+            Condition::Off => "off",
             Condition::With => "with",
         }
+    }
+    /// Column heading in the report.
+    pub fn label(self) -> &'static str {
+        match self {
+            Condition::Without => "Without myrn",
+            Condition::Off => "myrn, inject off",
+            Condition::With => "myrn, inject on",
+        }
+    }
+    pub fn uses_myrn(self) -> bool {
+        self != Condition::Without
     }
     pub fn parse(s: &str) -> Result<Condition> {
         match s {
             "without" => Ok(Condition::Without),
+            "off" => Ok(Condition::Off),
             "with" => Ok(Condition::With),
-            _ => bail!("unknown condition {s}; use `with` or `without`"),
+            _ => bail!("unknown condition {s}; use without, off or with"),
         }
     }
 }
@@ -63,6 +80,9 @@ pub struct RunRecord {
     pub injected_used: usize,
     /// Prompt-hook latencies.
     pub hook_ms: Vec<u64>,
+    /// Learned records in myrn's store after the session (exported to `records/`).
+    #[serde(default)]
+    pub records: usize,
     pub check_output: String,
     pub error: Option<String>,
 }
@@ -284,6 +304,7 @@ pub fn run_one(spec: &RunSpec, tools: &Tools, paths: &Paths, raw_dir: &Path) -> 
         injected: Vec::new(),
         injected_used: 0,
         hook_ms: Vec::new(),
+        records: 0,
         check_output: String::new(),
         error: None,
     };
@@ -319,8 +340,8 @@ fn run_inner(
     let mcp_config = paths.work.join("mcp.json");
     let mcp = match spec.condition {
         Condition::Without => serde_json::json!({ "mcpServers": {} }),
-        Condition::With => {
-            setup_myrn(&tools.myrn, &work, &home)?;
+        Condition::Off | Condition::With => {
+            setup_myrn(&tools.myrn, &work, &home, spec.condition == Condition::With)?;
             serde_json::json!({ "mcpServers": { "myrn": {
                 "type": "stdio",
                 "command": tools.myrn,
@@ -337,7 +358,7 @@ fn run_inner(
         .args(["--output-format", "stream-json", "--verbose"])
         .args(["--no-session-persistence"])
         .args(["--permission-mode", &tools.permission_mode])
-        .args(["--setting-sources", "project,local"])
+        .args(["--setting-sources", "local"])
         .arg("--strict-mcp-config")
         .arg("--mcp-config")
         .arg(&mcp_config);
@@ -368,6 +389,13 @@ fn run_inner(
         .unwrap_or("")
         .to_string();
     rec.session = metrics::parse(&stream_json, &work.to_string_lossy(), &spec.task.touches);
+    // The API refused the session (no credits, rate limit): not a task failure.
+    if rec.session.is_error && rec.session.tokens.total() == 0 {
+        bail!(
+            "the agent did no work: {}",
+            rec.session.answer.lines().next().unwrap_or("")
+        );
+    }
     if rec.session.session_id.is_none() {
         bail!(
             "no session in the agent's output (see {}): {}",
@@ -376,8 +404,10 @@ fn run_inner(
         );
     }
 
-    if spec.condition == Condition::With {
+    if spec.condition.uses_myrn() {
         collect_injections(&work, &home, rec)?;
+        let records_dir = raw_dir.parent().unwrap_or(raw_dir).join("records");
+        rec.records = export_records(&tools.myrn, &work, &home, &records_dir, spec)?;
     }
     if spec.task.kind == Kind::Question {
         rec.success = metrics::answer_ok(&rec.session.answer, &spec.task.answer_contains);
@@ -389,7 +419,7 @@ fn run_inner(
     Ok(())
 }
 
-fn setup_myrn(myrn: &Path, work: &Path, home: &Path) -> Result<()> {
+fn setup_myrn(myrn: &Path, work: &Path, home: &Path, inject: bool) -> Result<()> {
     let run = |args: &[&str]| -> Result<()> {
         let o = Command::new(myrn)
             .args(args)
@@ -410,6 +440,9 @@ fn setup_myrn(myrn: &Path, work: &Path, home: &Path) -> Result<()> {
     };
     run(&["init"])?;
     run(&["connect", "--agent", "claude", "--yes"])?;
+    if !inject {
+        return Ok(());
+    }
     let cfg = work.join(".myrn/project.toml");
     let text = std::fs::read_to_string(&cfg)?;
     if !text.contains("inject = false") {
@@ -420,6 +453,51 @@ fn setup_myrn(myrn: &Path, work: &Path, home: &Path) -> Result<()> {
     }
     std::fs::write(&cfg, text.replace("inject = false", "inject = true"))?;
     Ok(())
+}
+
+/// Save the learned records (with their evidence and code) for the Gate 2
+/// review, before the workspace is reused. Returns how many there were.
+fn export_records(
+    myrn: &Path,
+    work: &Path,
+    home: &Path,
+    dir: &Path,
+    spec: &RunSpec,
+) -> Result<usize> {
+    let o = Command::new(myrn)
+        .args(["--json", "debug", "review", "--sample", "0"])
+        .current_dir(work)
+        .env("MYRN_HOME", home)
+        .stdin(Stdio::null())
+        .output()?;
+    if !o.status.success() {
+        bail!(
+            "myrn debug review failed: {}",
+            String::from_utf8_lossy(&o.stderr)
+        );
+    }
+    let mut items: Vec<myrn_engine::review::ReviewItem> = serde_json::from_slice(&o.stdout)?;
+    if items.is_empty() {
+        return Ok(0);
+    }
+    let origin = format!(
+        "{} ({}, run {})",
+        spec.task.id,
+        spec.condition.as_str(),
+        spec.run
+    );
+    for it in &mut items {
+        it.origin = origin.clone();
+    }
+    std::fs::create_dir_all(dir)?;
+    let file = dir.join(format!(
+        "{}--{}--{}.json",
+        spec.task.id.replace('/', "_"),
+        spec.condition.as_str(),
+        spec.run
+    ));
+    std::fs::write(file, serde_json::to_string_pretty(&items)?)?;
+    Ok(items.len())
 }
 
 /// What myrn injected in this run, and whether the agent then opened it.

@@ -1,6 +1,7 @@
 //! One module per subcommand.
 
 pub mod connect;
+pub mod debug;
 pub mod disconnect;
 pub mod doctor;
 pub mod hook;

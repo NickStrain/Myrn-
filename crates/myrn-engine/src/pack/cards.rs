@@ -39,6 +39,34 @@ pub struct SymbolCard {
     pub members: Vec<Link>,
     pub tests: Vec<Link>,
     pub commits: Vec<Link>,
+    /// Learned records about this symbol: facts, decisions, root causes, bugs.
+    pub known: Vec<Known>,
+    /// The summary was written for an older body of this symbol.
+    pub summary_outdated: bool,
+}
+
+/// A learned record shown on a card.
+#[derive(Debug, Clone, Serialize)]
+pub struct Known {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub ntype: String,
+    pub status: String,
+    pub title: String,
+}
+
+impl Known {
+    fn line(&self) -> String {
+        format!("{} ({}): {}", self.id, self.status, self.title)
+    }
+}
+
+fn summary_text<'a>(n: &'a Node, outdated: bool) -> Option<std::borrow::Cow<'a, str>> {
+    match (&n.summary, outdated) {
+        (Some(s), true) => Some(format!("(possibly outdated: the code changed since) {s}").into()),
+        (Some(s), false) => Some(s.as_str().into()),
+        (None, _) => n.doc.as_deref().map(Into::into),
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -114,12 +142,12 @@ impl SymbolCard {
         if let Some(s) = n.signature.as_deref().filter(|s| !s.is_empty()) {
             row(&mut out, "signature", s);
         }
-        let summary = n
-            .summary
-            .as_deref()
-            .or(n.doc.as_deref())
-            .unwrap_or("none yet");
-        row(&mut out, "summary", summary);
+        let summary = summary_text(n, self.summary_outdated);
+        row(
+            &mut out,
+            "summary",
+            summary.as_deref().unwrap_or("none yet"),
+        );
         if !self.members.is_empty() {
             list(&mut out, "members", &self.members, limit);
         }
@@ -129,7 +157,12 @@ impl SymbolCard {
         if !self.commits.is_empty() {
             list(&mut out, "changed in", &self.commits, 3);
         }
-        row(&mut out, "known", "no learned records yet");
+        if self.known.is_empty() {
+            row(&mut out, "known", "no learned records yet");
+        }
+        for (i, k) in self.known.iter().take(limit).enumerate() {
+            row(&mut out, if i == 0 { "known" } else { "" }, &k.line());
+        }
         let hash = n.body_hash.as_deref().unwrap_or("");
         row(
             &mut out,
@@ -198,8 +231,8 @@ impl SymbolCard {
                 row(&mut out, "signature", s);
             }
         }
-        if let Some(s) = n.summary.as_deref().or(n.doc.as_deref()) {
-            let first: String = s.lines().next().unwrap_or(s).chars().take(160).collect();
+        if let Some(s) = summary_text(n, self.summary_outdated) {
+            let first: String = s.lines().next().unwrap_or(&s).chars().take(160).collect();
             row(&mut out, "summary", &first);
         }
         if !self.calls.is_empty() {
@@ -209,6 +242,9 @@ impl SymbolCard {
             list(&mut out, "called by", &self.called_by, 3);
         }
         row(&mut out, "tests", &tests_summary(&self.tests));
+        for (i, k) in self.known.iter().take(2).enumerate() {
+            row(&mut out, if i == 0 { "known" } else { "" }, &k.line());
+        }
         if with_commits && !self.commits.is_empty() {
             list(&mut out, "changed in", &self.commits, 2);
         }

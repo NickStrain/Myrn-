@@ -109,6 +109,31 @@ enum Command {
     /// Entry point for agent hooks (reads the hook payload on stdin)
     #[command(hide = true)]
     Hook { agent: String, event: String },
+    /// Developer tools
+    Debug {
+        #[command(subcommand)]
+        command: DebugCommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum DebugCommand {
+    /// Gate 2: a checklist of learned records to mark correct / vague / wrong,
+    /// or (with --score) the precision of a marked checklist
+    Review {
+        /// Records to sample (0 = all)
+        #[arg(long, default_value_t = 30)]
+        sample: usize,
+        /// Sampling seed, so the same sample can be drawn again
+        #[arg(long, default_value_t = 1)]
+        seed: u64,
+        /// Write the checklist here instead of stdout
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
+        /// Read a marked checklist and report precision
+        #[arg(long, value_name = "FILE")]
+        score: Option<std::path::PathBuf>,
+    },
 }
 
 fn main() -> ExitCode {
@@ -146,6 +171,15 @@ fn main() -> ExitCode {
         ),
         Command::Disconnect { agents } => cmd::disconnect::run(&ctx, agents),
         Command::Hook { agent, event } => cmd::hook::run(&ctx, &agent, &event),
+        Command::Debug {
+            command:
+                DebugCommand::Review {
+                    sample,
+                    seed,
+                    out,
+                    score,
+                },
+        } => cmd::debug::review(&ctx, sample, seed, out.as_deref(), score.as_deref()),
     };
     match result {
         Ok(code) => code,

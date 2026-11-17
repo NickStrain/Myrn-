@@ -49,6 +49,22 @@ pub fn run(ctx: &Ctx) -> Result<ExitCode> {
             .map(|(k, v)| format!("{k} {v}"))
             .collect();
         out += &format!("records     {}\n", rec.join(", "));
+        let nt = &s.notes;
+        out += &format!("notes       {} private, {} shared", nt.private, nt.shared);
+        let mut flags = Vec::new();
+        if nt.malformed > 0 {
+            flags.push(format!("{} malformed", nt.malformed));
+        }
+        if nt.dangling > 0 {
+            flags.push(format!("{} dangling links", nt.dangling));
+        }
+        if nt.duplicates > 0 {
+            flags.push(format!("{} duplicate ids", nt.duplicates));
+        }
+        if !flags.is_empty() {
+            out += &format!(" ({}; see `myrn doctor`)", flags.join(", "));
+        }
+        out += "\n";
         out += &format!(
             "agents      {}\n",
             if s.connected_agents.is_empty() {
