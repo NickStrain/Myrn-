@@ -75,7 +75,8 @@ fn handle(ctx: &Ctx, agent: &str, event_arg: &str, started: Instant) -> Result<S
         }
         EventKind::PromptSubmitted { prompt } if inject => {
             engine.refresh()?;
-            let pack = engine.context(prompt, None)?;
+            let seen = engine.injected_in_session(&event.session_id)?;
+            let pack = engine.context_excluding(prompt, None, &seen)?;
             if !pack.text.is_empty() {
                 engine.log_injection(&event.session_id, &pack.items)?;
             }
@@ -97,11 +98,42 @@ fn handle(ctx: &Ctx, agent: &str, event_arg: &str, started: Instant) -> Result<S
                 None => String::new(),
             }
         }
+        // Working in a file with records written before its code changed: show
+        // them once per session and ask the agent to confirm or supersede them.
+        EventKind::ToolResult(r) if inject && !r.files.is_empty() => {
+            let root = engine.root().to_path_buf();
+            let files: Vec<String> = r
+                .files
+                .iter()
+                .filter_map(|f| {
+                    let p = std::path::Path::new(f);
+                    let abs = if p.is_absolute() {
+                        p.to_path_buf()
+                    } else {
+                        root.join(p)
+                    };
+                    myrn_store::paths::repo_rel(&root, &abs)
+                })
+                .collect();
+            let seen = engine.injected_in_session(&event.session_id)?;
+            let (text, ids) =
+                engine.suspect_notice(&files, &seen, engine.config.records.failure_budget)?;
+            if !ids.is_empty() {
+                engine.log_injection(&event.session_id, &ids)?;
+            }
+            text
+        }
         _ => String::new(),
     };
     // Recording must never cost the agent its context: report and carry on.
     if let Err(e) = engine.capture(agent, &event) {
         eprintln!("myrn hook: recording failed: {e:#}");
+    }
+    // Evidence may have come in (a test passed, a fix landed): promote records.
+    if matches!(event.kind, EventKind::SessionEnd { .. }) {
+        if let Err(e) = engine.promote() {
+            eprintln!("myrn hook: verifying records failed: {e:#}");
+        }
     }
     // End of a turn that edited code: ask the agent to record what it learned.
     let context = match &event.kind {

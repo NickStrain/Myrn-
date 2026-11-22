@@ -1,0 +1,5 @@
+# Paths Myrn never indexes or records, in .gitignore syntax.
+# Files ignored by Git are already skipped.
+#
+# secrets/
+# *.generated.ts

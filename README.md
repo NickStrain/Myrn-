@@ -106,7 +106,18 @@ Keep using `claude` or `codex` as usual. Run `myrn doctor` at any time to see ex
 | `impact` | `TokenStore::lookup` | Direct and indirect callers, importing files, and covering tests |
 | `history` | `src/auth/` | Commits that changed a file, directory or symbol |
 
-Hooks can also inject this context automatically at session start and on every prompt. That is off by default (`[context] inject = false` in `.myrn/project.toml`) until the benchmark shows it saves more tokens than it adds.
+Hooks also inject context automatically: the project map at session start, and a small pack of the relevant code on each prompt. Nothing is sent when nothing is relevant, and nothing the session has already received is sent again. Turn it off with `[context] inject = false` in `.myrn/project.toml`.
+
+### The project map
+
+```sh
+myrn summarize            # one-time: a model writes what every directory, file and function is for
+myrn summarize --dry-run  # what is missing or out of date
+```
+
+`summarize` asks a small model (Haiku through the Claude Code CLI by default; set `[summarize] command` to use another) about each file, then builds directory and project summaries from those. Each summary is a Markdown note in `.myrn/knowledge/summaries/`, anchored to the hash of the code it describes, with `[[links]]` for what it contains, calls and imports. Open `.myrn/knowledge` in Obsidian to browse the graph. Later runs only ask about code whose hash changed. On this repository the first run cost $0.16 (121 files, 750 functions and types, 43 directories).
+
+Agents don't read the notes themselves. The summaries end up on cards, in context packs and in the session brief, and search matches a task against what the code does as well as its name.
 
 ### From the command line
 
@@ -137,11 +148,15 @@ myrn history src/auth/
 | `myrn connect` | Install agent hooks and the MCP server, after consent | Available |
 | `myrn disconnect` | Remove everything `connect` installed | Available |
 | `myrn doctor` | Check the store, the index and each agent's setup | Available |
-| `myrn log [session]` | Recorded agent sessions: task, files, symbols touched, tests, commits | Available |
+| `myrn log [session]` | Sessions and learned records over time (`--type`, `--status`); one session in full | Available |
 | `myrn rebuild` | Recreate the index from scratch | Available |
+| `myrn summarize` | Write or update the project map (summaries for the project, directories, files and functions) | Available |
 | `myrn mcp` | MCP server over stdio, started by the agent | Available |
-| `myrn trace`, `diff` | History and origin of learned knowledge | Planned |
-| `myrn verify`, `forget`, `gc` | Keep learned knowledge correct and tidy | Planned |
+| `myrn trace <id>` | Where a record came from: session, commits, tests, the code it is anchored to | Available |
+| `myrn diff [from] [to]` | How shared knowledge changed between two revisions or dates | Available |
+| `myrn verify` | Promote records whose test passed or fix landed; list suspect ones; `--confirm <id>` | Available |
+| `myrn forget <id>` | Permanently remove a record and anything derived only from it | Available |
+| `myrn gc` | Merge duplicate note copies, drop index rows for deleted code, compact old sessions | Available |
 | `myrn publish <id>` | Share a record with your team through Git | Planned |
 
 Every command accepts `--json`.
@@ -211,7 +226,7 @@ Each phase ships something usable, and the next phase starts only after its gate
 | 0. Code graph | Symbols, calls, imports, tests, Git history, CLI, MCP tools | Done ([gate report](docs/gate0.md)) |
 | 1. Hooks | `myrn connect` for Claude Code and Codex; session recording with secret redaction; benchmark gate | Built; gate run pending |
 | 2. Memory | Learned records as Markdown notes: decisions, bugs, root causes, workflows | Planned |
-| 3. Validity | Records anchored to code hashes, flagged when the code changes | Planned |
+| 3. Validity | Records anchored to code hashes, suspect when the code changes, confirm/supersede, verify, history commands | Built; stale-injection gate needs replay tasks |
 | 4. Learning loop | Ranking from what actually helped; optional local embeddings | Planned |
 | 5. Team sharing | Publish knowledge through Git and review it in pull requests | Planned |
 

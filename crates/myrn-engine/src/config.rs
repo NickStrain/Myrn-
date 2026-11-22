@@ -15,6 +15,40 @@ pub struct Config {
     pub context: ContextConfig,
     #[serde(default)]
     pub records: RecordsConfig,
+    #[serde(default)]
+    pub summarize: SummarizeConfig,
+}
+
+/// `myrn summarize`: the model command that writes the project map.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SummarizeConfig {
+    /// Program and arguments. Gets the prompt on stdin and answers on stdout
+    /// (plain text, or Claude Code's `--output-format json`).
+    pub command: Vec<String>,
+    /// Model calls run at the same time.
+    pub jobs: usize,
+}
+
+impl Default for SummarizeConfig {
+    fn default() -> Self {
+        SummarizeConfig {
+            command: [
+                "claude",
+                "-p",
+                "--model",
+                "haiku",
+                "--tools",
+                "",
+                "--no-session-persistence",
+                "--output-format",
+                "json",
+            ]
+            .map(String::from)
+            .to_vec(),
+            jobs: 4,
+        }
+    }
 }
 
 /// Learned records: asking for them, and recalling them on failures.
@@ -69,8 +103,9 @@ impl Default for IndexConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ContextConfig {
-    /// Inject context automatically from hooks. Off until the benchmark shows it
-    /// saves more than it costs (design principle 7); with it off, hooks only capture.
+    /// Inject context automatically from hooks: the project brief at session
+    /// start and a pack of relevant code per prompt (nothing when nothing is
+    /// relevant, and nothing already sent in the session). Off: hooks only capture.
     pub inject: bool,
     pub session_budget: usize,
     pub prompt_budget: usize,
@@ -83,8 +118,8 @@ pub struct ContextConfig {
 impl Default for ContextConfig {
     fn default() -> Self {
         ContextConfig {
-            inject: false,
-            session_budget: 500,
+            inject: true,
+            session_budget: 800,
             prompt_budget: 1500,
             max_items: 5,
             code_lines: 40,
@@ -116,9 +151,9 @@ impl Config {
              history_depth = {}\n\
              \n\
              [context]\n\
-             # Inject context from hooks automatically. Off by default until the\n\
-             # benchmark shows it helps; the MCP tools work either way.\n\
-             inject = false\n\
+             # Inject context from hooks automatically: the project brief at session\n\
+             # start, and relevant code per prompt (never what the session already has).\n\
+             inject = {}\n\
              # Token budgets for injected context.\n\
              session_budget = {}\n\
              prompt_budget = {}\n\
@@ -131,16 +166,24 @@ impl Config {
              ask_at_session_end = {}\n\
              # On a failing tool, inject a matching known bug with its cause and fix.\n\
              recall_on_failure = {}\n\
-             failure_budget = {}\n",
+             failure_budget = {}\n\
+             \n\
+             [summarize]\n\
+             # Model command for `myrn summarize` (prompt on stdin, answer on stdout).\n\
+             command = {}\n\
+             jobs = {}\n",
             d.index.max_file_bytes,
             d.index.history_depth,
+            d.context.inject,
             d.context.session_budget,
             d.context.prompt_budget,
             d.context.max_items,
             d.context.code_lines,
             d.records.ask_at_session_end,
             d.records.recall_on_failure,
-            d.records.failure_budget
+            d.records.failure_budget,
+            toml::Value::from(d.summarize.command.clone()),
+            d.summarize.jobs
         )
     }
 }

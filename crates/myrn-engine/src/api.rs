@@ -648,6 +648,30 @@ impl Engine {
 
     /// A ranked context pack for a described task. Empty when nothing is relevant enough.
     pub fn context(&self, task: &str, budget: Option<usize>) -> Result<Pack> {
+        self.context_excluding(task, budget, &HashSet::new())
+    }
+
+    /// Ids injected into this session so far, so later prompts are not sent them again.
+    pub fn injected_in_session(&self, session: &str) -> Result<HashSet<String>> {
+        let mut stmt = self
+            .db
+            .conn
+            .prepare("SELECT DISTINCT note_id FROM usage WHERE session_id = ?1 AND injected = 1")?;
+        let ids = stmt
+            .query_map([session], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?;
+        Ok(ids)
+    }
+
+    /// A context pack that leaves out items the agent already has (`seen`).
+    /// The relevance cutoff is set before they are removed, so weaker items
+    /// never move up to fill their place.
+    pub fn context_excluding(
+        &self,
+        task: &str,
+        budget: Option<usize>,
+        seen: &HashSet<String>,
+    ) -> Result<Pack> {
         let cfg = &self.config.context;
         let budget = budget.unwrap_or(cfg.prompt_budget);
         let seeds = seed::seeds(&self.db, task)?;
@@ -662,14 +686,14 @@ impl Engine {
         let mut items = Vec::new();
         for r in ranked.iter().filter(|r| r.score >= cutoff) {
             // Tests of a match are summarised on its card, not listed.
-            if r.why == "tests a match" {
+            if r.why == "tests a match" || seen.contains(&r.id) {
                 continue;
             }
             let Some(n) = graph::node(&self.db.conn, &r.id)? else {
                 continue;
             };
             let in_tests = n.ntype == "test" || n.path.as_deref().is_some_and(is_test_path);
-            if (n.ntype == "commit" && !history) || (in_tests && !tests) {
+            if (n.ntype == "commit" && !history) || (in_tests && !tests) || n.ntype == "module" {
                 continue;
             }
             items.push(n);
@@ -739,18 +763,27 @@ impl Engine {
             s.tests,
             s.commits
         ));
+        if let Some(s) = graph::node(c, &myrn_model::id::module_id(""))?.and_then(|n| n.summary) {
+            b.push(&format!("project: {}\n", clip_sentences(&s, 400)));
+        }
         let mut stmt = c.prepare(
-            "SELECT m.path, COUNT(*) AS n FROM edges e JOIN nodes m ON m.id = e.dst
-             WHERE e.rel = 'part_of' AND e.src LIKE 'file:%' GROUP BY m.id ORDER BY n DESC LIMIT 8",
+            "SELECT m.path, COUNT(*) AS n, m.summary FROM edges e JOIN nodes m ON m.id = e.dst
+             WHERE e.rel = 'part_of' AND e.src LIKE 'file:%' GROUP BY m.id ORDER BY n DESC LIMIT 10",
         )?;
-        let modules: Vec<(String, i64)> = stmt
-            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+        let modules: Vec<(String, i64, Option<String>)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
             .collect::<rusqlite::Result<_>>()?;
         if !modules.is_empty() {
             b.push("main directories:\n");
-            for (p, n) in modules {
+            for (p, n, summary) in modules {
                 let p = if p.is_empty() { ".".to_string() } else { p };
-                b.push(&format!("  {p} ({n} files)\n"));
+                match summary {
+                    Some(s) => b.push(&format!(
+                        "  {p}/ ({n} files): {}\n",
+                        clip_sentences(&s, 160)
+                    )),
+                    None => b.push(&format!("  {p} ({n} files)\n")),
+                };
             }
         }
         let entries = graph::nodes_where(
@@ -1211,6 +1244,19 @@ impl Pack {
 const RELATIVE_CUTOFF: f64 = 0.4;
 
 /// Does the task ask about history (so commits are worth showing)?
+/// Whole sentences of `s` up to about `max` characters (at least the first, clipped).
+fn clip_sentences(s: &str, max: usize) -> String {
+    let s = s.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut out = String::new();
+    for sentence in s.split_inclusive(". ") {
+        if !out.is_empty() && out.len() + sentence.len() > max {
+            break;
+        }
+        out.push_str(sentence);
+    }
+    crate::capture::episode::clip(out.trim(), max)
+}
+
 fn asks_about_history(task: &str) -> bool {
     let t = task.to_lowercase();
     if t.contains("used to") {

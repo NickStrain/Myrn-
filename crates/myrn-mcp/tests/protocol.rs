@@ -59,7 +59,16 @@ fn handshake_list_and_call() {
         .collect();
     assert_eq!(
         names,
-        ["context", "explain", "impact", "history", "recall", "record"]
+        [
+            "context",
+            "explain",
+            "impact",
+            "history",
+            "recall",
+            "record",
+            "confirm",
+            "supersede"
+        ]
     );
 
     let r = call(

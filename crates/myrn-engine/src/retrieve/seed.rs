@@ -217,18 +217,31 @@ pub fn seeds(db: &Db, task: &str) -> Result<Vec<Seed>> {
     }
     let words = task_words(task);
     if !words.is_empty() {
-        let hits = fts::query(&db.conn, &words, 40)?;
+        let mut ids: Vec<String> = fts::query(&db.conn, &words, 40)?
+            .into_iter()
+            .map(|(id, _bm25)| id)
+            .collect();
+        // Code whose summary says what the task is about, even when its name does not.
+        for id in fts::query_summaries(&db.conn, &words, 30)? {
+            if !ids.contains(&id) {
+                ids.push(id);
+            }
+        }
         let want = words.len().min(4) as f64;
-        for (id, _bm25) in hits {
+        for id in ids {
             let Some(n) = graph::node(&db.conn, &id)? else {
                 continue;
             };
+            if n.ntype == "module" {
+                continue; // directories are described in the brief
+            }
             let text = format!(
-                "{} {} {} {}",
+                "{} {} {} {} {}",
                 fts::split_identifier(n.qname.as_deref().unwrap_or("")).join(" "),
                 fts::split_identifier(n.path.as_deref().unwrap_or("")).join(" "),
                 n.title.as_deref().unwrap_or("").to_lowercase(),
-                n.doc.as_deref().unwrap_or("").to_lowercase()
+                n.doc.as_deref().unwrap_or("").to_lowercase(),
+                n.summary.as_deref().unwrap_or("").to_lowercase()
             );
             let have: HashSet<&str> = text.split(|c: char| !c.is_alphanumeric()).collect();
             let matched = words

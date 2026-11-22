@@ -418,6 +418,16 @@ Run the benchmark tasks with recording on to generate records, then give me the 
 
 ### Step 18 — Hash anchors, suspect state and verification
 
+> **Status (2026-11-22): done.** Suspect and superseded are derived from the current tree
+> in the store's link pass (`myrn-store/src/sync.rs`, `derive_states`), so a branch switch
+> restores records without touching the notes; the note keeps the state it earned.
+> `Engine::confirm`, `supersede`, `promote` (cited test passed in a recorded session, or
+> `fixed_in` commit in history and not reverted), `suspects` in `validity/states.rs`;
+> hook notice for suspect records in files the agent works on (`validity/anchors.rs`, once
+> per session); packs label them and ask for confirm/supersede; MCP `confirm` and
+> `supersede`; `myrn verify [--confirm <id>]`; promotion also runs at session end.
+> Tests: `crates/myrn-engine/tests/validity.rs` (one per row of the hashes table).
+
 ```
 Implement "Validity and staleness" and "Record states" in docs/DESIGN.md.
 
@@ -436,6 +446,16 @@ Implement "Validity and staleness" and "Record states" in docs/DESIGN.md.
 ```
 
 ### Step 19 — History and housekeeping commands
+
+> **Status (2026-11-22): built; gate not run.** `myrn log` (sessions + records, `--type`,
+> `--status`, `--map`), `show` (evidence and file for records), `trace`, `diff` (shared
+> knowledge between revisions or dates), `forget` (with root causes only it used, links to it
+> removed from other records, confirmation), `gc` (duplicate copies, orphaned index rows,
+> compaction of old session logs). Engine: `knowledge.rs`, `validity/gc.rs`. The benchmark
+> logs each injected item's state (`usage.status`, migration 0004) and reports the share of
+> injected records that were suspect. The gate needs replay tasks (records from an earlier
+> session, then the code changes); fresh benchmark stores have no records, so it reads "–".
+> Tests: `crates/myrn-engine/tests/history.rs`.
 
 ```
 Implement the remaining knowledge commands from the CLI table in docs/DESIGN.md:

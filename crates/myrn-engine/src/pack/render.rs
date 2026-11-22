@@ -29,7 +29,7 @@ pub fn one_line(n: &Node) -> String {
         .filter(|_| n.ntype != "commit")
     {
         let first = doc.split(". ").next().unwrap_or(doc);
-        let first: String = first.chars().take(110).collect();
+        let first = crate::capture::episode::clip(first, 200);
         s.push_str(" — ");
         s.push_str(&first);
     }
@@ -53,6 +53,9 @@ pub fn quoted(n: &Node) -> String {
         n.ntype,
         n.status.as_deref().unwrap_or("unverified")
     );
+    if n.status.as_deref() == Some("suspect") {
+        head.push_str(" (possibly outdated: the code changed since)");
+    }
     if let Some(src) = extra["source"].as_str() {
         head.push_str(&format!(" · from {src}"));
     }
@@ -101,10 +104,15 @@ pub fn pack(
         }
     }
     if !known.is_empty() && b.push(KNOWN_HEADER) {
+        let mut suspect = false;
         for n in known {
             if b.push(&quoted(n)) {
                 ids.push(n.id.clone());
+                suspect |= n.status.as_deref() == Some("suspect");
             }
+        }
+        if suspect {
+            b.push(crate::validity::anchors::SUSPECT_ASK);
         }
     }
     if ids.is_empty() {

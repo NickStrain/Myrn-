@@ -73,6 +73,9 @@ enum Cmd {
         /// Print the plan and stop
         #[arg(long)]
         dry_run: bool,
+        /// Don't give myrn runs the project map (`myrn summarize`)
+        #[arg(long)]
+        no_map: bool,
     },
     /// Rebuild report.md from a run directory's results.jsonl
     Report {
@@ -216,6 +219,7 @@ fn real_main() -> Result<ExitCode> {
             claude,
             permission_mode,
             dry_run,
+            no_map,
         } => {
             let conds: Vec<Condition> = conditions
                 .split(',')
@@ -264,11 +268,34 @@ fn real_main() -> Result<ExitCode> {
                 work: out.join("work"),
                 target: cli.bench_dir.join("runs/target"),
             };
+            // One project map per repository, built at the pinned commit and cached.
+            let mut maps = std::collections::HashMap::new();
+            if !no_map && conds.iter().any(|c| c.uses_myrn()) {
+                let cache = cli.bench_dir.join("runs/maps");
+                for t in &selected {
+                    if maps.contains_key(&t.repo) {
+                        continue;
+                    }
+                    let repo = repos
+                        .get(&t.repo)
+                        .with_context(|| format!("{}: unknown repo", t.id))?;
+                    println!("project map for {} ...", repo.name);
+                    let (dir, cost) =
+                        runner::build_map(&paths.checkouts.join(&repo.name), repo, &myrn, &cache)?;
+                    if cost > 0.0 {
+                        println!("  built for ${cost:.4} (one-time, not in session tokens)");
+                    } else {
+                        println!("  cached: {}", dir.display());
+                    }
+                    maps.insert(t.repo.clone(), dir);
+                }
+            }
             let tools = Tools {
                 claude,
                 myrn,
                 model,
                 permission_mode,
+                maps,
             };
             let results = out.join("results.jsonl");
             let mut n = 0;

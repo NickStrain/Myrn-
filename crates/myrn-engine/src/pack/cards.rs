@@ -232,8 +232,13 @@ impl SymbolCard {
             }
         }
         if let Some(s) = summary_text(n, self.summary_outdated) {
-            let first: String = s.lines().next().unwrap_or(&s).chars().take(160).collect();
-            row(&mut out, "summary", &first);
+            // The summary is what lets the agent act without opening the file: keep it whole.
+            let first = s.lines().next().unwrap_or(&s);
+            row(
+                &mut out,
+                "summary",
+                &crate::capture::episode::clip(first, 400),
+            );
         }
         if !self.calls.is_empty() {
             list(&mut out, "calls", &self.calls, 3);

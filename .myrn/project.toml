@@ -1,0 +1,32 @@
+# Myrn project configuration. Commit this file.
+
+[project]
+# Root commit of the repository; identifies this project's knowledge.
+id = "f27bbeb47ea00611bc2fac2701aad89a3e50f44b"
+
+[index]
+max_file_bytes = 1000000
+history_depth = 500
+
+[context]
+# Inject context from hooks automatically. Off by default until the
+# benchmark shows it helps; the MCP tools work either way.
+inject = true
+# Token budgets for injected context.
+session_budget = 800
+prompt_budget = 1500
+# Most items per prompt pack, and the longest function body shown as code.
+max_items = 5
+code_lines = 40
+
+[records]
+# At the end of a turn that edited code, ask the agent to record what it learned.
+ask_at_session_end = true
+# On a failing tool, inject a matching known bug with its cause and fix.
+recall_on_failure = true
+failure_budget = 500
+
+[summarize]
+# Model command for `myrn summarize` (prompt on stdin, answer on stdout).
+command = ["claude", "-p", "--model", "haiku", "--tools", "", "--no-session-persistence", "--output-format", "json"]
+jobs = 4

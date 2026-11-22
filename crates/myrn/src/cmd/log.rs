@@ -1,18 +1,30 @@
-//! myrn log: recorded sessions (episodes). Decisions and learned records join
-//! this list in Phase 2.
+//! myrn log: the history of project knowledge, newest first: recorded
+//! sessions (episodes) and learned records (bugs, decisions, facts, workflows),
+//! filtered by type and state. `myrn log <session>` shows one session in full.
 
 use std::process::ExitCode;
 
 use anyhow::{bail, Result};
 use myrn_engine::capture::episode::{clip, Episode};
+use myrn_engine::knowledge::{RecordFilter, RecordRow};
 use serde::Serialize;
 
 use super::Ctx;
 
-pub fn run(ctx: &Ctx, session: Option<&str>, limit: usize) -> Result<ExitCode> {
+pub fn run(
+    ctx: &Ctx,
+    session: Option<&str>,
+    limit: usize,
+    ntype: Option<&str>,
+    status: Option<&str>,
+    map: bool,
+) -> Result<ExitCode> {
     let engine = ctx.engine()?;
     if let Some(id) = session {
         let Some((ep, entries)) = engine.episode_log(id)? else {
+            if engine.trace(id).is_ok() {
+                bail!("`{id}` is a record: see `myrn show {id}` or `myrn trace {id}`");
+            }
             bail!("no recorded session matches `{id}`; see `myrn log`");
         };
         #[derive(Serialize)]
@@ -28,36 +40,104 @@ pub fn run(ctx: &Ctx, session: Option<&str>, limit: usize) -> Result<ExitCode> {
         };
         return ctx.emit(&out, || render_one(&ep, &entries));
     }
-    let eps = engine.episodes(limit)?;
-    let consent = engine.state()?.capture_consent;
-    ctx.emit(&eps, || {
-        if eps.is_empty() {
-            return if consent {
-                "No sessions recorded yet. They appear here after your agent's next session.\n"
-                    .into()
+
+    let want_sessions = ntype.is_none_or(|t| t == "episode" || t == "session") && status.is_none();
+    let want_records = !matches!(ntype, Some("episode" | "session"));
+    let eps = if want_sessions {
+        engine.episodes(limit)?
+    } else {
+        Vec::new()
+    };
+    let filter = RecordFilter {
+        ntype: ntype.map(|t| {
+            if t == "root-cause" {
+                "root_cause".into()
             } else {
+                t.to_string()
+            }
+        }),
+        status: status.map(str::to_string),
+        map,
+    };
+    let recs = if want_records {
+        engine.records(&filter, limit)?
+    } else {
+        Vec::new()
+    };
+    let consent = engine.state()?.capture_consent;
+
+    #[derive(Serialize)]
+    #[serde(tag = "kind", rename_all = "snake_case")]
+    enum Item<'a> {
+        Session(&'a Episode),
+        Record(&'a RecordRow),
+    }
+    let mut items: Vec<(i64, Item)> = eps
+        .iter()
+        .map(|e| (e.started, Item::Session(e)))
+        .chain(recs.iter().map(|r| (r.time, Item::Record(r))))
+        .collect();
+    items.sort_by_key(|(t, _)| std::cmp::Reverse(*t));
+    items.truncate(limit);
+    let list: Vec<&Item> = items.iter().map(|(_, i)| i).collect();
+    ctx.emit(&list, || {
+        if items.is_empty() {
+            return if want_sessions && !consent {
                 "No sessions recorded. Recording is off until you agree to it in `myrn connect`.\n"
+                    .into()
+            } else if ntype.is_some() || status.is_some() {
+                "Nothing matches.\n".into()
+            } else {
+                "No sessions or records yet. They appear here after your agent's next session.\n"
                     .into()
             };
         }
         let mut out = String::new();
-        for e in &eps {
-            out += &format!(
-                "{}  {:<6}  {:<12}  {:<12}  {}\n",
-                datetime(e.started),
-                e.agent,
-                clip(&e.session, 12),
-                e.outcome(),
-                e.task
-                    .as_deref()
-                    .map(|t| clip(t.lines().next().unwrap_or(""), 70))
-                    .unwrap_or_else(|| "(no prompt)".into())
-            );
-            out += &format!("{:>18}  {}\n", "", e.summary());
+        for (t, item) in &items {
+            match item {
+                Item::Session(e) => {
+                    out += &format!(
+                        "{}  session  {:<14}  {:<12}  {}\n",
+                        datetime(*t),
+                        clip(&e.session, 14),
+                        e.outcome(),
+                        e.task
+                            .as_deref()
+                            .map(|t| clip(t.lines().next().unwrap_or(""), 60))
+                            .unwrap_or_else(|| "(no prompt)".into())
+                    );
+                    out += &format!("{:>27}  {}\n", "", e.summary());
+                }
+                Item::Record(r) => {
+                    let state = if r.status == r.written_status {
+                        r.status.clone()
+                    } else {
+                        format!("{} ({})", r.status, r.written_status)
+                    };
+                    out += &format!(
+                        "{}  {:<7}  {:<14}  {:<12}  {}\n",
+                        datetime(*t),
+                        short_type(&r.ntype),
+                        clip(&r.id, 14),
+                        state,
+                        clip(&r.title, 60)
+                    );
+                }
+            }
         }
-        out += "\nTimes are UTC. `myrn log <session>` shows one session in full.\n";
+        out += "\nTimes are UTC. `myrn log <session>` shows a session; `myrn trace <id>` where a record came from.\n";
         out
     })
+}
+
+fn short_type(t: &str) -> &str {
+    match t {
+        "root_cause" => "cause",
+        "decision" => "decide",
+        "workflow" => "workflw",
+        "summary" => "summary",
+        other => other,
+    }
 }
 
 fn render_one(ep: &Episode, entries: &[myrn_store::episodes::Entry]) -> String {
@@ -125,7 +205,7 @@ fn render_one(ep: &Episode, entries: &[myrn_store::episodes::Entry]) -> String {
 }
 
 /// `YYYY-MM-DD HH:MM` in UTC.
-fn datetime(t: i64) -> String {
+pub(crate) fn datetime(t: i64) -> String {
     let z = t.div_euclid(86_400) + 719_468;
     let secs = t.rem_euclid(86_400);
     let era = z.div_euclid(146_097);

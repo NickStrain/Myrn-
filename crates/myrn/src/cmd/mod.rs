@@ -2,8 +2,11 @@
 
 pub mod connect;
 pub mod debug;
+pub mod diff;
 pub mod disconnect;
 pub mod doctor;
+pub mod forget;
+pub mod gc;
 pub mod hook;
 pub mod init;
 pub mod log;
@@ -12,14 +15,12 @@ pub mod query;
 pub mod rebuild;
 pub mod show;
 pub mod status;
-
-// Not built yet; kept to fix the layout.
-pub mod diff;
-pub mod forget;
-pub mod gc;
-pub mod publish;
+pub mod summarize;
 pub mod trace;
 pub mod verify;
+
+// Not built yet (Phase 5); kept to fix the layout.
+pub mod publish;
 
 use std::path::PathBuf;
 use std::process::ExitCode;

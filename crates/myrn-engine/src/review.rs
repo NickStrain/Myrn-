@@ -62,6 +62,10 @@ impl Engine {
             if !seen.insert(note.id.clone()) {
                 continue;
             }
+            // The project map is written by `myrn summarize`, not learned in sessions.
+            if note.source.as_deref() == Some(crate::summarize::SOURCE) {
+                continue;
+            }
             // Code: anchors, plus anything the record links to that is code.
             let mut targets: Vec<(String, Option<String>)> = Vec::new();
             let mut astmt =

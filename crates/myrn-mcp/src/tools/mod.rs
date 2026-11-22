@@ -1,6 +1,6 @@
-//! One module per MCP tool. `confirm` and `supersede` (resolving suspect
-//! records) come with validity tracking.
+//! One module per MCP tool.
 
+pub mod confirm;
 pub mod context;
 pub mod explain;
 pub mod history;
@@ -8,6 +8,7 @@ pub mod impact;
 pub mod recall;
 pub mod record;
 pub mod resolve;
+pub mod supersede;
 
 use anyhow::Result;
 use myrn_engine::api::Engine;
@@ -21,13 +22,22 @@ pub fn list() -> Vec<Value> {
         history::spec(),
         recall::spec(),
         record::spec(),
+        confirm::spec(),
+        supersede::spec(),
     ]
 }
 
 /// Run a tool; `None` if no tool has that name.
 pub fn call(engine: &mut Engine, name: &str, args: &Value) -> Option<Result<String>> {
     if ![
-        "context", "explain", "impact", "history", "recall", "record",
+        "context",
+        "explain",
+        "impact",
+        "history",
+        "recall",
+        "record",
+        "confirm",
+        "supersede",
     ]
     .contains(&name)
     {
@@ -43,6 +53,8 @@ pub fn call(engine: &mut Engine, name: &str, args: &Value) -> Option<Result<Stri
         "impact" => impact::call(engine, args),
         "recall" => recall::call(engine, args),
         "record" => record::call(engine, args),
+        "confirm" => confirm::call(engine, args),
+        "supersede" => supersede::call(engine, args),
         _ => history::call(engine, args),
     })
 }

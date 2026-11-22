@@ -86,6 +86,24 @@ pub fn query(conn: &Connection, terms: &[String], limit: usize) -> Result<Vec<(S
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
+/// Search code summaries; returns node ids, best first.
+pub fn query_summaries(conn: &Connection, terms: &[String], limit: usize) -> Result<Vec<String>> {
+    let terms: Vec<String> = terms
+        .iter()
+        .filter(|t| !t.is_empty())
+        .map(|t| format!("\"{}\"*", t.replace('"', "")))
+        .collect();
+    if terms.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn.prepare(
+        "SELECT id FROM summary_search WHERE summary_search MATCH ?1
+         ORDER BY bm25(summary_search) LIMIT ?2",
+    )?;
+    let rows = stmt.query_map(params![terms.join(" OR "), limit as i64], |r| r.get(0))?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

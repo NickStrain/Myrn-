@@ -80,6 +80,12 @@ pub struct RunRecord {
     pub injected_used: usize,
     /// Prompt-hook latencies.
     pub hook_ms: Vec<u64>,
+    /// Learned records among the injected items, and how many of those were
+    /// suspect (written for code that has changed) when injected.
+    #[serde(default)]
+    pub injected_records: usize,
+    #[serde(default)]
+    pub injected_stale: usize,
     /// Learned records in myrn's store after the session (exported to `records/`).
     #[serde(default)]
     pub records: usize,
@@ -92,6 +98,8 @@ pub struct Tools {
     pub myrn: PathBuf,
     pub model: Option<String>,
     pub permission_mode: String,
+    /// Project map (summaries directory) per repository, copied into myrn runs.
+    pub maps: std::collections::HashMap<String, PathBuf>,
 }
 
 pub struct Paths {
@@ -303,6 +311,8 @@ pub fn run_one(spec: &RunSpec, tools: &Tools, paths: &Paths, raw_dir: &Path) -> 
         session: Session::default(),
         injected: Vec::new(),
         injected_used: 0,
+        injected_records: 0,
+        injected_stale: 0,
         hook_ms: Vec::new(),
         records: 0,
         check_output: String::new(),
@@ -341,7 +351,14 @@ fn run_inner(
     let mcp = match spec.condition {
         Condition::Without => serde_json::json!({ "mcpServers": {} }),
         Condition::Off | Condition::With => {
-            setup_myrn(&tools.myrn, &work, &home, spec.condition == Condition::With)?;
+            let map = tools.maps.get(&spec.repo.name).map(PathBuf::as_path);
+            setup_myrn(
+                &tools.myrn,
+                &work,
+                &home,
+                spec.condition == Condition::With,
+                map,
+            )?;
             serde_json::json!({ "mcpServers": { "myrn": {
                 "type": "stdio",
                 "command": tools.myrn,
@@ -419,7 +436,13 @@ fn run_inner(
     Ok(())
 }
 
-fn setup_myrn(myrn: &Path, work: &Path, home: &Path, inject: bool) -> Result<()> {
+fn setup_myrn(
+    myrn: &Path,
+    work: &Path,
+    home: &Path,
+    inject: bool,
+    map: Option<&Path>,
+) -> Result<()> {
     let run = |args: &[&str]| -> Result<()> {
         let o = Command::new(myrn)
             .args(args)
@@ -440,19 +463,98 @@ fn setup_myrn(myrn: &Path, work: &Path, home: &Path, inject: bool) -> Result<()>
     };
     run(&["init"])?;
     run(&["connect", "--agent", "claude", "--yes"])?;
-    if !inject {
-        return Ok(());
-    }
+    // Set injection explicitly (the default changed), and skip the end-of-session
+    // record request: its tokens are not part of the comparison, only the bill.
     let cfg = work.join(".myrn/project.toml");
-    let text = std::fs::read_to_string(&cfg)?;
-    if !text.contains("inject = false") {
-        bail!(
-            "{} has no `inject = false` line to switch on",
-            cfg.display()
-        );
+    let mut text = std::fs::read_to_string(&cfg)?;
+    for (key, value) in [("inject", inject), ("ask_at_session_end", false)] {
+        let line = text
+            .lines()
+            .find(|l| l.trim_start().starts_with(&format!("{key} =")))
+            .map(str::to_string)
+            .with_context(|| format!("{} has no `{key}` line", cfg.display()))?;
+        text = text.replace(&line, &format!("{key} = {value}"));
     }
-    std::fs::write(&cfg, text.replace("inject = false", "inject = true"))?;
+    std::fs::write(&cfg, text)?;
+    // The project map, built from the unbroken commit (as if summarized before
+    // the bug landed): the broken function's summary shows as possibly outdated.
+    if let Some(map) = map {
+        copy_dir(map, &work.join(".myrn/knowledge/summaries"))?;
+    }
     Ok(())
+}
+
+fn copy_dir(from: &Path, to: &Path) -> Result<()> {
+    std::fs::create_dir_all(to)?;
+    for e in std::fs::read_dir(from)? {
+        let e = e?;
+        let dst = to.join(e.file_name());
+        if e.file_type()?.is_dir() {
+            copy_dir(&e.path(), &dst)?;
+        } else {
+            std::fs::copy(e.path(), &dst)?;
+        }
+    }
+    Ok(())
+}
+
+/// Build (once, cached by commit) the project map for a repository at its
+/// pinned commit with `myrn summarize`. Returns the summaries directory and
+/// what building it cost (0 when cached).
+pub fn build_map(
+    checkout: &Path,
+    repo: &Repo,
+    myrn: &Path,
+    cache: &Path,
+) -> Result<(PathBuf, f64)> {
+    let dir = cache.join(format!("{}-{}", repo.name, &repo.commit[..12]));
+    let out = dir.join("summaries");
+    if out.join("project").exists() {
+        return Ok((out, 0.0));
+    }
+    let src = dir.join("src");
+    let home = dir.join("home");
+    for d in [&src, &home, &out] {
+        if d.exists() {
+            std::fs::remove_dir_all(d)?;
+        }
+    }
+    std::fs::create_dir_all(&dir)?;
+    git(
+        &dir,
+        &[
+            "clone",
+            "-q",
+            "--no-hardlinks",
+            &checkout.to_string_lossy(),
+            &src.to_string_lossy(),
+        ],
+    )?;
+    git(&src, &["checkout", "-q", &repo.commit])?;
+    let myrn_cmd = |args: &[&str]| -> Result<std::process::Output> {
+        let o = Command::new(myrn)
+            .args(args)
+            .current_dir(&src)
+            .env("MYRN_HOME", &home)
+            .stdin(Stdio::null())
+            .stderr(Stdio::inherit())
+            .output()?;
+        if !o.status.success() {
+            bail!(
+                "myrn {} failed: {}",
+                args.join(" "),
+                String::from_utf8_lossy(&o.stdout)
+            );
+        }
+        Ok(o)
+    };
+    myrn_cmd(&["init"])?;
+    let o = myrn_cmd(&["--json", "summarize", "-j", "6"])?;
+    let report: serde_json::Value = serde_json::from_slice(&o.stdout)?;
+    copy_dir(&src.join(".myrn/knowledge/summaries"), &out)?;
+    std::fs::remove_dir_all(&src)?;
+    std::fs::remove_dir_all(&home)?;
+    Ok((out, report["cost_usd"].as_f64().unwrap_or(0.0)))
 }
 
 /// Save the learned records (with their evidence and code) for the Gate 2
@@ -519,6 +621,15 @@ fn collect_injections(work: &Path, home: &Path, rec: &mut RunRecord) -> Result<(
                 || item_name(id).is_some_and(|n| n.len() >= 4 && answer.contains(&n.to_lowercase()))
         })
         .count();
+    let (records, stale): (i64, i64) = engine.db().conn.query_row(
+        "SELECT COUNT(DISTINCT u.note_id), COUNT(DISTINCT CASE WHEN u.status = 'suspect' THEN u.note_id END)
+         FROM usage u JOIN nodes n ON n.id = u.note_id
+         WHERE u.injected = 1 AND n.origin = 'earned'",
+        [],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    rec.injected_records = records as usize;
+    rec.injected_stale = stale as usize;
     rec.hook_ms = engine
         .state()?
         .hook_timings

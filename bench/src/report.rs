@@ -436,6 +436,24 @@ pub fn render(runs: &[RunRecord], title: &str) -> String {
                     format!("{:.0}%", 100.0 * used as f64 / inj as f64)
                 }
             }),
+            line("Learned records injected per run", &|g| {
+                per(g, &|r| r.injected_records as f64)
+            }),
+            line(
+                "Stale injections (records shown for code that changed since)",
+                &|g| {
+                    let inj: usize = g.iter().map(|r| r.injected_records).sum();
+                    let stale: usize = g.iter().map(|r| r.injected_stale).sum();
+                    if inj == 0 {
+                        "– (no records injected)".into()
+                    } else {
+                        format!(
+                            "{:.0}% ({stale} of {inj}, all labelled possibly outdated)",
+                            100.0 * stale as f64 / inj as f64
+                        )
+                    }
+                },
+            ),
             line("myrn tool calls during the task", &|g| {
                 per(g, &|r| r.session.myrn_tool_calls as f64)
             }),
@@ -591,6 +609,8 @@ mod tests {
             },
             injected: vec![],
             injected_used: 0,
+            injected_records: 0,
+            injected_stale: 0,
             hook_ms: vec![15],
             records: 0,
             check_output: String::new(),

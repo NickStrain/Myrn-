@@ -27,7 +27,29 @@ pub fn run(ctx: &Ctx, id: &str) -> Result<ExitCode> {
             field("doc", n.doc.clone());
             field("body hash", n.body_hash.clone());
             field("status", n.status.clone());
-            field("extra", n.extra.clone());
+            let extra: serde_json::Value = n
+                .extra
+                .as_deref()
+                .and_then(|e| serde_json::from_str(e).ok())
+                .unwrap_or_default();
+            if n.origin == "earned" && extra.is_object() {
+                field("file", extra["file"].as_str().map(str::to_string));
+                field("source", extra["source"].as_str().map(str::to_string));
+                for ev in extra["evidence"].as_array().into_iter().flatten() {
+                    let kind = ev["kind"].as_str().unwrap_or("");
+                    let value = ev["value"].as_str().unwrap_or("");
+                    field(
+                        "evidence",
+                        Some(if kind.is_empty() {
+                            value.to_string()
+                        } else {
+                            format!("{kind}: {value}")
+                        }),
+                    );
+                }
+            } else {
+                field("extra", n.extra.clone());
+            }
             if !edges.is_empty() {
                 out += "relations\n";
                 for e in edges {

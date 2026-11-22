@@ -120,24 +120,22 @@ fn connect_hooks_doctor_disconnect() {
     assert_eq!(h["args"], json!(["hook", "claude", "UserPromptSubmit"]));
     assert!(Path::new(h["command"].as_str().unwrap()).is_absolute());
 
-    // Injection is off by default: hooks answer with nothing.
+    // Injection is on by default: the session starts with the project map...
     let cwd = env.repo.join("src");
     let start = json!({"session_id": "s1", "cwd": cwd, "hook_event_name": "SessionStart", "source": "startup"}).to_string();
     let (o, _) = env.hook("claude", "SessionStart", &start, &env.repo);
     assert!(o.status.success());
-    assert!(o.stdout.is_empty(), "{}", text(&o));
+    let v: Value =
+        serde_json::from_slice(&o.stdout).unwrap_or_else(|e| panic!("{e}: {}", text(&o)));
+    assert!(v["hookSpecificOutput"]["additionalContext"]
+        .as_str()
+        .unwrap()
+        .contains("project map"));
+
+    // ...and a prompt gets additionalContext naming the symbol.
     let prompt = json!({"session_id": "s1", "cwd": env.repo, "hook_event_name": "UserPromptSubmit",
         "prompt": "refresh_session returns the wrong value"})
     .to_string();
-    let (o, _) = env.hook("claude", "UserPromptSubmit", &prompt, &env.repo);
-    assert!(o.stdout.is_empty());
-
-    // Turn injection on: the prompt hook returns additionalContext naming the symbol.
-    let cfg = env.repo.join(".myrn/project.toml");
-    let toml = std::fs::read_to_string(&cfg)
-        .unwrap()
-        .replace("inject = false", "inject = true");
-    std::fs::write(&cfg, toml).unwrap();
     let (o, ms) = env.hook("claude", "UserPromptSubmit", &prompt, &env.repo);
     assert!(o.status.success());
     let v: Value =
@@ -151,12 +149,25 @@ fn connect_hooks_doctor_disconnect() {
         "{ctx}"
     );
     eprintln!("prompt hook with injection: {ms} ms end to end (debug build)");
-    let (o, _) = env.hook("claude", "SessionStart", &start, &env.repo);
-    let v: Value = serde_json::from_slice(&o.stdout).unwrap();
-    assert!(v["hookSpecificOutput"]["additionalContext"]
-        .as_str()
+
+    // The same session is never sent the same code twice.
+    let (o, _) = env.hook("claude", "UserPromptSubmit", &prompt, &env.repo);
+    assert!(o.status.success() && o.stdout.is_empty(), "{}", text(&o));
+    // A new session gets it again.
+    let other = prompt.replace("\"s1\"", "\"s2\"");
+    let (o, _) = env.hook("claude", "UserPromptSubmit", &other, &env.repo);
+    assert!(text(&o).contains("refresh_session"), "{}", text(&o));
+
+    // Turn injection off: hooks answer with nothing.
+    let cfg = env.repo.join(".myrn/project.toml");
+    let toml = std::fs::read_to_string(&cfg)
         .unwrap()
-        .contains("project map"));
+        .replace("inject = true", "inject = false");
+    std::fs::write(&cfg, toml).unwrap();
+    let (o, _) = env.hook("claude", "SessionStart", &start, &env.repo);
+    assert!(o.status.success() && o.stdout.is_empty(), "{}", text(&o));
+    let (o, _) = env.hook("claude", "UserPromptSubmit", &other, &env.repo);
+    assert!(o.stdout.is_empty(), "{}", text(&o));
 
     // Never in the way: junk payloads, unknown events, unconnected agents.
     for (agent, event, payload) in [
@@ -216,6 +227,12 @@ fn connect_hooks_doctor_disconnect() {
 fn sessions_are_recorded_redacted_and_listed() {
     let env = setup();
     std::fs::write(env.repo.join(".myrn/ignore"), "secrets/\n").unwrap();
+    // This test is about recording; keep injected context out of the hook output.
+    let cfg = env.repo.join(".myrn/project.toml");
+    let toml = std::fs::read_to_string(&cfg)
+        .unwrap()
+        .replace("inject = true", "inject = false");
+    std::fs::write(&cfg, toml).unwrap();
 
     // Before consent: hooks record nothing.
     let o = env.myrn(&["connect", "--agent", "codex", "--pull-only"]);

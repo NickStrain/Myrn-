@@ -109,6 +109,25 @@ impl Note {
         }
     }
 
+    /// The text a summary note gives its code: the body without a leading
+    /// `# heading`, up to the first `## ` section (map notes keep their links there).
+    pub fn summary_text(&self) -> String {
+        let mut lines = self
+            .body
+            .lines()
+            .skip_while(|l| l.trim().is_empty())
+            .peekable();
+        if lines.peek().is_some_and(|l| l.starts_with("# ")) {
+            lines.next();
+        }
+        lines
+            .take_while(|l| !l.starts_with("## "))
+            .collect::<Vec<_>>()
+            .join("\n")
+            .trim()
+            .to_string()
+    }
+
     /// Header `title`, else the first heading or line of the body.
     pub fn display_title(&self) -> String {
         if let Some(t) = self.title.as_deref().filter(|t| !t.trim().is_empty()) {

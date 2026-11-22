@@ -372,7 +372,7 @@ impl Engine {
 
     /// Write a note: back to its own file when it exists, else into the
     /// private notes. File first; the caller indexes afterwards.
-    fn put_note(
+    pub(crate) fn put_note(
         &self,
         note: &mut Note,
         key: Option<&str>,

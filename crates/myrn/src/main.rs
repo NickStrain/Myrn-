@@ -41,16 +41,72 @@ enum Command {
     },
     /// Recreate the index from the code
     Rebuild,
-    /// Recorded agent sessions, newest first; one session in full with its id
+    /// Write the project map: what the project, each directory, file and function is for
+    Summarize {
+        /// Only show what is missing or out of date
+        #[arg(long)]
+        dry_run: bool,
+        /// Send at most this many files to the model in this run
+        #[arg(long)]
+        limit: Option<usize>,
+        /// Model calls at the same time (default from .myrn/project.toml)
+        #[arg(long, short = 'j')]
+        jobs: Option<usize>,
+    },
+    /// History of sessions and learned records, newest first; one session in full with its id
     Log {
         /// Session id or unique prefix
         session: Option<String>,
-        /// Maximum sessions
+        /// Maximum entries
         #[arg(short = 'n', long, default_value_t = 20)]
         limit: usize,
+        /// Only this type: episode, bug, root_cause, decision, workflow, fact, summary
+        #[arg(long = "type", value_name = "TYPE")]
+        ntype: Option<String>,
+        /// Only records in this state: unverified, verified, suspect, superseded
+        #[arg(long)]
+        status: Option<String>,
+        /// Include the project map's summaries
+        #[arg(long)]
+        map: bool,
+    },
+    /// Where a record came from: session, commits, tests, code it is anchored to
+    Trace {
+        /// Record id
+        id: String,
+    },
+    /// How shared knowledge changed between two points (revisions or YYYY-MM-DD)
+    Diff {
+        /// Start point (default: HEAD)
+        from: Option<String>,
+        /// End point (default: the working tree)
+        to: Option<String>,
+    },
+    /// Permanently remove a record and anything derived only from it
+    Forget {
+        /// Record id
+        id: String,
+        /// Don't ask for confirmation
+        #[arg(long, short = 'y')]
+        yes: bool,
+    },
+    /// Merge duplicate note copies, drop index entries for deleted code, compact old sessions
+    Gc {
+        /// Compact session logs older than this many days
+        #[arg(long, default_value_t = 30)]
+        older_than: u64,
+        /// Only report what would change
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Diagnose store, index and setup problems
     Doctor,
+    /// Re-check records against the current code: promote, list suspect ones, confirm one
+    Verify {
+        /// Confirm that this suspect record still holds for the current code
+        #[arg(long, value_name = "ID")]
+        confirm: Option<String>,
+    },
     /// What a symbol or file is, who calls it, which tests cover it
     Explain {
         /// Symbol name, qualified name (a::b or A.b), path or path:line
@@ -147,14 +203,40 @@ fn main() -> ExitCode {
         Command::Status => cmd::status::run(&ctx),
         Command::Show { id } => cmd::show::run(&ctx, &id),
         Command::Rebuild => cmd::rebuild::run(&ctx),
+        Command::Summarize {
+            dry_run,
+            limit,
+            jobs,
+        } => cmd::summarize::run(&ctx, dry_run, limit, jobs),
         Command::Doctor => cmd::doctor::run(&ctx),
+        Command::Verify { confirm } => cmd::verify::run(&ctx, confirm.as_deref()),
         Command::Explain { symbol } => cmd::query::explain(&ctx, &symbol),
         Command::Impact { symbol } => cmd::query::impact(&ctx, &symbol),
         Command::History { path, limit } => cmd::query::history(&ctx, &path, limit),
         Command::Context { task, budget } => cmd::query::context(&ctx, &task.join(" "), budget),
         Command::Brief { budget } => cmd::query::brief(&ctx, budget),
         Command::Mcp => cmd::mcp::run(&ctx),
-        Command::Log { session, limit } => cmd::log::run(&ctx, session.as_deref(), limit),
+        Command::Log {
+            session,
+            limit,
+            ntype,
+            status,
+            map,
+        } => cmd::log::run(
+            &ctx,
+            session.as_deref(),
+            limit,
+            ntype.as_deref(),
+            status.as_deref(),
+            map,
+        ),
+        Command::Trace { id } => cmd::trace::run(&ctx, &id),
+        Command::Diff { from, to } => cmd::diff::run(&ctx, from.as_deref(), to.as_deref()),
+        Command::Forget { id, yes } => cmd::forget::run(&ctx, &id, yes),
+        Command::Gc {
+            older_than,
+            dry_run,
+        } => cmd::gc::run(&ctx, older_than, dry_run),
         Command::Connect {
             all,
             agents,

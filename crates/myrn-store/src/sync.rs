@@ -323,6 +323,7 @@ fn link(tx: &Transaction<'_>) -> Result<()> {
          DELETE FROM edges WHERE evidence LIKE 'note:%';
          DELETE FROM anchors;
          DELETE FROM note_issues;
+         DELETE FROM summary_search;
          UPDATE nodes SET summary = NULL WHERE origin = 'derived' AND summary IS NOT NULL;",
     )?;
     let rows: Vec<Row> = {
@@ -474,10 +475,15 @@ fn link(tx: &Transaction<'_>) -> Result<()> {
             if summary_targets.is_empty() {
                 issue(&r.path, id, "dangling", "summary is not `about` any code")?;
             }
+            let text = n.summary_text();
             for t in summary_targets {
                 tx.execute(
                     "UPDATE nodes SET summary = ?2 WHERE id = ?1",
-                    params![t, n.body.trim()],
+                    params![t, text],
+                )?;
+                tx.execute(
+                    "INSERT INTO summary_search (id, text) VALUES (?1, ?2)",
+                    params![t, text],
                 )?;
             }
             continue;
@@ -498,7 +504,66 @@ fn link(tx: &Transaction<'_>) -> Result<()> {
             }
         }
     }
+    derive_states(tx)?;
     Ok(())
+}
+
+/// A record's state as shown and ranked here, derived from this working tree
+/// every time the notes or the code change. The note file keeps the state it
+/// earned (unverified or verified); on top of that:
+/// - superseded when a newer record `supersedes` it;
+/// - suspect when the code an anchor points at has a different body hash, or
+///   is gone. Because this is recomputed from the current hashes, switching
+///   back to the code it was written about makes it valid again.
+fn derive_states(tx: &Transaction<'_>) -> Result<()> {
+    tx.execute_batch(
+        "UPDATE nodes SET status = 'superseded'
+         WHERE origin = 'earned' AND type != 'episode'
+           AND id IN (SELECT dst FROM edges WHERE rel = 'supersedes');
+         UPDATE nodes SET status = 'suspect'
+         WHERE origin = 'earned' AND type != 'episode'
+           AND coalesce(status, 'unverified') NOT IN ('superseded', 'suspect')
+           AND id IN (
+             SELECT a.note_id FROM anchors a LEFT JOIN nodes s ON s.id = a.symbol_id
+             WHERE a.body_hash IS NOT NULL AND a.body_hash != ''
+               AND (s.id IS NULL OR s.body_hash IS NULL
+                    OR substr(s.body_hash, 1, length(a.body_hash)) != a.body_hash));",
+    )?;
+    Ok(())
+}
+
+/// One anchor of a record that no longer matches the code.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct Drift {
+    pub note_id: String,
+    /// The anchored node, when it still exists.
+    pub symbol_id: Option<String>,
+    pub anchored_hash: String,
+    /// `None` when the code is gone.
+    pub current_hash: Option<String>,
+}
+
+/// Anchors that no longer match the current code, for one record or all.
+pub fn drift(conn: &Connection, note_id: Option<&str>) -> Result<Vec<Drift>> {
+    let mut stmt = conn.prepare(
+        "SELECT a.note_id, s.id, a.body_hash, s.body_hash
+         FROM anchors a LEFT JOIN nodes s ON s.id = a.symbol_id
+         WHERE a.body_hash IS NOT NULL AND a.body_hash != ''
+           AND (s.id IS NULL OR s.body_hash IS NULL
+                OR substr(s.body_hash, 1, length(a.body_hash)) != a.body_hash)
+           AND (?1 IS NULL OR a.note_id = ?1)
+           AND a.note_id IN (SELECT id FROM nodes WHERE origin = 'earned')
+         ORDER BY a.note_id",
+    )?;
+    let rows = stmt.query_map([note_id], |r| {
+        Ok(Drift {
+            note_id: r.get(0)?,
+            symbol_id: r.get(1)?,
+            anchored_hash: r.get(2)?,
+            current_hash: r.get(3)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
 pub fn summary(conn: &Connection) -> Result<NotesSummary> {
