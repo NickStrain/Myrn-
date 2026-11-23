@@ -200,6 +200,15 @@ impl Engine {
         };
 
         let source = self.current_session(item.session.as_deref());
+        // Provenance, so a shared copy can say who wrote it and when.
+        let written_by = self.session_agent(source.as_deref());
+        let created = crate::sharing::today();
+        let stamp = |n: &mut Note| {
+            if let Some(a) = &written_by {
+                n.set_extra("written_by", a);
+            }
+            n.set_extra("created", &created);
+        };
         let anchors_of = |refs: &[&Ref]| -> Vec<Anchor> {
             let mut out: Vec<Anchor> = Vec::new();
             for a in refs.iter().filter_map(|r| r.anchor.clone()) {
@@ -216,6 +225,7 @@ impl Engine {
         if let Some(cause) = item.root_cause.as_deref().filter(|c| !c.trim().is_empty()) {
             let mut rc = Note::new("root_cause", &format!("{}\n", cause.trim()));
             rc.source = source.clone();
+            stamp(&mut rc);
             rc.evidence = evidence.clone();
             rc.links = located
                 .iter()
@@ -261,6 +271,7 @@ impl Engine {
         let mut note = Note::new(kind, &text);
         note.title = item.title.clone().filter(|t| !t.trim().is_empty());
         note.source = source.clone();
+        stamp(&mut note);
         note.evidence = evidence;
         note.signature = item
             .error

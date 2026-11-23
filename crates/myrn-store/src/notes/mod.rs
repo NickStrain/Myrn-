@@ -3,6 +3,8 @@
 //! The notes are the source of truth for earned knowledge. Write the note
 //! first, then index it (`sync`), so the files are always the complete record.
 
+pub mod claims;
+pub mod directives;
 pub mod frontmatter;
 pub mod layout;
 pub mod wikilink;

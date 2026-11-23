@@ -3,7 +3,7 @@ fn main() {
     let cwd = std::env::current_dir().unwrap();
     let e = myrn_engine::api::Engine::open(&cwd, None).unwrap();
     for q in std::env::args().skip(1) {
-        let qv = e.embed(&[q.clone()]).unwrap().pop().unwrap();
+        let qv = e.embed(std::slice::from_ref(&q)).unwrap().pop().unwrap();
         let mut stmt = e.db().conn.prepare("SELECT id, vec FROM vectors").unwrap();
         let mut hits: Vec<(String, f32)> = stmt
             .query_map([], |r| {

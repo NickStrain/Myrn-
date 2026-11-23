@@ -107,6 +107,8 @@ pub struct Status {
     pub calls_inferred: i64,
     pub records_by_state: Vec<(String, i64)>,
     pub notes: sync::NotesSummary,
+    /// Records that disagree, at least one shared: for a person to resolve.
+    pub conflicts: Vec<sync::Conflict>,
     pub connected_agents: Vec<String>,
     pub last_refresh: Option<i64>,
 }
@@ -327,6 +329,16 @@ impl Engine {
     /// Recreate the database from the code and the notes. The note files are only read.
     pub fn rebuild(&mut self) -> Result<IndexReport> {
         let path = self.layout.db_path.clone();
+        // Not derivable from the files: this clone's own verifications of shared records.
+        let kept: Vec<(String, String, Option<String>, Option<i64>)> = self
+            .db
+            .conn
+            .prepare("SELECT note_id, body_hash, reason, t FROM local_verified")
+            .and_then(|mut s| {
+                s.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?
+                    .collect()
+            })
+            .unwrap_or_default();
         self.db = Db::open_in_memory()?; // release the file
         for suffix in ["", "-wal", "-shm"] {
             let p = PathBuf::from(format!("{}{suffix}", path.display()));
@@ -335,6 +347,13 @@ impl Engine {
             }
         }
         self.db = Db::open(&path)?;
+        for (id, hash, reason, t) in kept {
+            self.db.conn.execute(
+                "INSERT OR REPLACE INTO local_verified (note_id, body_hash, reason, t)
+                 VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params![id, hash, reason, t],
+            )?;
+        }
         let report = self.refresh()?;
         self.reindex_episodes()?;
         Ok(report)
@@ -464,7 +483,11 @@ impl Engine {
                     id: n.id.clone(),
                     ntype: n.ntype.clone(),
                     status: n.status.clone().unwrap_or_default(),
-                    title: n.title.clone().unwrap_or_default(),
+                    title: crate::pack::render::safe_text(
+                        n,
+                        n.title.as_deref().unwrap_or_default(),
+                    ),
+                    from: crate::pack::render::node_provenance(n),
                 });
             }
         };
@@ -1081,6 +1104,7 @@ impl Engine {
             )?,
             records_by_state: records,
             notes: sync::summary(c)?,
+            conflicts: sync::conflicts(c)?,
             connected_agents: self.state()?.agents.keys().cloned().collect(),
             last_refresh: self
                 .db

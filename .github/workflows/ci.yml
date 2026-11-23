@@ -5,17 +5,64 @@ on:
   pull_request:
 
 jobs:
-  check:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  lint:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets
-      - run: cargo test --workspace
+      - run: cargo clippy --workspace --all-targets --locked
+
+  # The full test suite on every platform a release is built for:
+  # x86-64 and ARM64 on Linux, macOS and Windows.
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest      # Linux x86-64
+          - ubuntu-24.04-arm   # Linux ARM64
+          - macos-15-intel     # macOS x86-64
+          - macos-latest       # macOS ARM64
+          - windows-latest     # Windows x86-64
+          - windows-11-arm     # Windows ARM64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --workspace --locked
+
+  # Installers and package manifests: syntax, unit tests, and a render.
+  packaging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: install.sh
+        run: |
+          sh -n scripts/install.sh
+          shellcheck scripts/install.sh
+      - name: install.ps1
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/scripts/install.ps1", [ref]$null, [ref]$errors) | Out-Null
+          if ($errors) { $errors; exit 1 }
+      - name: npm wrapper
+        working-directory: dist/npm
+        run: npm test
+      - name: render manifests
+        run: |
+          mkdir -p fake
+          for t in x86_64-unknown-linux-musl aarch64-unknown-linux-musl x86_64-apple-darwin aarch64-apple-darwin; do
+            echo x > "fake/myrn-$t.tar.gz"
+          done
+          for t in x86_64-pc-windows-msvc aarch64-pc-windows-msvc; do echo x > "fake/myrn-$t.zip"; done
+          (cd fake && sha256sum myrn-* > sha256sums.txt)
+          python3 dist/render.py --version 0.0.0 --sums fake/sha256sums.txt --out rendered
+          ruby -c rendered/homebrew/myrn.rb
+          python3 -c "import json; json.load(open('rendered/scoop/myrn.json'))"

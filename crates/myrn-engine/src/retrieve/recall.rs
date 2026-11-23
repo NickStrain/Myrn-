@@ -10,6 +10,7 @@ use serde::Serialize;
 use crate::api::Engine;
 use crate::distill::{dedupe, signature};
 use crate::pack::budget::Budget;
+use crate::pack::render;
 
 /// Signatures at least this alike are shown.
 const MATCH: f64 = 0.6;
@@ -28,6 +29,8 @@ pub struct RecallHit {
     pub fixed_in: Vec<String>,
     /// Session that recorded it.
     pub source: Option<String>,
+    /// Where it came from: shared or private, who wrote it and when.
+    pub from: String,
 }
 
 impl Engine {
@@ -61,7 +64,8 @@ impl Engine {
                     .into_iter()
                     .map(|(s, _)| format!("{} {}", s.display_name(), s.location()))
                     .collect();
-                causes.push((rc.id.clone(), rc.doc.clone().unwrap_or_default(), locations));
+                let text = render::safe_text(&rc, rc.doc.as_deref().unwrap_or_default());
+                causes.push((rc.id.clone(), text, locations));
             }
             let fixed_in = graph::neighbors(c, &n.id, "fixes", Dir::In)?
                 .into_iter()
@@ -79,12 +83,13 @@ impl Engine {
                 id: n.id.clone(),
                 status: n.status.clone().unwrap_or_default(),
                 similarity: sim,
-                title: n.title.clone().unwrap_or_default(),
-                signature: theirs.to_string(),
-                body: n.doc.clone().unwrap_or_default(),
+                title: render::safe_text(&n, n.title.as_deref().unwrap_or_default()),
+                signature: render::safe_text(&n, theirs),
+                body: render::safe_text(&n, n.doc.as_deref().unwrap_or_default()),
                 causes,
                 fixed_in,
                 source: extra["source"].as_str().map(str::to_string),
+                from: render::provenance(&extra),
             });
         }
         hits.sort_by(|a, b| {
@@ -136,9 +141,7 @@ impl Engine {
             if !h.fixed_in.is_empty() {
                 s.push_str(&format!("> fixed in: {}\n", h.fixed_in.join(", ")));
             }
-            if let Some(src) = &h.source {
-                s.push_str(&format!("> source: {src}\n"));
-            }
+            s.push_str(&format!("> source: {}\n", h.from));
             if b.push(&s) {
                 ids.push(h.id.clone());
             }

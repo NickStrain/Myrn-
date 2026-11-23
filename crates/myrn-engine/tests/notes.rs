@@ -383,7 +383,9 @@ fn write_note_writes_first_then_indexes_and_shared_wins() {
         .write_note(&mut shared, Visibility::Shared)
         .unwrap();
     let node = node(&r.engine, &n.id).unwrap();
-    assert_eq!(node.status.as_deref(), Some("verified"));
     assert!(node.extra.unwrap().contains("\"visibility\":\"shared\""));
+    // A shared file's `verified` was earned elsewhere: unverified here until
+    // this clone verifies it itself.
+    assert_eq!(node.status.as_deref(), Some("unverified"));
     assert_eq!(r.engine.status().unwrap().notes.duplicates, 1);
 }

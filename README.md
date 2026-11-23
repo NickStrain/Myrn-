@@ -77,21 +77,31 @@ status     current (indexed body hash 886ba5f5364ff42f)
 
 ## Quick start
 
-Prebuilt binaries are planned. For now, build from source with Rust 1.85 or newer and a C compiler:
+Install the single `myrn` binary (Linux, macOS and Windows; x86-64 and ARM64):
 
 ```sh
-git clone https://github.com/NickStrain/Myrn-.git
-cargo install --path Myrn-/crates/myrn
+# Linux, macOS
+curl -fsSL https://github.com/NickStrain/Myrn-/releases/latest/download/install.sh | sh
 ```
+
+```powershell
+# Windows
+irm https://github.com/NickStrain/Myrn-/releases/latest/download/install.ps1 | iex
+```
+
+Or with a package manager: `brew install NickStrain/tap/myrn`, `npm install -g myrn`,
+`cargo install myrn`, Scoop or winget ([all options](docs/releasing.md#install-paths-this-produces)).
+To build from source instead, you need Rust 1.85 or newer and a C compiler:
+`cargo install --git https://github.com/NickStrain/Myrn- myrn`.
 
 Then, in any Git repository:
 
 ```sh
-myrn init       # index the code and its history
-myrn connect    # set up Claude Code or Codex (asks before installing hooks)
+myrn init            # index the code and its history
+myrn connect --all   # set up every agent found (asks before installing hooks)
 ```
 
-Keep using `claude` or `codex` as usual. Run `myrn doctor` at any time to see exactly what was configured.
+Keep using `claude` or `codex` as usual. Run `myrn doctor` at any time to see exactly what was configured, and `myrn ui` to look around.
 
 ## Usage
 
@@ -158,7 +168,8 @@ myrn history src/auth/
 | `myrn verify` | Promote records whose test passed or fix landed; list suspect ones; `--confirm <id>` | Available |
 | `myrn forget <id>` | Permanently remove a record and anything derived only from it | Available |
 | `myrn gc` | Merge duplicate note copies, drop index rows for deleted code, compact old sessions | Available |
-| `myrn publish <id>` | Share a record with your team through Git | Planned |
+| `myrn publish <id>` | Share a record with your team through Git: shows the exact text, strips directive-shaped text, moves it into `.myrn/knowledge/` (`--dry-run`, `--yes`) | Available |
+| `myrn ui` | Local read-only web page: project map, code graph, Obsidian-style notes graph, records, sessions (`--port`, `--no-open`) | Available |
 
 Every command accepts `--json`.
 
@@ -229,7 +240,7 @@ Each phase ships something usable, and the next phase starts only after its gate
 | 2. Memory | Learned records as Markdown notes: decisions, bugs, root causes, workflows | Planned |
 | 3. Validity | Records anchored to code hashes, suspect when the code changes, confirm/supersede, verify, history commands | Built; stale-injection gate needs replay tasks |
 | 4. Learning loop | Ranking by what was used in past sessions; optional local embeddings (`myrn embeddings enable`) | Built; gate run pending |
-| 5. Team sharing | Publish knowledge through Git and review it in pull requests | Planned |
+| 5. Team sharing | Publish knowledge through Git and review it in pull requests; prebuilt releases | Built; first release pending |
 
 <details>
 <summary>What a card will look like once Phases 2 and 3 land</summary>

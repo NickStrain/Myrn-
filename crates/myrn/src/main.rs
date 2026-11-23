@@ -90,6 +90,17 @@ enum Command {
         #[arg(long, short = 'y')]
         yes: bool,
     },
+    /// Share a private record with the team: show the exact text, then move it into .myrn/knowledge/
+    Publish {
+        /// Record id
+        id: String,
+        /// Only show what would be committed
+        #[arg(long)]
+        dry_run: bool,
+        /// Don't ask for confirmation
+        #[arg(long, short = 'y')]
+        yes: bool,
+    },
     /// Merge duplicate note copies, drop index entries for deleted code, compact old sessions
     Gc {
         /// Compact session logs older than this many days
@@ -138,6 +149,15 @@ enum Command {
     Brief {
         #[arg(long)]
         budget: Option<usize>,
+    },
+    /// Open a local, read-only page: project map, code graph, notes graph, records, sessions
+    Ui {
+        /// Port on 127.0.0.1 (default: any free port)
+        #[arg(long, default_value_t = 0)]
+        port: u16,
+        /// Don't open a browser
+        #[arg(long)]
+        no_open: bool,
     },
     /// Run the MCP server over stdio (started by the agent)
     Mcp,
@@ -239,6 +259,7 @@ fn main() -> ExitCode {
         Command::Context { task, budget } => cmd::query::context(&ctx, &task.join(" "), budget),
         Command::Brief { budget } => cmd::query::brief(&ctx, budget),
         Command::Mcp => cmd::mcp::run(&ctx),
+        Command::Ui { port, no_open } => cmd::ui::run(&ctx, port, !no_open),
         Command::Log {
             session,
             limit,
@@ -256,6 +277,7 @@ fn main() -> ExitCode {
         Command::Trace { id } => cmd::trace::run(&ctx, &id),
         Command::Diff { from, to } => cmd::diff::run(&ctx, from.as_deref(), to.as_deref()),
         Command::Forget { id, yes } => cmd::forget::run(&ctx, &id, yes),
+        Command::Publish { id, dry_run, yes } => cmd::publish::run(&ctx, &id, yes, dry_run),
         Command::Gc {
             older_than,
             dry_run,

@@ -13,19 +13,19 @@ members = [
 exclude = ["tests/fixtures"]
 
 [workspace.package]
-version = "0.0.0"
+version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/NickStrain/Myrn-"
 rust-version = "1.85"
 
 [workspace.dependencies]
-myrn-model    = { path = "crates/myrn-model" }
-myrn-store    = { path = "crates/myrn-store" }
-myrn-engine   = { path = "crates/myrn-engine" }
-myrn-mcp      = { path = "crates/myrn-mcp" }
-myrn-adapters = { path = "crates/myrn-adapters" }
-myrn-embed    = { path = "crates/myrn-embed", default-features = false }
+myrn-model    = { path = "crates/myrn-model", version = "0.1.0" }
+myrn-store    = { path = "crates/myrn-store", version = "0.1.0" }
+myrn-engine   = { path = "crates/myrn-engine", version = "0.1.0" }
+myrn-mcp      = { path = "crates/myrn-mcp", version = "0.1.0" }
+myrn-adapters = { path = "crates/myrn-adapters", version = "0.1.0" }
+myrn-embed    = { path = "crates/myrn-embed", version = "0.1.0", default-features = false }
 
 anyhow      = "1.0"
 blake3      = "1.8"

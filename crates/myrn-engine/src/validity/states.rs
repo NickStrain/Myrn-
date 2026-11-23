@@ -193,7 +193,9 @@ impl Engine {
                 &[],
             )? {
                 if let Some(ex) = dedupe::find_id(c, &n.id)? {
-                    if ex.note.status == "unverified" {
+                    // A shared record shown unverified here may say verified in
+                    // its file (verified where it was written): check it again.
+                    if ex.note.status == "unverified" || is_shared_key(&ex.key) {
                         out.push(ex);
                     }
                 }
@@ -203,6 +205,7 @@ impl Engine {
         if candidates.is_empty() {
             return Ok(Vec::new());
         }
+        let mut relink = false;
         let passes = self.passing_test_runs()?;
         let history = self.history_messages()?;
         let mut done = Vec::new();
@@ -215,8 +218,14 @@ impl Engine {
                     .find_map(|l| fix_landed(&history, &l.target))
             });
             if let Some(reason) = reason {
-                ex.note.status = "verified".into();
-                self.put_note(&mut ex.note, Some(&ex.key), &HashSet::new())?;
+                if is_shared_key(&ex.key) {
+                    // Verified in this clone only; the committed file is not touched.
+                    sync::set_local_verified(&self.db.conn, &ex.note.id, &ex.note.body, &reason)?;
+                    relink = true;
+                } else {
+                    ex.note.status = "verified".into();
+                    self.put_note(&mut ex.note, Some(&ex.key), &HashSet::new())?;
+                }
                 done.push(Promotion {
                     id: ex.note.id.clone(),
                     reason,
@@ -225,7 +234,7 @@ impl Engine {
         }
         if !done.is_empty() {
             let roots = self.note_roots();
-            sync::sync(&mut self.db.conn, &roots, false)?;
+            sync::sync(&mut self.db.conn, &roots, relink)?;
         }
         Ok(done)
     }
@@ -342,6 +351,11 @@ fn fix_landed(history: &[(String, String)], target: &str) -> Option<String> {
         .iter()
         .any(|(_, m)| m.contains(&format!("reverts commit {full}")));
     (!reverted).then(|| format!("fixing commit {} is in the history", &full[..12]))
+}
+
+/// Is this notes-table key a file in the committed knowledge directory?
+pub(crate) fn is_shared_key(key: &str) -> bool {
+    key.starts_with(&format!("{}/knowledge/", myrn_store::paths::REPO_DIR))
 }
 
 #[cfg(test)]

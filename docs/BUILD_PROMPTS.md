@@ -508,6 +508,21 @@ Implement Phase 4 from docs/DESIGN.md.
 
 ### Step 21 — publish, import and injection safety
 
+> **Status (2026-11-22): done.** `myrn publish <id> [--dry-run] [--yes]` (`sharing.rs`) shows
+> the exact file, strips directive-shaped sentences (`myrn_store::notes::directives`: instruction
+> overrides, "you must ...", role/tool-call markup, tool-call JSON, `curl | sh`), trims evidence
+> to the test command with no absolute paths, adds `published_by` (git `user.name`) and
+> `published_at`, takes a private root cause along, and moves the note into
+> `.myrn/knowledge/`; it refuses suspect and superseded records. Import needs no command (the
+> next refresh indexes pulled notes). Shared records show as verified only when this clone
+> verified them itself (`local_verified`, migration 0006, keyed by body hash, kept across
+> `rebuild`); `promote` verifies shared records there and never rewrites the committed file.
+> The link pass adds `contradicts` edges between disagreeing facts/decisions when one is
+> shared, and `myrn status` lists them. Every injected record (packs, explain cards, recall) is
+> labelled `shared by X on D` / `private`, `written by <agent> on <date>` (`written_by` and
+> `created` are stamped at record time), and shared text is stripped again when shown. Tests:
+> `crates/myrn-engine/tests/sharing.rs` (two clones over git).
+
 ```
 Implement "Sharing across developers" and the injection-safety rules in docs/DESIGN.md.
 
@@ -525,6 +540,16 @@ Implement "Sharing across developers" and the injection-safety rules in docs/DES
 ```
 
 ### Step 22 — Distribution
+
+> **Status (2026-11-22): built; first release not cut yet.** Version 0.1.0. `release.yml` on a
+> `v*` tag: native builds for the six targets (Linux as static musl), a smoke test, archives,
+> `sha256sums.txt`, a GitHub release, and npm / crates.io / Homebrew-tap publishing that each
+> run once their secret is set. `dist/render.py` writes the Homebrew formula, Scoop manifest
+> and winget manifests from the checksums. `dist/npm` downloads and verifies the binary on
+> install or first run (npm 12 skips install scripts). `scripts/install.sh` and `install.ps1`
+> verify checksums and install per user. `ci.yml` runs the full suite on all six targets and
+> checks the packaging. Not done here (needs the accounts): the secrets, the tap repository,
+> the winget submission, and the name check. See `docs/releasing.md`.
 
 ```
 Set up releases per "Technology choices" and "Platform support" in docs/DESIGN.md:

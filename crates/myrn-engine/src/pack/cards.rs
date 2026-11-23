@@ -53,11 +53,16 @@ pub struct Known {
     pub ntype: String,
     pub status: String,
     pub title: String,
+    /// Shared or private, who wrote it and when.
+    pub from: String,
 }
 
 impl Known {
     fn line(&self) -> String {
-        format!("{} ({}): {}", self.id, self.status, self.title)
+        format!(
+            "{} ({}; {}): {}",
+            self.id, self.status, self.from, self.title
+        )
     }
 }
 

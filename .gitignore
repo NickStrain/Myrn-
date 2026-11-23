@@ -7,3 +7,7 @@
 *.db
 *.db-wal
 *.db-shm
+
+# npm wrapper: downloaded binary and local installs
+dist/npm/bin-cache/
+dist/npm/node_modules/

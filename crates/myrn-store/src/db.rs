@@ -11,6 +11,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0003_summary_search.sql"),
     include_str!("../migrations/0004_usage_status.sql"),
     include_str!("../migrations/0005_learning.sql"),
+    include_str!("../migrations/0006_sharing.sql"),
 ];
 
 /// Schema version this binary writes.

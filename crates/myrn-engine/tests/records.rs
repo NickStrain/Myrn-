@@ -312,7 +312,7 @@ fn bugs_are_stored_deduplicated_and_recalled() {
     );
     assert!(
         pack.text.contains(&format!(
-            "> {rc_id} · root_cause · unverified · from episode:s1"
+            "> {rc_id} · root_cause · unverified · private, written by claude on "
         )),
         "{}",
         pack.text

@@ -23,7 +23,7 @@ use serde::Serialize;
 
 use crate::fts;
 use crate::graph::{self, Node};
-use crate::notes::{frontmatter, wikilink, Note};
+use crate::notes::{claims, frontmatter, wikilink, Note};
 
 /// A directory of notes: the private notes dir or the shared knowledge dir.
 #[derive(Debug, Clone)]
@@ -118,6 +118,16 @@ fn walk(root: &NoteRoot, out: &mut Vec<Found>) {
 pub fn content_hash(bytes: &[u8]) -> String {
     blake3::hash(bytes).to_hex()[..16].to_string()
 }
+
+/// Hash of a record's text with whitespace normalized: what a local
+/// verification of a shared record is tied to.
+pub fn body_hash(body: &str) -> String {
+    let normalized: Vec<&str> = body.split_whitespace().collect();
+    content_hash(normalized.join(" ").as_bytes())
+}
+
+/// Evidence on edges the link pass derives itself (not written in any note).
+const CHECK_CONTRADICTION: &str = "check:contradiction";
 
 /// Bring the note index up to date. `relink` forces the link pass (pass it
 /// when the code graph changed, so links follow the code).
@@ -320,7 +330,7 @@ fn link(tx: &Transaction<'_>) -> Result<()> {
         "DELETE FROM search WHERE rowid IN
              (SELECT rowid FROM nodes WHERE origin = 'earned' AND type != 'episode');
          DELETE FROM nodes WHERE origin = 'earned' AND type != 'episode';
-         DELETE FROM edges WHERE evidence LIKE 'note:%';
+         DELETE FROM edges WHERE evidence LIKE 'note:%' OR evidence LIKE 'check:%';
          DELETE FROM anchors;
          DELETE FROM note_issues;
          DELETE FROM summary_search;
@@ -397,6 +407,12 @@ fn link(tx: &Transaction<'_>) -> Result<()> {
             .collect(),
     };
 
+    let local_verified: HashMap<String, String> = {
+        let mut stmt = tx.prepare("SELECT note_id, body_hash FROM local_verified")?;
+        let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        rows.collect::<rusqlite::Result<_>>()?
+    };
+
     for (id, r) in &winners {
         let n = &r.note;
         let summary = n.ntype == "summary";
@@ -407,7 +423,24 @@ fn link(tx: &Transaction<'_>) -> Result<()> {
                 "evidence": n.evidence,
                 "source": n.source,
                 "signature": n.signature,
+                "written_by": n.extra_str("written_by"),
+                "created": n.extra_str("created"),
+                "published_by": n.extra_str("published_by"),
+                "published_at": n.extra_str("published_at"),
             });
+            // A shared record starts unverified here, whatever state it was
+            // written with elsewhere, until this clone verifies it itself.
+            let mut status = n.status.clone();
+            if r.visibility == Visibility::Shared.as_str()
+                && matches!(status.as_str(), "verified" | "unverified")
+            {
+                status = if local_verified.get(id) == Some(&body_hash(&n.body)) {
+                    "verified"
+                } else {
+                    "unverified"
+                }
+                .into();
+            }
             let rowid = graph::upsert_node(
                 tx,
                 &Node {
@@ -417,7 +450,7 @@ fn link(tx: &Transaction<'_>) -> Result<()> {
                     kind: Some("note".into()),
                     title: Some(n.display_title()),
                     doc: Some(n.body.trim().to_string()),
-                    status: Some(n.status.clone()),
+                    status: Some(status),
                     extra: Some(extra.to_string()),
                     ..Default::default()
                 },
@@ -505,6 +538,129 @@ fn link(tx: &Transaction<'_>) -> Result<()> {
         }
     }
     derive_states(tx)?;
+    shared_contradictions(tx)?;
+    Ok(())
+}
+
+/// Shared records arrive by `git pull`, past the check `record` makes. Two
+/// facts or decisions about the same code that say opposite things, at least
+/// one of them shared, get a `contradicts` edge (ranked down, and listed by
+/// [`conflicts`] for a person to resolve).
+fn shared_contradictions(tx: &Transaction<'_>) -> Result<()> {
+    // code node -> [(record id, text, shared)]
+    let mut by_target: BTreeMap<String, Vec<(String, String, bool)>> = BTreeMap::new();
+    {
+        let mut stmt = tx.prepare(
+            "SELECT e.dst, n.id, ifnull(n.doc, ''),
+                    ifnull(json_extract(n.extra, '$.visibility'), '') = 'shared'
+             FROM edges e JOIN nodes n ON n.id = e.src
+             WHERE e.rel = 'about' AND n.origin = 'earned' AND n.type IN ('fact', 'decision')
+               AND ifnull(n.status, '') != 'superseded'
+             ORDER BY e.dst, n.id",
+        )?;
+        let rows = stmt.query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, bool>(3)?,
+            ))
+        })?;
+        for row in rows {
+            let (dst, id, doc, shared) = row?;
+            by_target.entry(dst).or_default().push((id, doc, shared));
+        }
+    }
+    let linked = |a: &str, b: &str| -> Result<bool> {
+        Ok(tx
+            .query_row(
+                "SELECT 1 FROM edges WHERE rel = 'contradicts'
+                   AND ((src = ?1 AND dst = ?2) OR (src = ?2 AND dst = ?1))",
+                params![a, b],
+                |_| Ok(()),
+            )
+            .optional()?
+            .is_some())
+    };
+    for recs in by_target.values() {
+        for (i, (a, da, sa)) in recs.iter().enumerate() {
+            for (b, db, sb) in &recs[i + 1..] {
+                if (*sa || *sb) && a != b && claims::opposite(da, db) && !linked(a, b)? {
+                    tx.execute(
+                        "INSERT OR IGNORE INTO edges (src, rel, dst, status, evidence)
+                         VALUES (?1, 'contradicts', ?2, 'resolved', ?3)",
+                        params![a, b, CHECK_CONTRADICTION],
+                    )?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Two records that disagree, at least one of them shared, neither superseded:
+/// a person should keep one (supersede or forget the other).
+#[derive(Debug, Clone, Serialize)]
+pub struct Conflict {
+    pub a: String,
+    pub a_title: String,
+    pub a_visibility: String,
+    pub b: String,
+    pub b_title: String,
+    pub b_visibility: String,
+}
+
+pub fn conflicts(conn: &Connection) -> Result<Vec<Conflict>> {
+    let mut stmt = conn.prepare(
+        "SELECT a.id, ifnull(a.title, ''), ifnull(json_extract(a.extra, '$.visibility'), ''),
+                b.id, ifnull(b.title, ''), ifnull(json_extract(b.extra, '$.visibility'), '')
+         FROM edges e JOIN nodes a ON a.id = e.src JOIN nodes b ON b.id = e.dst
+         WHERE e.rel = 'contradicts'
+           AND a.origin = 'earned' AND b.origin = 'earned'
+           AND ifnull(a.status, '') != 'superseded' AND ifnull(b.status, '') != 'superseded'
+           AND (json_extract(a.extra, '$.visibility') = 'shared'
+                OR json_extract(b.extra, '$.visibility') = 'shared')
+         ORDER BY a.id, b.id",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        Ok(Conflict {
+            a: r.get(0)?,
+            a_title: r.get(1)?,
+            a_visibility: r.get(2)?,
+            b: r.get(3)?,
+            b_title: r.get(4)?,
+            b_visibility: r.get(5)?,
+        })
+    })?;
+    let mut out: Vec<Conflict> = Vec::new();
+    for c in rows {
+        let c = c?;
+        // One entry per pair, whichever way the edge points.
+        if !out
+            .iter()
+            .any(|o| (o.a == c.b && o.b == c.a) || (o.a == c.a && o.b == c.b))
+        {
+            out.push(c);
+        }
+    }
+    Ok(out)
+}
+
+/// Record that this clone verified a shared record (as it reads now).
+pub fn set_local_verified(
+    conn: &Connection,
+    note_id: &str,
+    body: &str,
+    reason: &str,
+) -> Result<()> {
+    let now = std::time::SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    conn.execute(
+        "INSERT OR REPLACE INTO local_verified (note_id, body_hash, reason, t) VALUES (?1, ?2, ?3, ?4)",
+        params![note_id, body_hash(body), reason, now],
+    )?;
     Ok(())
 }
 

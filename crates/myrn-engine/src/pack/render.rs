@@ -5,6 +5,7 @@
 //! never as instructions.
 
 use myrn_store::graph::Node;
+use myrn_store::notes::directives;
 
 use super::budget::Budget;
 
@@ -40,6 +41,58 @@ pub fn one_line(n: &Node) -> String {
 pub const KNOWN_HEADER: &str =
     "\nKnown from past sessions (quoted reference with its status; may be outdated, check the code):\n";
 
+/// Where a record came from: `shared by Ana on 2026-11-22, written by claude
+/// on 2026-11-20`, or `private, written by codex on 2026-11-21`.
+pub fn provenance(extra: &serde_json::Value) -> String {
+    let s = |k: &str| extra[k].as_str().filter(|v| !v.is_empty());
+    let mut out = if extra["visibility"].as_str() == Some("shared") {
+        let mut p = format!("shared by {}", s("published_by").unwrap_or("a teammate"));
+        if let Some(d) = s("published_at") {
+            p.push_str(&format!(" on {d}"));
+        }
+        p
+    } else {
+        "private".to_string()
+    };
+    match (s("written_by"), s("created")) {
+        (Some(a), Some(d)) => out.push_str(&format!(", written by {a} on {d}")),
+        (Some(a), None) => out.push_str(&format!(", written by {a}")),
+        (None, Some(d)) => out.push_str(&format!(", written on {d}")),
+        (None, None) => {
+            if let Some(src) = s("source") {
+                out.push_str(&format!(", from {src}"));
+            }
+        }
+    }
+    out
+}
+
+/// A record's text as it may be shown to an agent: shared records were written
+/// by someone else, so directive-shaped text is stripped again here (a note
+/// can be committed without `publish`).
+pub fn safe_text(n: &Node, text: &str) -> String {
+    let shared = n
+        .extra
+        .as_deref()
+        .and_then(|e| serde_json::from_str::<serde_json::Value>(e).ok())
+        .is_some_and(|e| e["visibility"].as_str() == Some("shared"));
+    if shared {
+        directives::strip(text).text
+    } else {
+        text.to_string()
+    }
+}
+
+/// [`provenance`] for a node.
+pub fn node_provenance(n: &Node) -> String {
+    let extra: serde_json::Value = n
+        .extra
+        .as_deref()
+        .and_then(|e| serde_json::from_str(e).ok())
+        .unwrap_or_default();
+    provenance(&extra)
+}
+
 /// A learned record as a quoted block: id, type, status, source, then the text.
 pub fn quoted(n: &Node) -> String {
     let extra: serde_json::Value = n
@@ -56,11 +109,10 @@ pub fn quoted(n: &Node) -> String {
     if n.status.as_deref() == Some("suspect") {
         head.push_str(" (possibly outdated: the code changed since)");
     }
-    if let Some(src) = extra["source"].as_str() {
-        head.push_str(&format!(" · from {src}"));
-    }
-    let title = n.title.as_deref().unwrap_or("");
-    let body = n.doc.as_deref().unwrap_or("");
+    head.push_str(&format!(" · {}", provenance(&extra)));
+    let title = safe_text(n, n.title.as_deref().unwrap_or(""));
+    let title = title.trim();
+    let body = safe_text(n, n.doc.as_deref().unwrap_or(""));
     let rest: String = body
         .lines()
         .map(str::trim)

@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Myrn</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f2f1ed; --hover: rgba(11,11,11,0.05);
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --accent: #2a78d6; --link: rgba(82,81,78,0.28);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --other: #a9a79f;
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b; --good-text: #006300;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232322; --hover: rgba(255,255,255,0.06);
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --accent: #3987e5; --link: rgba(195,194,183,0.22);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+    --other: #5f5e59; --good-text: #0ca30c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232322; --hover: rgba(255,255,255,0.06);
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --accent: #3987e5; --link: rgba(195,194,183,0.22);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+  --other: #5f5e59; --good-text: #0ca30c;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--page); color: var(--ink); font-size: 14px; line-height: 1.45; display: flex; flex-direction: column; }
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--accent); text-decoration: none; cursor: pointer; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+
+header.top { display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; }
+.brand { font-weight: 650; letter-spacing: 0.2px; }
+.brand small { font-weight: 400; color: var(--muted); margin-left: 8px; }
+nav.tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+nav.tabs a { padding: 6px 10px; border-radius: 6px; color: var(--ink-2); }
+nav.tabs a:hover { background: var(--hover); text-decoration: none; }
+nav.tabs a.on { background: var(--surface-2); color: var(--ink); font-weight: 600; }
+.spacer { flex: 1; }
+.search { position: relative; }
+.search input { width: 260px; max-width: 60vw; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); }
+.results { position: absolute; right: 0; top: 36px; width: 380px; max-width: 90vw; max-height: 60vh; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); z-index: 20; }
+.results div { padding: 7px 10px; cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+.results div:hover, .results div.on { background: var(--hover); }
+.iconbtn { border: 1px solid var(--border); background: var(--page); border-radius: 6px; padding: 5px 9px; cursor: pointer; }
+.iconbtn:hover { background: var(--hover); }
+
+main { flex: 1; display: flex; min-height: 0; }
+#view { flex: 1; min-width: 0; overflow: auto; position: relative; }
+#view.full { overflow: hidden; display: flex; flex-direction: column; }
+aside#panel { overflow-x: hidden; width: 420px; max-width: 45vw; border-left: 1px solid var(--border); background: var(--surface); overflow: auto; padding: 16px; position: relative; }
+aside#panel[hidden] { display: none; }
+@media (max-width: 760px) { aside#panel { position: fixed; inset: auto 0 0 0; width: auto; max-width: none; height: 55vh; border-left: 0; border-top: 1px solid var(--border); z-index: 15; } }
+.close { position: absolute; top: 10px; right: 10px; }
+
+.page { padding: 20px 24px; max-width: 1200px; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 15px; margin: 24px 0 10px; }
+h3 { font-size: 13px; margin: 16px 0 6px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.4px; }
+.sub { color: var(--ink-2); margin: 0 0 16px; }
+.muted { color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.tile .v { font-size: 24px; font-weight: 600; }
+.tile .k { color: var(--ink-2); font-size: 12.5px; }
+.tile .d { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.card h2 { margin-top: 0; }
+
+.bars .row { display: grid; grid-template-columns: 110px 1fr 56px; gap: 10px; align-items: center; margin: 5px 0; }
+.bars .track { height: 10px; background: var(--surface-2); border-radius: 0 4px 4px 0; }
+.bars .fill { height: 100%; background: var(--s1); border-radius: 0 4px 4px 0; min-width: 2px; }
+.bars .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+.seg { display: flex; height: 28px; gap: 2px; border-radius: 6px; overflow: hidden; margin: 8px 0 6px; }
+.seg div { min-width: 2px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--ink-2); font-size: 12.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend button { background: none; border: 0; padding: 2px 4px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.legend button:hover { background: var(--hover); }
+.legend button.off { opacity: 0.4; text-decoration: line-through; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+.ring { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 2px solid currentColor; flex: none; }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 12px; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.pill .dot { width: 8px; height: 8px; }
+
+.toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.toolbar label { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); }
+.toolbar select, .toolbar input[type=text] { padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); }
+.canvaswrap { flex: 1; position: relative; min-height: 300px; background: var(--surface); }
+.canvaswrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+.canvaswrap canvas.dragging { cursor: grabbing; }
+.hint { position: absolute; left: 12px; bottom: 10px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.count { position: absolute; right: 12px; bottom: 10px; color: var(--muted); font-size: 12px; pointer-events: none; }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { font-weight: 600; color: var(--ink-2); font-size: 12.5px; position: sticky; top: 0; background: var(--page); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--hover); }
+tbody tr.on { background: var(--surface-2); }
+.clip { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tree { padding: 8px 0; }
+.tree .node > .line { display: flex; gap: 8px; align-items: baseline; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
+.tree .node > .line:hover { background: var(--hover); }
+.tree .node > .line.on { background: var(--surface-2); }
+.tree .kids { margin-left: 18px; border-left: 1px solid var(--grid); padding-left: 4px; }
+.tree .caret { width: 12px; color: var(--muted); flex: none; text-align: center; }
+.tree .name { white-space: nowrap; }
+.tree .sum { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; font-size: 13px; }
+.kind { color: var(--muted); font-size: 11.5px; }
+
+.banner { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-left: 4px solid var(--serious); background: var(--surface); padding: 10px 14px; border-radius: 8px; margin: 0 0 16px; }
+
+.panel h2 { margin: 0 32px 4px 0; font-size: 16px; word-break: break-word; }
+.panel .meta { color: var(--ink-2); font-size: 12.5px; margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.panel pre { background: var(--surface-2); padding: 10px; border-radius: 8px; overflow: auto; white-space: pre-wrap; }
+.panel ul.links { list-style: none; padding: 0; margin: 0; }
+.panel ul.links li { padding: 3px 0; display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.panel ul.links li a, .panel ul.links li > span:not(.rel) { overflow-wrap: anywhere; min-width: 0; }
+.panel .rel { color: var(--muted); font-size: 12px; min-width: 76px; }
+.panel .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.md p { margin: 0 0 8px; }
+.md h1, .md h2, .md h3 { font-size: 14px; margin: 12px 0 6px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.md ul { margin: 0 0 8px; padding-left: 18px; }
+.md code { background: var(--surface-2); padding: 0 4px; border-radius: 4px; }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 4px 10px; font-size: 13px; }
+.kv div:nth-child(odd) { color: var(--muted); }
+
+.tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; font-size: 12.5px; box-shadow: 0 6px 18px rgba(0,0,0,0.18); z-index: 30; max-width: 360px; }
+.tip .t2 { color: var(--ink-2); }
+.empty { padding: 40px; color: var(--ink-2); text-align: center; }
+.err { color: var(--critical); padding: 20px; white-space: pre-wrap; }
+svg text { fill: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">myrn<small id="proj"></small></div>
+  <nav class="tabs" id="tabs">
+    <a data-v="overview">Overview</a>
+    <a data-v="map">Project map</a>
+    <a data-v="code">Code graph</a>
+    <a data-v="notes">Notes graph</a>
+    <a data-v="records">Records</a>
+    <a data-v="sessions">Sessions</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="search"><input id="q" type="search" placeholder="Find a symbol, file or record…" autocomplete="off"><div class="results" id="results" hidden></div></div>
+  <button class="iconbtn" id="reload" title="Reload data">Reload</button>
+  <button class="iconbtn" id="theme" title="Switch light / dark">Theme</button>
+</header>
+<main>
+  <section id="view"></section>
+  <aside id="panel" class="panel" hidden></aside>
+</main>
+<div class="tip" id="tip" hidden></div>
+<script>
+"use strict";
+const TOKEN = new URLSearchParams(location.search).get("t") || "";
+const cache = new Map();
+async function api(path, fresh) {
+  if (!fresh && cache.has(path)) return cache.get(path);
+  const p = fetch("/api/" + path, { headers: { "X-Myrn-Token": TOKEN } }).then(async r => {
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  });
+  cache.set(path, p);
+  p.catch(() => cache.delete(path));
+  return p;
+}
+
+// ---------------------------------------------------------------- DOM helpers
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "text") el.textContent = v;
+    else if (k === "style") el.setAttribute("style", v);
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) el.append(c instanceof Node ? c : String(c));
+  return el;
+}
+const $ = (s, el = document) => el.querySelector(s);
+// replaceChildren, skipping empty slots (optional pieces written as `cond ? el : null`).
+function fill(el, ...kids) { el.replaceChildren(...kids.flat().filter(k => k != null && k !== false)); }
+const fmt = n => (n ?? 0).toLocaleString();
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function clip(s, n) { s = (s || "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+function firstSentence(s) { s = (s || "").replace(/\s+/g, " ").trim(); const i = s.search(/\.\s/); return i > 0 ? s.slice(0, i + 1) : s; }
+function date(t) { if (!t) return ""; const d = new Date(t * 1000); return d.toISOString().slice(0, 10); }
+function datetime(t) { if (!t) return ""; const d = new Date(t * 1000); return d.toISOString().slice(0, 16).replace("T", " "); }
+function ago(t) {
+  if (!t) return "never";
+  const s = Date.now() / 1000 - t;
+  if (s < 90) return "just now";
+  if (s < 5400) return Math.round(s / 60) + " min ago";
+  if (s < 129600) return Math.round(s / 3600) + " h ago";
+  return Math.round(s / 86400) + " days ago";
+}
+
+const STATUS = {
+  verified: ["var(--good)", "verified"], unverified: ["var(--muted)", "unverified"],
+  suspect: ["var(--warning)", "suspect"], superseded: ["var(--axis)", "superseded"],
+  fresh: ["var(--good)", "fresh"], stale: ["var(--warning)", "stale"], missing: ["var(--axis)", "missing"],
+  tests_passed: ["var(--good)", "tests passed"], tests_failed: ["var(--critical)", "tests failed"],
+  committed: ["var(--s1)", "committed"], edited: ["var(--muted)", "edited"], no_changes: ["var(--axis)", "no changes"],
+};
+function pill(state) {
+  const [c, label] = STATUS[state] || ["var(--muted)", state || "—"];
+  return h("span", { class: "pill" }, h("span", { class: "dot", style: `background:${c}` }), label);
+}
+
+// Small Markdown: headings, lists, paragraphs, `code`, **bold**, [[wikilinks]].
+function inline(text, onLink) {
+  const frag = document.createDocumentFragment();
+  const re = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\[\[[^\]]+\]\])/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) frag.append(text.slice(last, m.index));
+    const t = m[0];
+    if (m[1]) frag.append(h("code", { text: t.slice(1, -1) }));
+    else if (m[2]) frag.append(h("strong", { text: t.slice(2, -2) }));
+    else {
+      const target = t.slice(2, -2).split("|")[0].split("#")[0].trim();
+      frag.append(onLink ? h("a", { onclick: () => onLink(target), text: t.slice(2, -2).split("|").pop() }) : t);
+    }
+    last = m.index + t.length;
+  }
+  if (last < text.length) frag.append(text.slice(last));
+  return frag;
+}
+function markdown(src, onLink) {
+  const root = h("div", { class: "md" });
+  let list = null, para = [];
+  const flush = () => { if (para.length) { root.append(h("p", {}, inline(para.join(" "), onLink))); para = []; } };
+  for (const raw of (src || "").split("\n")) {
+    const line = raw.trimEnd();
+    const hm = line.match(/^(#{1,4})\s+(.*)$/);
+    const lm = line.match(/^\s*(?:[-*]|\d+\.)\s+(.*)$/);
+    if (hm) { flush(); list = null; root.append(h("h3", {}, inline(hm[2], onLink))); }
+    else if (lm) { flush(); if (!list) { list = h("ul"); root.append(list); } list.append(h("li", {}, inline(lm[1], onLink))); }
+    else if (!line.trim()) { flush(); list = null; }
+    else { list = null; para.push(line.trim()); }
+  }
+  flush();
+  return root;
+}
+
+// ---------------------------------------------------------------- tooltip
+const tip = $("#tip");
+function showTip(x, y, ...lines) {
+  fill(tip, ...lines.map((l, i) => h("div", { class: i ? "t2" : "" }, l)));
+  tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(x + 14, innerWidth - r.width - 8) + "px";
+  tip.style.top = Math.min(y + 14, innerHeight - r.height - 8) + "px";
+}
+function hideTip() { tip.hidden = true; }
+
+// ---------------------------------------------------------------- force graph
+// A force-directed graph on canvas: Barnes-Hut repulsion, springs on links,
+// gentle centring. Drag nodes, drag to pan, wheel to zoom, hover to light up
+// a node's neighbours (as Obsidian does), click to select, double-click to open.
+class ForceGraph {
+  constructor(host, opts) {
+    this.o = Object.assign({ color: () => "var(--s1)", hollow: () => false, onSelect() {}, onOpen() {}, linkDist: 34, charge: -60, labels: "auto" }, opts);
+    this.canvas = h("canvas");
+    host.append(this.canvas);
+    this.ctx = this.canvas.getContext("2d");
+    this.nodes = []; this.links = []; this.byId = new Map();
+    this.k = 1; this.tx = 0; this.ty = 0; this.alpha = 0; this.userMoved = false;
+    this.hover = null; this.selected = null; this.hidden = () => false;
+    this.colors = new Map();
+    this.resize();
+    this.ro = new ResizeObserver(() => { this.resize(); this.draw(); });
+    this.ro.observe(host);
+    this.bind();
+    this.running = false;
+  }
+  destroy() { this.ro.disconnect(); this.dead = true; }
+  resize() {
+    const r = this.canvas.getBoundingClientRect();
+    this.w = Math.max(1, r.width); this.hgt = Math.max(1, r.height);
+    this.dpr = window.devicePixelRatio || 1;
+    this.canvas.width = this.w * this.dpr; this.canvas.height = this.hgt * this.dpr;
+    if (!this.userMoved && this.nodes.length) this.fit();
+  }
+  setData(nodes, links) {
+    const prev = this.byId;
+    this.byId = new Map();
+    nodes.forEach((n, i) => {
+      const old = prev.get(n.id);
+      const a = i * 2.399963, r = 12 * Math.sqrt(i + 0.5);
+      n.x = old ? old.x : r * Math.cos(a); n.y = old ? old.y : r * Math.sin(a);
+      n.vx = 0; n.vy = 0; n.deg = 0; n.nb = new Set();
+      this.byId.set(n.id, n);
+    });
+    this.links = [];
+    for (const l of links) {
+      const s = this.byId.get(l.s), t = this.byId.get(l.t);
+      if (!s || !t || s === t) continue;
+      this.links.push({ s, t, rel: l.rel, w: l.w || 1 });
+      s.deg++; t.deg++; s.nb.add(t); t.nb.add(s);
+    }
+    for (const n of nodes) n.r = (n.big ? 4 : 2.6) + Math.sqrt(n.deg) * 1.25;
+    this.nodes = nodes;
+    this.userMoved = false; this.fitted = false;
+    this.reheat(1);
+  }
+  visible(n) { return !this.hidden(n); }
+  reheat(a) { this.alpha = Math.max(this.alpha, a); if (!this.running) { this.running = true; requestAnimationFrame(() => this.loop()); } }
+  loop() {
+    if (this.dead) return;
+    const ticks = this.nodes.length > 1200 ? 2 : 3;
+    for (let i = 0; i < ticks && this.alpha > 0.003; i++) this.tick();
+    if (!this.userMoved) this.fit(); // follow the layout until the user takes over
+    this.draw();
+    if (this.alpha > 0.003 || this.drag) requestAnimationFrame(() => this.loop());
+    else { this.running = false; if (!this.userMoved) { this.fit(); this.draw(); } }
+  }
+  tick() {
+    const nodes = this.nodes.filter(n => this.visible(n)), alpha = this.alpha;
+    // Barnes-Hut repulsion.
+    const tree = quadtree(nodes);
+    const theta2 = 0.81, charge = this.o.charge;
+    for (const n of nodes) applyCharge(tree, n, charge * alpha, theta2);
+    // Springs.
+    for (const l of this.links) {
+      if (!this.visible(l.s) || !this.visible(l.t)) continue;
+      const s = l.s, t = l.t;
+      let dx = t.x + t.vx - s.x - s.vx, dy = t.y + t.vy - s.y - s.vy;
+      let d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+      const str = 0.7 / Math.min(s.deg, t.deg);
+      const f = (d - this.o.linkDist) / d * alpha * str;
+      dx *= f; dy *= f;
+      const b = s.deg / (s.deg + t.deg);
+      t.vx -= dx * b; t.vy -= dy * b; s.vx += dx * (1 - b); s.vy += dy * (1 - b);
+    }
+    // Centring, then move.
+    for (const n of nodes) {
+      const pull = n.deg ? 0.012 : 0.06; // unlinked nodes stay near, not adrift
+      n.vx -= n.x * pull * alpha; n.vy -= n.y * pull * alpha;
+      if (n.fx != null) { n.x = n.fx; n.y = n.fy; n.vx = n.vy = 0; continue; }
+      n.vx *= 0.6; n.vy *= 0.6; n.x += n.vx; n.y += n.vy;
+    }
+    this.alpha += (0 - this.alpha) * 0.02;
+  }
+  fit() {
+    const vis = this.nodes.filter(n => this.visible(n));
+    if (!vis.length) return;
+    // Fit the bulk of the graph: a few stray nodes should not shrink the rest.
+    const xs = vis.map(n => n.x).sort((a, b) => a - b), ys = vis.map(n => n.y).sort((a, b) => a - b);
+    const q = Math.floor(vis.length * 0.01), last = vis.length - 1 - q;
+    const x0 = xs[q], x1 = xs[last], y0 = ys[q], y1 = ys[last];
+    const pad = 40, w = Math.max(x1 - x0, 1), hh = Math.max(y1 - y0, 1);
+    this.k = Math.min(2.5, Math.min((this.w - pad * 2) / w, (this.hgt - pad * 2) / hh));
+    this.tx = this.w / 2 - (x0 + x1) / 2 * this.k; this.ty = this.hgt / 2 - (y0 + y1) / 2 * this.k;
+  }
+  toWorld(px, py) { return [(px - this.tx) / this.k, (py - this.ty) / this.k]; }
+  pick(px, py) {
+    const [x, y] = this.toWorld(px, py);
+    let best = null, bd = Infinity;
+    for (const n of this.nodes) {
+      if (!this.visible(n)) continue;
+      const d = (n.x - x) ** 2 + (n.y - y) ** 2, rr = (n.r + 4 / this.k) ** 2;
+      if (d < rr && d < bd) { bd = d; best = n; }
+    }
+    return best;
+  }
+  color(n) {
+    const key = this.o.color(n);
+    if (!this.colors.has(key)) this.colors.set(key, key.startsWith("var(") ? css(key.slice(4, -1)) : key);
+    return this.colors.get(key);
+  }
+  themeChanged() { this.colors.clear(); this.draw(); }
+  draw() {
+    const c = this.ctx, k = this.k, focus = this.hover || this.selected;
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    c.fillStyle = css("--surface"); c.fillRect(0, 0, this.w, this.hgt);
+    c.setTransform(this.dpr * k, 0, 0, this.dpr * k, this.dpr * this.tx, this.dpr * this.ty);
+    const linkCol = css("--link"), accent = css("--accent"), surf = css("--surface"), ink = css("--ink"), ink2 = css("--ink-2");
+    // Links.
+    c.lineWidth = 1 / k;
+    c.strokeStyle = linkCol;
+    c.globalAlpha = focus ? 0.35 : 1;
+    c.beginPath();
+    for (const l of this.links) {
+      if (!this.visible(l.s) || !this.visible(l.t)) continue;
+      if (focus && (l.s === focus || l.t === focus)) continue;
+      c.moveTo(l.s.x, l.s.y); c.lineTo(l.t.x, l.t.y);
+    }
+    c.stroke();
+    c.globalAlpha = 1;
+    if (focus) {
+      c.strokeStyle = accent; c.lineWidth = 1.6 / k; c.beginPath();
+      for (const l of this.links) if ((l.s === focus || l.t === focus) && this.visible(l.s) && this.visible(l.t)) { c.moveTo(l.s.x, l.s.y); c.lineTo(l.t.x, l.t.y); }
+      c.stroke();
+    }
+    // Nodes.
+    for (const n of this.nodes) {
+      if (!this.visible(n)) continue;
+      const lit = !focus || n === focus || focus.nb.has(n);
+      c.globalAlpha = lit ? 1 : 0.18;
+      const col = this.color(n);
+      c.beginPath(); c.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      if (this.o.hollow(n)) { c.fillStyle = surf; c.fill(); c.lineWidth = Math.max(1.4, n.r * 0.35); c.strokeStyle = col; c.stroke(); }
+      else { c.fillStyle = col; c.fill(); c.lineWidth = 1.5 / k; c.strokeStyle = surf; c.stroke(); }
+      if (n === this.selected) { c.beginPath(); c.arc(n.x, n.y, n.r + 3 / k, 0, Math.PI * 2); c.lineWidth = 2 / k; c.strokeStyle = ink; c.stroke(); }
+    }
+    c.globalAlpha = 1;
+    // Labels in screen space: the focus and its neighbours first, then the
+    // biggest nodes; a label that would overlap one already drawn is skipped.
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    c.font = '12px system-ui, -apple-system, "Segoe UI", sans-serif';
+    c.textAlign = "center"; c.textBaseline = "top"; c.lineJoin = "round";
+    const mode = this.o.labels;
+    let cand = this.nodes.filter(n => this.visible(n));
+    if (focus) cand = cand.filter(n => n === focus || focus.nb.has(n) || n === this.selected);
+    else if (mode === "none") cand = this.selected ? [this.selected] : [];
+    else if (mode === "auto") cand = cand.filter(n => n === this.selected || n.r * k >= 4.5); // big enough on screen
+    cand.sort((a, b) => (b === focus) - (a === focus) || (b === this.selected) - (a === this.selected) || b.r - a.r);
+    const placed = [], max = mode === "all" ? Infinity : focus ? 80 : 160;
+    for (const n of cand) {
+      if (placed.length >= max) break;
+      const sx = n.x * k + this.tx, sy = (n.y + n.r) * k + this.ty + 3;
+      if (sx < -50 || sy < -20 || sx > this.w + 50 || sy > this.hgt + 20) continue;
+      const t = clip(n.label, 40), w = c.measureText(t).width;
+      const box = [sx - w / 2 - 2, sy - 1, sx + w / 2 + 2, sy + 15];
+      const important = n === focus || n === this.selected;
+      if (!important && mode !== "all" && placed.some(p => box[0] < p[2] && box[2] > p[0] && box[1] < p[3] && box[3] > p[1])) continue;
+      placed.push(box);
+      c.lineWidth = 3; c.strokeStyle = surf; c.strokeText(t, sx, sy);
+      c.fillStyle = (focus && (n === focus || focus.nb.has(n))) || important ? ink : ink2;
+      c.fillText(t, sx, sy);
+    }
+  }
+  bind() {
+    const cv = this.canvas;
+    let down = null;
+    const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    cv.addEventListener("pointerdown", e => {
+      cv.setPointerCapture(e.pointerId);
+      const [px, py] = pos(e), n = this.pick(px, py);
+      down = { px, py, n, tx: this.tx, ty: this.ty, moved: false };
+      if (n) { this.drag = n; n.fx = n.x; n.fy = n.y; }
+      cv.classList.add("dragging");
+    });
+    cv.addEventListener("pointermove", e => {
+      const [px, py] = pos(e);
+      if (down) {
+        if (Math.abs(px - down.px) + Math.abs(py - down.py) > 3) down.moved = true;
+        if (down.n) { const [x, y] = this.toWorld(px, py); down.n.fx = x; down.n.fy = y; this.reheat(0.25); }
+        else { this.tx = down.tx + px - down.px; this.ty = down.ty + py - down.py; this.userMoved = true; this.draw(); }
+        hideTip();
+        return;
+      }
+      const n = this.pick(px, py);
+      if (n !== this.hover) { this.hover = n; this.draw(); }
+      cv.style.cursor = n ? "pointer" : "grab";
+      if (n) showTip(e.clientX, e.clientY, n.label, this.o.describe ? this.o.describe(n) : n.type);
+      else hideTip();
+    });
+    const up = e => {
+      if (!down) return;
+      cv.classList.remove("dragging");
+      if (down.n) { down.n.fx = down.n.fy = null; this.drag = null; }
+      if (!down.moved) { const n = down.n; this.selected = n || null; this.draw(); if (n) this.o.onSelect(n); }
+      down = null;
+    };
+    cv.addEventListener("pointerup", up);
+    cv.addEventListener("pointercancel", up);
+    cv.addEventListener("pointerleave", () => { if (!down && this.hover) { this.hover = null; this.draw(); } hideTip(); });
+    cv.addEventListener("dblclick", e => { const n = this.pick(...pos(e)); if (n) this.o.onOpen(n); });
+    cv.addEventListener("wheel", e => {
+      e.preventDefault();
+      const [px, py] = pos(e);
+      const f = Math.exp(-e.deltaY * 0.0015), k = Math.min(12, Math.max(0.03, this.k * f));
+      this.tx = px - (px - this.tx) * (k / this.k); this.ty = py - (py - this.ty) * (k / this.k);
+      this.k = k; this.userMoved = true; this.draw();
+    }, { passive: false });
+  }
+  select(id) {
+    const n = this.byId.get(id);
+    if (!n) return false;
+    this.selected = n;
+    this.tx = this.w / 2 - n.x * this.k; this.ty = this.hgt / 2 - n.y * this.k;
+    this.userMoved = true; this.draw();
+    return true;
+  }
+}
+function quadtree(nodes) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const n of nodes) { if (n.x < x0) x0 = n.x; if (n.y < y0) y0 = n.y; if (n.x > x1) x1 = n.x; if (n.y > y1) y1 = n.y; }
+  const root = { x: x0, y: y0, size: Math.max(x1 - x0, y1 - y0) + 1, kids: null, body: null, more: null };
+  for (const n of nodes) insert(root, n, 0);
+  mass(root);
+  return root;
+}
+function insert(c, n, depth) {
+  if (!c.kids && !c.body) { c.body = n; return; }
+  if (!c.kids) {
+    if (depth > 24) { (c.more || (c.more = [])).push(n); return; }
+    const b = c.body; c.body = null; c.kids = [null, null, null, null];
+    place(c, b, depth);
+  }
+  place(c, n, depth);
+}
+function place(c, n, depth) {
+  const half = c.size / 2, i = (n.x >= c.x + half ? 1 : 0) + (n.y >= c.y + half ? 2 : 0);
+  let k = c.kids[i];
+  if (!k) k = c.kids[i] = { x: c.x + (i & 1 ? half : 0), y: c.y + (i & 2 ? half : 0), size: half, kids: null, body: null, more: null };
+  insert(k, n, depth + 1);
+}
+function mass(c) {
+  if (!c) return;
+  if (c.kids) {
+    let m = 0, x = 0, y = 0;
+    for (const k of c.kids) if (k) { mass(k); m += k.m; x += k.cx * k.m; y += k.cy * k.m; }
+    c.m = m; c.cx = x / m; c.cy = y / m;
+  } else {
+    const all = [c.body, ...(c.more || [])];
+    c.m = all.length; c.cx = all.reduce((s, n) => s + n.x, 0) / c.m; c.cy = all.reduce((s, n) => s + n.y, 0) / c.m;
+  }
+}
+function applyCharge(c, n, strength, theta2) {
+  if (!c || !c.m) return;
+  let dx = c.cx - n.x, dy = c.cy - n.y, l = dx * dx + dy * dy;
+  if (c.kids) {
+    if (c.size * c.size / theta2 < l) { if (l < 1) l = 1; n.vx += dx * strength * c.m / l; n.vy += dy * strength * c.m / l; return; }
+    for (const k of c.kids) applyCharge(k, n, strength, theta2);
+    return;
+  }
+  for (const b of [c.body, ...(c.more || [])]) {
+    if (b === n) continue;
+    let ex = b.x - n.x, ey = b.y - n.y;
+    if (ex === 0 && ey === 0) { ex = (Math.random() - 0.5) * 1e-3; ey = (Math.random() - 0.5) * 1e-3; }
+    let d = ex * ex + ey * ey; if (d < 1) d = 1;
+    n.vx += ex * strength / d; n.vy += ey * strength / d;
+  }
+}
+
+// ---------------------------------------------------------------- panel
+const panel = $("#panel");
+function openPanel(...content) {
+  fill(panel, h("button", { class: "iconbtn close", onclick: closePanel, title: "Close" }, "✕"), ...content);
+  panel.hidden = false;
+  panel.scrollTop = 0;
+}
+function closePanel() { panel.hidden = true; if (current && current.deselect) current.deselect(); }
+function loading() { return h("div", { class: "muted" }, "Loading…"); }
+function errorBox(e) { return h("div", { class: "err" }, String(e.message || e)); }
+
+const TYPE_LABEL = { module: "directory", root_cause: "root cause" };
+function linkList(items, onPick) {
+  const byRel = new Map();
+  for (const it of items) { if (!byRel.has(it.rel)) byRel.set(it.rel, []); byRel.get(it.rel).push(it); }
+  const ul = h("ul", { class: "links" });
+  for (const [rel, list] of byRel) {
+    list.slice(0, 40).forEach((it, i) => ul.append(h("li", {},
+      h("span", { class: "rel" }, i ? "" : rel.replace(/_/g, " ")),
+      h("a", { onclick: () => onPick(it.id), title: it.id }, clip(it.label, 70)),
+      h("span", { class: "kind" }, TYPE_LABEL[it.type] || it.type))));
+    if (list.length > 40) ul.append(h("li", { class: "muted" }, h("span", { class: "rel" }), `… ${list.length - 40} more`));
+  }
+  return ul;
+}
+
+// Details for any node or note id.
+async function showDetails(id, opts = {}) {
+  openPanel(loading());
+  try {
+    const d = await api("node?id=" + encodeURIComponent(id));
+    const n = d.node;
+    const title = n ? (n.qname || n.title || n.path || n.id) : id;
+    const parts = [h("h2", { text: title })];
+    const meta = h("div", { class: "meta" });
+    if (n) {
+      meta.append(h("span", { class: "pill" }, TYPE_LABEL[n.type] || n.kind || n.type));
+      if (n.status) meta.append(pill(n.status));
+      if (n.path) meta.append(h("span", { class: "mono" }, n.path + (n.start_line ? `:${n.start_line}-${n.end_line}` : "")));
+    } else if (d.note_file) {
+      meta.append(h("span", { class: "pill" }, "note"));
+    }
+    if (d.note_file) meta.append(h("span", { class: "mono muted" }, d.note_file));
+    parts.push(meta);
+    const pick = t => opts.onPick ? opts.onPick(t) : showDetails(t, opts);
+    if (n && n.summary) parts.push(h("h3", {}, "Summary"), markdown(n.summary));
+    if (d.body) parts.push(h("h3", {}, n && n.origin === "earned" ? "Record" : "Note"), markdown(d.body, opts.onWiki || (t => showDetails(t, opts))));
+    else if (n && n.doc && n.origin !== "earned") parts.push(h("h3", {}, "Doc comment"), h("pre", {}, n.doc));
+    if (n && n.signature) parts.push(h("h3", {}, "Signature"), h("pre", {}, n.signature));
+    if (n && ["symbol", "file", "test"].includes(n.type)) {
+      const act = h("div", { class: "actions" },
+        h("button", { class: "iconbtn", onclick: () => go("code", { focus: n.id }) }, "Show neighbourhood"),
+        h("button", { class: "iconbtn", onclick: async e => {
+          e.target.disabled = true;
+          const r = await api("explain?q=" + encodeURIComponent(n.type === "file" ? n.path : (n.path + ":" + n.start_line)));
+          e.target.replaceWith(h("pre", {}, r.text));
+        } }, "Explain card"));
+      parts.push(act);
+    }
+    if (d.out.length) parts.push(h("h3", {}, "Links out"), linkList(d.out, pick));
+    if (d.inc.length) parts.push(h("h3", {}, "Links in"), linkList(d.inc, pick));
+    if (n && n.origin === "earned" && n.type !== "episode") parts.push(h("div", { class: "actions" }, h("button", { class: "iconbtn", onclick: () => showRecord(n.id) }, "Trace this record")));
+    openPanel(...parts);
+  } catch (e) { openPanel(errorBox(e)); }
+}
+
+async function showRecord(id) {
+  openPanel(loading());
+  try {
+    const t = await api("record?id=" + encodeURIComponent(id), true);
+    const r = t.record;
+    const parts = [h("h2", { text: r.title }),
+      h("div", { class: "meta" }, h("span", { class: "pill" }, TYPE_LABEL[r.ntype] || r.ntype), pill(r.status),
+        h("span", { class: "pill" }, r.visibility), h("span", { class: "mono muted" }, r.id))];
+    if (r.written_status !== r.status) parts.push(h("div", { class: "muted" }, `Written as ${r.written_status}; ${r.status} here.`));
+    parts.push(h("h3", {}, "Text"), markdown(t.body, x => showDetails(x)));
+    const kv = h("div", { class: "kv" });
+    const row = (k, v) => kv.append(h("div", {}, k), h("div", {}, v));
+    row("file", h("span", { class: "mono" }, r.file));
+    if (r.source) row("source", h("span", { class: "mono" }, r.source));
+    row("changed", datetime(r.time));
+    parts.push(h("h3", {}, "Where it lives"), kv);
+    if (t.anchors.length) {
+      const ul = h("ul", { class: "links" });
+      for (const a of t.anchors) ul.append(h("li", {}, pill(a.state === "current" ? "fresh" : a.state === "gone" ? "missing" : "stale"),
+        h("a", { onclick: () => showDetails(a.target) }, a.target), h("span", { class: "kind" }, a.location || "")));
+      parts.push(h("h3", {}, "Anchored to"), ul);
+    }
+    const list = (title, items, f) => { if (items && items.length) parts.push(h("h3", {}, title), h("ul", { class: "links" }, items.map(f))); };
+    list("Commits", t.commits, c => h("li", {}, h("span", { class: "rel" }, c.rel), h("span", { class: "mono" }, c.sha.slice(0, 8)), " ", clip(c.subject, 60)));
+    list("Tests", t.tests, x => h("li", {}, x));
+    list("Test runs", t.test_runs, x => h("li", { class: "mono" }, x));
+    const ids = (title, xs) => list(title, xs, x => h("li", {}, h("a", { onclick: () => showRecord(x) }, x)));
+    ids("Supersedes", t.supersedes); ids("Superseded by", t.superseded_by); ids("Contradicts", t.contradicts);
+    if (t.session) parts.push(h("h3", {}, "Session"), h("div", {}, h("a", { onclick: () => showSession(t.session.session) }, clip(t.session.task || t.session.session, 80)), h("span", { class: "muted" }, " · " + t.session.agent + " · " + datetime(t.session.started))));
+    list("Note history", t.note_history, c => h("li", {}, h("span", { class: "mono" }, c.sha.slice(0, 8)), " ", clip(c.subject, 60), h("span", { class: "kind" }, " " + date(c.time))));
+    openPanel(...parts);
+  } catch (e) { openPanel(errorBox(e)); }
+}
+
+async function showSession(id) {
+  openPanel(loading());
+  try {
+    const r = await api("session?id=" + encodeURIComponent(id), true);
+    if (!r) { openPanel(h("div", { class: "muted" }, "Session not found.")); return; }
+    const [e, entries] = r;
+    const parts = [h("h2", { text: clip(e.task || e.session, 120) }),
+      h("div", { class: "meta" }, h("span", { class: "pill" }, e.agent), h("span", {}, datetime(e.started)), h("span", { class: "mono muted" }, e.session))];
+    const kv = h("div", { class: "kv" });
+    const row = (k, v) => kv.append(h("div", {}, k), h("div", {}, v));
+    row("prompts", fmt(e.prompts)); row("files read", fmt(e.files_read.length)); row("files edited", fmt(e.files_edited.length));
+    row("tests", `${e.tests_passed} passed, ${e.tests_failed} failed`); row("commits", fmt(e.commits.length));
+    parts.push(kv);
+    const files = (title, xs) => { if (xs.length) parts.push(h("h3", {}, title), h("ul", { class: "links" }, xs.slice(0, 60).map(f => h("li", {}, h("a", { onclick: () => showDetails("file:" + f) }, f))))); };
+    files("Edited", e.files_edited); files("Read", e.files_read);
+    if (e.errors.length) parts.push(h("h3", {}, "Errors"), h("pre", {}, e.errors.slice(-6).join("\n\n")));
+    parts.push(h("h3", {}, `Events (${entries.length})`));
+    const ul = h("ul", { class: "links" });
+    for (const en of entries.slice(-300)) {
+      const what = en.event === "tool" ? [en.tool, en.command || en.path || ""].filter(Boolean).join(": ") : (en.text || en.event);
+      ul.append(h("li", {}, h("span", { class: "rel mono" }, datetime(en.t).slice(11)), h("span", { class: "kind" }, en.event), clip(what, 110)));
+    }
+    parts.push(ul);
+    openPanel(...parts);
+  } catch (err) { openPanel(errorBox(err)); }
+}
+
+// ---------------------------------------------------------------- views
+const view = $("#view");
+let current = null;
+const views = {};
+
+views.overview = async () => {
+  view.className = "";
+  const page = h("div", { class: "page" }, loading());
+  fill(view, page);
+  const [s, map, recs] = await Promise.all([api("overview"), api("map"), api("records")]);
+  $("#proj").textContent = s.root;
+  const files = Object.values(s.files_by_language).reduce((a, b) => a + b, 0);
+  const rec = Object.fromEntries(s.records_by_state);
+  const recTotal = Object.values(rec).reduce((a, b) => a + b, 0);
+  const covered = map.fresh + map.stale + map.missing;
+  const pct = covered ? Math.round(map.fresh / covered * 100) : 0;
+  const tile = (v, k, d, onclick) => h("div", { class: "tile", style: onclick ? "cursor:pointer" : null, onclick }, h("div", { class: "v" }, v), h("div", { class: "k" }, k), d ? h("div", { class: "d" }, d) : null);
+  const langs = Object.entries(s.files_by_language).sort((a, b) => b[1] - a[1]);
+  const maxLang = Math.max(1, ...langs.map(l => l[1]));
+  const bars = h("div", { class: "bars" }, langs.map(([l, c]) => h("div", { class: "row", title: `${l}: ${c} files` },
+    h("span", {}, l || "other"), h("div", { class: "track" }, h("div", { class: "fill", style: `width:${c / maxLang * 100}%` })), h("span", { class: "val" }, fmt(c)))));
+  const seg = (parts) => {
+    const total = parts.reduce((a, p) => a + p[1], 0) || 1;
+    return [h("div", { class: "seg" }, parts.filter(p => p[1] > 0).map(([st, v]) => h("div", { style: `flex:${v};background:${STATUS[st][0]}`, title: `${STATUS[st][1]}: ${fmt(v)}` }))),
+      h("div", { class: "legend" }, parts.map(([st, v]) => h("span", {}, h("span", { class: "dot", style: `background:${STATUS[st][0]}` }), `${STATUS[st][1]} ${fmt(v)} (${Math.round(v / total * 100)}%)`)))];
+  };
+  const n = s.notes;
+  const issues = [n.malformed && `${n.malformed} malformed`, n.dangling && `${n.dangling} dangling links`, n.duplicates && `${n.duplicates} duplicate ids`].filter(Boolean);
+  fill(page, 
+    h("h1", {}, "Overview"),
+    h("p", { class: "sub" }, s.root, h("span", { class: "muted" }, ` · indexed ${ago(s.last_refresh)}`)),
+    s.conflicts.length ? h("div", { class: "banner" }, h("strong", {}, "⚠"), h("div", {}, h("strong", {}, `${s.conflicts.length} pair(s) of records disagree. `),
+      "Keep one: ", h("code", {}, "myrn forget <id>"), " or have the agent supersede it. ", h("a", { onclick: () => go("records") }, "See records"))) : null,
+    h("div", { class: "tiles" },
+      tile(fmt(files), "files", `${s.files_with_errors} with syntax errors`, () => go("code")),
+      tile(fmt(s.symbols), "symbols", `${fmt(s.modules)} directories`, () => go("map")),
+      tile(fmt(s.tests), "tests"),
+      tile(fmt(s.commits), "commits indexed"),
+      tile(fmt(recTotal), "learned records", `${fmt(n.shared)} shared notes · ${fmt(n.private)} private`, () => go("records")),
+      tile(pct + "%", "map up to date", `${fmt(map.stale)} stale · ${fmt(map.missing)} missing`, () => go("map"))),
+    h("div", { class: "cols", style: "margin-top:16px" },
+      h("div", { class: "card" }, h("h2", {}, "Project map coverage"), h("div", { class: "muted" }, "Files and functions with a summary written for their current code."),
+        ...seg([["fresh", map.fresh], ["stale", map.stale], ["missing", map.missing]]),
+        map.stale + map.missing ? h("div", { class: "muted", style: "margin-top:8px" }, "Run ", h("code", {}, "myrn summarize"), " to fill the gaps (only changed code is sent).") : null),
+      h("div", { class: "card" }, h("h2", {}, "Learned records by state"),
+        recTotal ? seg(["verified", "unverified", "suspect", "superseded"].map(k => [k, rec[k] || 0])) : h("div", { class: "muted" }, "No records yet. Agents write them through the record tool."),
+        recs.conflicts.length ? h("div", { style: "margin-top:8px" }, `${recs.conflicts.length} conflict(s) to resolve`) : null),
+      h("div", { class: "card" }, h("h2", {}, "Files by language"), bars),
+      h("div", { class: "card" }, h("h2", {}, "Setup"),
+        h("div", { class: "kv" },
+          h("div", {}, "agents"), h("div", {}, s.connected_agents.length ? s.connected_agents.join(", ") : "none connected"),
+          h("div", {}, "notes"), h("div", {}, issues.length ? issues.join(", ") : "no problems"),
+          h("div", {}, "links"), h("div", {}, Object.entries(s.edges).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k.replace(/_/g, " ")} ${fmt(v)}`).join(" · ")),
+          h("div", {}, "store"), h("div", { class: "mono", style: "word-break:break-all" }, s.db_path))))
+  );
+};
+
+// Project map: a lazy tree.
+views.map = async () => {
+  view.className = "";
+  const page = h("div", { class: "page", style: "max-width:none" }, loading());
+  fill(view, page);
+  const m = await api("map");
+  if (m.root && (m.root.name === "." || !m.root.name)) {
+    const s = await api("overview");
+    m.root.name = s.root.split(/[\\/]/).filter(Boolean).pop() || ".";
+  }
+  if (!m.root) { fill(page, h("div", { class: "empty" }, "Nothing indexed yet.")); return; }
+  let filter = "", stateFilter = "";
+  const tree = h("div", { class: "tree" });
+  let selectedLine = null;
+  const select = (e, line) => {
+    if (selectedLine) selectedLine.classList.remove("on");
+    selectedLine = line; line.classList.add("on");
+    showDetails(e.id);
+  };
+  const icon = e => e.type === "module" ? "▣" : e.type === "file" ? "▤" : "ƒ";
+  function row(e, depth) {
+    const wrap = h("div", { class: "node" });
+    const has = e.children.length > 0;
+    const caret = h("span", { class: "caret" }, has ? "▸" : "");
+    const line = h("div", { class: "line", title: e.summary || "" },
+      caret, h("span", { class: "kind" }, icon(e)),
+      h("span", { class: "name" }, e.name),
+      e.type === "symbol" ? h("span", { class: "kind" }, e.kind) : e.type === "file" ? h("span", { class: "kind" }, `${e.children.length} defs`) : null,
+      pill(e.state),
+      h("span", { class: "sum" }, firstSentence(e.summary)));
+    wrap.append(line);
+    let kids = null;
+    const toggle = open => {
+      if (!has) return;
+      if (open === undefined) open = !kids || kids.hidden;
+      if (open && !kids) { kids = h("div", { class: "kids" }, e.children.map(c => row(c, depth + 1))); wrap.append(kids); }
+      if (kids) kids.hidden = !open;
+      caret.textContent = open ? "▾" : "▸";
+    };
+    caret.addEventListener("click", ev => { ev.stopPropagation(); toggle(); });
+    line.addEventListener("click", () => { toggle(true); select(e, line); });
+    if (depth < 1) toggle(true);
+    return wrap;
+  }
+  function flat(e, out) { out.push(e); e.children.forEach(c => flat(c, out)); return out; }
+  const all = flat(m.root, []);
+  function render() {
+    if (!filter && !stateFilter) { fill(tree, row(m.root, 0)); return; }
+    const q = filter.toLowerCase();
+    const hits = all.filter(e => (!stateFilter || e.state === stateFilter) &&
+      (!q || e.name.toLowerCase().includes(q) || (e.path || "").toLowerCase().includes(q) || (e.summary || "").toLowerCase().includes(q)));
+    fill(tree, h("div", { class: "muted", style: "padding:0 8px 8px" }, `${fmt(hits.length)} match${hits.length === 1 ? "" : "es"}` + (hits.length > 400 ? " (first 400 shown)" : "")),
+      ...hits.slice(0, 400).map(e => {
+        const line = h("div", { class: "line" }, h("span", { class: "kind" }, icon(e)), h("span", { class: "name" }, e.type === "symbol" ? e.name : (e.path || e.name)),
+          e.type === "symbol" ? h("span", { class: "kind" }, e.path) : null, pill(e.state), h("span", { class: "sum" }, firstSentence(e.summary)));
+        line.addEventListener("click", () => select(e, line));
+        return h("div", { class: "node" }, line);
+      }));
+  }
+  let t;
+  const input = h("input", { type: "text", placeholder: "Filter by name, path or what it does…", style: "width:320px;max-width:100%", oninput: e => { clearTimeout(t); t = setTimeout(() => { filter = e.target.value.trim(); render(); }, 150); } });
+  const sel = h("select", { onchange: e => { stateFilter = e.target.value; render(); } },
+    h("option", { value: "" }, "any state"), h("option", { value: "fresh" }, "fresh"), h("option", { value: "stale" }, "stale (code changed)"), h("option", { value: "missing" }, "missing"));
+  const total = m.fresh + m.stale + m.missing || 1;
+  fill(page, 
+    h("h1", {}, "Project map"),
+    h("p", { class: "sub" }, "What the project, each directory, file and function is for, from ", h("code", {}, "myrn summarize"), ". Click a row for its summary and links."),
+    h("div", { class: "seg", style: "max-width:640px" }, [["fresh", m.fresh], ["stale", m.stale], ["missing", m.missing]].filter(p => p[1]).map(([st, v]) => h("div", { style: `flex:${v};background:${STATUS[st][0]}`, title: `${STATUS[st][1]}: ${fmt(v)}` }))),
+    h("div", { class: "legend", style: "margin-bottom:14px" }, [["fresh", m.fresh], ["stale", m.stale], ["missing", m.missing]].map(([st, v]) => h("span", {}, h("span", { class: "dot", style: `background:${STATUS[st][0]}` }), `${STATUS[st][1]} ${fmt(v)} (${Math.round(v / total * 100)}%)`))),
+    h("div", { style: "display:flex;gap:10px;flex-wrap:wrap" }, input, sel),
+    tree);
+  render();
+  return { deselect() { if (selectedLine) selectedLine.classList.remove("on"); } };
+};
+
+// Shared shell for the two graph views.
+function graphShell(toolbarItems, legend) {
+  view.className = "full";
+  const wrap = h("div", { class: "canvaswrap" });
+  const hint = h("div", { class: "hint" }, "Drag to pan · wheel to zoom · hover to light up neighbours · click for details · double-click to explore");
+  const count = h("div", { class: "count" });
+  wrap.append(hint, count);
+  fill(view, h("div", { class: "toolbar" }, ...toolbarItems), legend ? h("div", { class: "toolbar", style: "padding-top:6px;padding-bottom:6px" }, legend) : null, wrap);
+  return { wrap, count };
+}
+const SLOTS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)", "var(--s7)"];
+
+views.code = async (params) => {
+  let level = params.focus ? "focus" : (params.level || "files");
+  let focus = params.focus || null;
+  const rels = { imports: true, calls: true, tests: false, part_of: true, defined_in: true, contains: true, touches: false, other: true };
+  const levelSel = h("select", {}, h("option", { value: "files" }, "Files: imports and calls between them"),
+    h("option", { value: "dirs" }, "Directories: structure and imports"), h("option", { value: "focus" }, "Neighbourhood of one node"));
+  levelSel.value = level;
+  const depthSel = h("select", {}, h("option", { value: "1" }, "1 step"), h("option", { value: "2" }, "2 steps"));
+  depthSel.value = params.depth || "1";
+  const focusLabel = h("span", { class: "muted" });
+  const relBox = h("span", { class: "legend" });
+  const legend = h("div", { class: "legend" });
+  const labelsSel = h("select", {}, h("option", { value: "auto" }, "labels: auto"), h("option", { value: "all" }, "labels: all"), h("option", { value: "none" }, "labels: on hover"));
+  const depthLabel = h("label", { hidden: level !== "focus" }, "Depth ", depthSel);
+  const { wrap, count } = graphShell([h("label", {}, "View ", levelSel), depthLabel, focusLabel, relBox, labelsSel], legend);
+  const g = new ForceGraph(wrap, {
+    linkDist: 40, charge: -90,
+    onSelect: n => showDetails(n.id, { onPick: id => { if (!g.select(id)) go("code", { focus: id }); else showDetails(id, {}); } }),
+    onOpen: n => go("code", { focus: n.id, depth: depthSel.value }),
+    describe: n => [n.full !== n.label ? n.full : null, TYPE_LABEL[n.type] || n.kind || n.type, n.deg + " links"].filter(Boolean).join(" · "),
+  });
+  current = { graph: g, deselect() { g.selected = null; g.draw(); } };
+  const groupColor = new Map();
+  async function load() {
+    count.textContent = "Loading…";
+    let data;
+    try {
+      data = await api(`graph?level=${level}` + (level === "focus" && focus ? `&focus=${encodeURIComponent(focus)}&depth=${depthSel.value}` : ""));
+    } catch (e) { count.textContent = ""; wrap.append(errorBox(e)); return; }
+    if (level === "focus") {
+      depthLabel.hidden = false;
+      const f = data.nodes.find(n => n.id === focus);
+      focusLabel.textContent = f ? "around " + clip(f.label, 50) : "";
+    } else { focusLabel.textContent = ""; depthLabel.hidden = true; }
+    // Colour by top-level group (largest first, fixed for this page); past 7 is "other".
+    const sizes = new Map();
+    for (const n of data.nodes) sizes.set(n.group, (sizes.get(n.group) || 0) + 1);
+    [...sizes.entries()].sort((a, b) => b[1] - a[1]).forEach(([grp]) => { if (!groupColor.has(grp)) groupColor.set(grp, groupColor.size < 7 ? SLOTS[groupColor.size] : "var(--other)"); });
+    g.o.color = n => groupColor.get(n.group) || "var(--other)";
+    g.colors.clear();
+    for (const n of data.nodes) {
+      n.big = n.id === focus;
+      n.full = n.label;
+      if ((n.type === "file" || n.type === "module") && n.path) n.label = n.path.split("/").pop() || n.path;
+    }
+    const present = [...new Set(data.links.map(l => l.rel))];
+    fill(relBox, ...present.map(r => {
+      const key = rels[r] === undefined ? "other" : r;
+      const cb = h("input", { type: "checkbox" }); cb.checked = rels[key] !== false;
+      cb.addEventListener("change", () => { rels[key] = cb.checked; apply(); });
+      return h("label", {}, cb, r.replace(/_/g, " "));
+    }));
+    const groupsShown = [...new Set(data.nodes.map(n => n.group))].sort((a, b) => (sizes.get(b) || 0) - (sizes.get(a) || 0));
+    const hiddenGroups = new Set();
+    fill(legend, h("span", { class: "muted" }, "Colour = top-level folder:"), ...groupsShown.map(grp => {
+      const b = h("button", { title: "Show / hide" }, h("span", { class: "dot", style: `background:${groupColor.get(grp)}` }), grp + (groupColor.get(grp) === "var(--other)" ? " (other)" : ""), h("span", { class: "muted" }, String(sizes.get(grp))));
+      b.addEventListener("click", () => { hiddenGroups.has(grp) ? hiddenGroups.delete(grp) : hiddenGroups.add(grp); b.classList.toggle("off"); g.hidden = n => hiddenGroups.has(n.group) && n.id !== focus; g.reheat(0.3); });
+      return b;
+    }));
+    g.hidden = n => hiddenGroups.has(n.group) && n.id !== focus;
+    function apply() {
+      const links = data.links.filter(l => rels[rels[l.rel] === undefined ? "other" : l.rel] !== false);
+      g.setData(data.nodes.map(n => Object.assign({}, n)), links);
+      count.textContent = `${fmt(data.nodes.length)} nodes · ${fmt(links.length)} links` + (data.truncated ? ` · ${data.truncated} more not shown` : "");
+      if (focus) { g.selected = g.byId.get(focus) || null; }
+    }
+    apply();
+    if (focus && level === "focus") showDetails(focus, { onPick: id => { if (!g.select(id)) go("code", { focus: id }); else showDetails(id, {}); } });
+  }
+  levelSel.addEventListener("change", () => {
+    if (levelSel.value === "focus" && !focus) { levelSel.value = level; alertBox("Pick a node first: click one, then “Show neighbourhood”, or double-click it."); return; }
+    level = levelSel.value; setHash("code", level === "focus" ? { focus, depth: depthSel.value } : { level }); load();
+  });
+  depthSel.addEventListener("change", () => { setHash("code", { focus, depth: depthSel.value }); load(); });
+  labelsSel.addEventListener("change", () => { g.o.labels = labelsSel.value; g.draw(); });
+  await load();
+  return current;
+};
+
+function alertBox(msg) { openPanel(h("p", {}, msg)); }
+
+// Obsidian-style graph of the Markdown notes.
+const NOTE_CATS = [
+  ["dir", "directory summary", "var(--s1)"], ["file", "file summary", "var(--s3)"], ["symbol", "function summary", "var(--s7)"],
+  ["fact", "fact", "var(--s2)"], ["decision", "decision", "var(--s4)"], ["bug", "bug / root cause", "var(--s8)"],
+  ["workflow", "workflow", "var(--s6)"], ["feature", "feature", "var(--s5)"], ["code", "code it points at", "var(--other)"],
+];
+function noteCat(n) {
+  if (n.group === "code") return "code";
+  if (n.type === "summary") return n.id === "project" || n.id.startsWith("dir-") ? "dir" : n.id.startsWith("file-") ? "file" : "symbol";
+  if (n.type === "root_cause") return "bug";
+  return NOTE_CATS.some(c => c[0] === n.type) ? n.type : "fact";
+}
+views.notes = async (params) => {
+  const showCode = h("input", { type: "checkbox" }); showCode.checked = params.code === "1";
+  const showSum = h("input", { type: "checkbox" }); showSum.checked = params.summaries !== "0";
+  const orphans = h("input", { type: "checkbox" }); orphans.checked = true;
+  const filterIn = h("input", { type: "text", placeholder: "Highlight notes matching…", style: "width:220px" });
+  const legend = h("div", { class: "legend" });
+  const labelsSel = h("select", {}, h("option", { value: "auto" }, "labels: auto"), h("option", { value: "all" }, "labels: all"), h("option", { value: "none" }, "labels: on hover"));
+  const { wrap, count } = graphShell([
+    h("label", {}, showSum, "project-map summaries"), h("label", {}, showCode, "code they link to"), h("label", {}, orphans, "unlinked notes"),
+    filterIn, labelsSel], legend);
+  const hiddenCats = new Set();
+  let match = null;
+  const g = new ForceGraph(wrap, {
+    linkDist: 28, charge: -45,
+    color: n => (NOTE_CATS.find(c => c[0] === n.cat) || NOTE_CATS[3])[2],
+    hollow: n => n.visibility === "private",
+    onSelect: n => showDetails(n.id, { onWiki: id => pickNote(id), onPick: id => pickNote(id) }),
+    onOpen: n => { if (n.cat === "code") go("code", { focus: n.id }); },
+    describe: n => [NOTE_CATS.find(c => c[0] === n.cat)[1], n.visibility, n.status, n.deg + " links"].filter(Boolean).join(" · "),
+  });
+  current = { graph: g, deselect() { g.selected = null; g.draw(); } };
+  function pickNote(id) {
+    if (g.select(id)) { showDetails(id, { onWiki: pickNote, onPick: pickNote }); return; }
+    const lower = id.toLowerCase();
+    const n = g.nodes.find(x => x.id.toLowerCase() === lower);
+    if (n && g.select(n.id)) showDetails(n.id, { onWiki: pickNote, onPick: pickNote });
+    else showDetails(id, { onWiki: pickNote, onPick: pickNote });
+  }
+  async function load() {
+    count.textContent = "Loading…";
+    const data = await api("notes" + (showCode.checked ? "?code=1" : ""));
+    const nodes = data.nodes.map(n => Object.assign({}, n, { cat: noteCat(n), big: n.type !== "summary" && n.group !== "code" }));
+    g.setData(nodes, data.links);
+    const counts = new Map();
+    nodes.forEach(n => counts.set(n.cat, (counts.get(n.cat) || 0) + 1));
+    fill(legend, ...NOTE_CATS.filter(c => counts.get(c[0])).map(([key, label, col]) => {
+      const b = h("button", { title: "Show / hide" }, h("span", { class: "dot", style: `background:${col}` }), label, h("span", { class: "muted" }, fmt(counts.get(key))));
+      if (hiddenCats.has(key)) b.classList.add("off");
+      b.addEventListener("click", () => { hiddenCats.has(key) ? hiddenCats.delete(key) : hiddenCats.add(key); b.classList.toggle("off"); apply(); });
+      return b;
+    }), h("span", {}, h("span", { class: "ring", style: "color:var(--muted)" }), "hollow = private, only on this machine"),
+      h("span", {}, h("span", { class: "dot", style: "background:var(--muted)" }), "filled = shared in .myrn/knowledge"));
+    apply();
+  }
+  function apply() {
+    const sums = showSum.checked, keepOrphans = orphans.checked;
+    g.hidden = n => hiddenCats.has(n.cat) || (!sums && n.type === "summary") || (!keepOrphans && n.deg === 0) || (match && !match(n) && n.cat !== "code");
+    const shown = g.nodes.filter(n => !g.hidden(n)).length;
+    count.textContent = `${fmt(shown)} of ${fmt(g.nodes.length)} notes and nodes · ${fmt(g.links.length)} links`;
+    g.fitted = false; g.userMoved = false; g.reheat(0.5);
+  }
+  showCode.addEventListener("change", () => { setHash("notes", { code: showCode.checked ? "1" : "0", summaries: showSum.checked ? "1" : "0" }); load(); });
+  showSum.addEventListener("change", () => { setHash("notes", { code: showCode.checked ? "1" : "0", summaries: showSum.checked ? "1" : "0" }); apply(); });
+  orphans.addEventListener("change", apply);
+  let ft;
+  filterIn.addEventListener("input", () => { clearTimeout(ft); ft = setTimeout(() => {
+    const q = filterIn.value.trim().toLowerCase();
+    match = q ? (n => n.label.toLowerCase().includes(q) || n.id.toLowerCase().includes(q)) : null;
+    apply();
+  }, 200); });
+  labelsSel.addEventListener("change", () => { g.o.labels = labelsSel.value; g.draw(); });
+  await load();
+  return current;
+};
+
+views.records = async () => {
+  view.className = "";
+  const page = h("div", { class: "page", style: "max-width:none" }, loading());
+  fill(view, page);
+  const data = await api("records", true);
+  const rs = data.records;
+  let statusSel;
+  const f = { type: "", status: "", visibility: "", q: "" };
+  const opts = key => [...new Set(rs.map(r => r[key]))].sort();
+  const mk = (key, label, vals) => {
+    const s = h("select", { onchange: e => { f[key] = e.target.value; render(); } }, h("option", { value: "" }, "any " + label), vals.map(v => h("option", { value: v }, TYPE_LABEL[v] || v)));
+    return s;
+  };
+  const tbody = h("tbody");
+  const shown = h("span", { class: "muted" });
+  let selRow = null;
+  function render() {
+    const q = f.q.toLowerCase();
+    const list = rs.filter(r => (!f.type || r.ntype === f.type) && (!f.status || r.status === f.status) && (!f.visibility || r.visibility === f.visibility) &&
+      (!q || r.title.toLowerCase().includes(q) || r.id.includes(q)));
+    shown.textContent = `${fmt(list.length)} of ${fmt(rs.length)}`;
+    fill(tbody, ...list.map(r => {
+      const tr = h("tr", {},
+        h("td", {}, pill(r.status)), h("td", {}, TYPE_LABEL[r.ntype] || r.ntype),
+        h("td", { class: "clip", title: r.title }, r.title), h("td", {}, r.visibility),
+        h("td", { class: "num" }, fmt(r.injected)), h("td", { class: "num" }, fmt(r.used)),
+        h("td", { class: "muted" }, date(r.time)));
+      tr.addEventListener("click", () => { if (selRow) selRow.classList.remove("on"); selRow = tr; tr.classList.add("on"); showRecord(r.id); });
+      return tr;
+    }));
+  }
+  const counts = {};
+  rs.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+  fill(page, 
+    h("h1", {}, "Learned records"),
+    h("p", { class: "sub" }, "Bugs, root causes, decisions, workflows and facts agents recorded. Click one to trace where it came from."),
+    data.conflicts.length ? h("div", { class: "banner" }, h("strong", {}, "⚠"), h("div", {},
+      h("strong", {}, `${data.conflicts.length} pair(s) disagree, at least one shared.`), " Keep one: ", h("code", {}, "myrn forget <id>"), ", or have the agent supersede it.",
+      h("ul", { class: "links", style: "margin-top:6px" }, data.conflicts.map(c => h("li", {},
+        h("a", { onclick: () => showRecord(c.a) }, clip(c.a_title, 50)), h("span", { class: "muted" }, ` (${c.a_visibility}) vs `),
+        h("a", { onclick: () => showRecord(c.b) }, clip(c.b_title, 50)), h("span", { class: "muted" }, ` (${c.b_visibility})`)))))) : null,
+    h("div", { class: "tiles", style: "margin-bottom:16px" }, ["verified", "unverified", "suspect", "superseded"].map(k =>
+      h("div", { class: "tile", style: "cursor:pointer", onclick: () => { f.status = f.status === k ? "" : k; statusSel.value = f.status; render(); } },
+        h("div", { class: "v" }, fmt(counts[k] || 0)), h("div", { class: "k" }, pill(k))))),
+    rs.length ? h("div", {},
+      h("div", { style: "display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px" },
+        h("input", { type: "text", placeholder: "Search titles…", oninput: e => { f.q = e.target.value; render(); }, style: "padding:5px 9px;border:1px solid var(--border);border-radius:6px;background:var(--page)" }),
+        mk("type", "type", opts("ntype").map(String)), statusSel = mk("status", "state", opts("status")), mk("visibility", "visibility", opts("visibility")), shown),
+      h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "State"), h("th", {}, "Type"), h("th", {}, "Title"), h("th", {}, "Visibility"),
+        h("th", { class: "num", title: "Times shown to an agent" }, "Injected"), h("th", { class: "num", title: "Times the agent then used it" }, "Used"), h("th", {}, "Changed"))), tbody))
+      : h("div", { class: "empty" }, "No learned records yet. With hooks connected, agents record what they learn at the end of a turn that edited code."));
+  render();
+  return { deselect() { if (selRow) selRow.classList.remove("on"); } };
+};
+
+views.sessions = async () => {
+  view.className = "";
+  const page = h("div", { class: "page", style: "max-width:none" }, loading());
+  fill(view, page);
+  const ss = await api("sessions", true);
+  if (!ss.length) {
+    fill(page, h("h1", {}, "Sessions"), h("div", { class: "empty" }, "No sessions recorded yet. ", h("code", {}, "myrn connect"), " installs the agent hooks that record them (it asks first)."));
+    return;
+  }
+  const inj = ss.reduce((a, s) => a + s.injected, 0), used = ss.reduce((a, s) => a + s.used, 0);
+  const passed = ss.filter(s => s.outcome === "tests_passed").length;
+  // Sessions per day, last 30 days with activity.
+  const byDay = new Map();
+  for (const s of ss) { const d = date(s.started); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(s); }
+  const days = [...byDay.keys()].sort().slice(-30);
+  const chart = barChart(days.map(d => ({ label: d, value: byDay.get(d).length, items: byDay.get(d) })));
+  let selRow = null;
+  fill(page, 
+    h("h1", {}, "Sessions"),
+    h("p", { class: "sub" }, "Recorded agent sessions: what they worked on, what Myrn gave them, and what they used."),
+    h("div", { class: "tiles" },
+      h("div", { class: "tile" }, h("div", { class: "v" }, fmt(ss.length)), h("div", { class: "k" }, "sessions")),
+      h("div", { class: "tile" }, h("div", { class: "v" }, fmt(passed)), h("div", { class: "k" }, "ended with tests passing")),
+      h("div", { class: "tile" }, h("div", { class: "v" }, fmt(inj)), h("div", { class: "k" }, "items injected")),
+      h("div", { class: "tile" }, h("div", { class: "v" }, inj ? Math.round(used / inj * 100) + "%" : "—"), h("div", { class: "k" }, "of injected items used"))),
+    h("div", { class: "card", style: "margin:16px 0" }, h("h2", {}, "Sessions per day"), chart),
+    h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Agent"), h("th", {}, "Task"), h("th", {}, "Outcome"), h("th", {}, "What happened"),
+      h("th", { class: "num" }, "Injected"), h("th", { class: "num" }, "Used"))),
+      h("tbody", {}, ss.map(s => {
+        const tr = h("tr", {}, h("td", { class: "mono" }, datetime(s.started)), h("td", {}, s.agent), h("td", { class: "clip", title: s.task || "" }, clip(s.task || "—", 80)),
+          h("td", {}, pill(s.outcome)), h("td", { class: "clip muted" }, s.summary), h("td", { class: "num" }, fmt(s.injected)), h("td", { class: "num" }, fmt(s.used)));
+        tr.addEventListener("click", () => { if (selRow) selRow.classList.remove("on"); selRow = tr; tr.classList.add("on"); showSession(s.session); });
+        return tr;
+      }))));
+  return { deselect() { if (selRow) selRow.classList.remove("on"); } };
+};
+
+// One-series bar chart (SVG) with hover tooltips.
+function barChart(points) {
+  const W = 760, H = 180, padL = 30, padB = 24, padT = 8;
+  const max = Math.max(1, ...points.map(p => p.value));
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", "100%"); svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Sessions per day");
+  const el = (tag, attrs) => { const e = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); svg.append(e); return e; };
+  const ticks = max <= 4 ? max : 4;
+  for (let i = 0; i <= ticks; i++) {
+    const v = Math.round(max * i / ticks), y = H - padB - (H - padB - padT) * v / max;
+    el("line", { x1: padL, x2: W, y1: y, y2: y, stroke: i ? "var(--grid)" : "var(--axis)", "stroke-width": 1 });
+    el("text", { x: padL - 6, y: y + 4, "text-anchor": "end" }).textContent = v;
+  }
+  const n = points.length, slot = (W - padL) / Math.max(n, 1), bw = Math.min(28, slot - 2);
+  points.forEach((p, i) => {
+    const x = padL + i * slot + (slot - bw) / 2, hgt = (H - padB - padT) * p.value / max, y = H - padB - hgt;
+    const r = Math.min(4, bw / 2, hgt);
+    el("path", { d: `M${x},${H - padB}V${y + r}Q${x},${y} ${x + r},${y}H${x + bw - r}Q${x + bw},${y} ${x + bw},${y + r}V${H - padB}Z`, fill: "var(--s1)" });
+    const hit = el("rect", { x: padL + i * slot, y: padT, width: slot, height: H - padB - padT, fill: "transparent" });
+    hit.addEventListener("mousemove", e => {
+      const oc = {}; p.items.forEach(s => oc[s.outcome] = (oc[s.outcome] || 0) + 1);
+      showTip(e.clientX, e.clientY, `${p.label}: ${p.value} session${p.value === 1 ? "" : "s"}`, Object.entries(oc).map(([k, v]) => `${STATUS[k] ? STATUS[k][1] : k} ${v}`).join(" · "));
+    });
+    hit.addEventListener("mouseleave", hideTip);
+    if (n <= 12 || i === 0 || i === n - 1 || i % Math.ceil(n / 8) === 0) el("text", { x: padL + i * slot + slot / 2, y: H - 6, "text-anchor": "middle" }).textContent = p.label.slice(5);
+  });
+  return svg;
+}
+
+// ---------------------------------------------------------------- routing
+function parseHash() {
+  const [v, qs] = location.hash.slice(1).split("?");
+  return { v: views[v] ? v : "overview", params: Object.fromEntries(new URLSearchParams(qs || "")) };
+}
+function setHash(v, params) {
+  const clean = Object.fromEntries(Object.entries(params || {}).filter(([, x]) => x != null && x !== ""));
+  const qs = new URLSearchParams(clean).toString();
+  history.replaceState(null, "", location.pathname + location.search + "#" + v + (qs ? "?" + qs : ""));
+}
+function go(v, params) {
+  const clean = Object.fromEntries(Object.entries(params || {}).filter(([, x]) => x != null && x !== ""));
+  const qs = new URLSearchParams(clean).toString();
+  location.hash = v + (qs ? "?" + qs : "");
+}
+async function route() {
+  const { v, params } = parseHash();
+  for (const a of document.querySelectorAll("#tabs a")) a.classList.toggle("on", a.dataset.v === v);
+  if (current && current.graph) current.graph.destroy();
+  current = null;
+  hideTip();
+  if (!params.focus) panel.hidden = true;
+  try { const r = await views[v](params); if (r) current = r; }
+  catch (e) { view.className = ""; fill(view, h("div", { class: "page" }, errorBox(e))); }
+}
+for (const a of document.querySelectorAll("#tabs a")) a.addEventListener("click", () => go(a.dataset.v));
+addEventListener("hashchange", route);
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closePanel(); results.hidden = true; } if (e.key === "/" && document.activeElement.tagName !== "INPUT") { e.preventDefault(); qIn.focus(); } });
+
+// ---------------------------------------------------------------- search
+const qIn = $("#q"), results = $("#results");
+let st, active = -1;
+qIn.addEventListener("input", () => {
+  clearTimeout(st);
+  const q = qIn.value.trim();
+  if (!q) { results.hidden = true; return; }
+  st = setTimeout(async () => {
+    const hits = await api("search?q=" + encodeURIComponent(q), true).catch(() => []);
+    active = -1;
+    fill(results, ...(hits.length ? hits.map(x => {
+      const d = h("div", {}, h("span", {}, x.label), h("span", { class: "kind" }, TYPE_LABEL[x.type] || x.type), h("span", { class: "muted mono", style: "margin-left:auto" }, clip(x.location, 40)));
+      d.addEventListener("click", () => pickHit(x));
+      return d;
+    }) : [h("div", { class: "muted" }, "No match")]));
+    results.hidden = false;
+  }, 180);
+});
+qIn.addEventListener("keydown", e => {
+  const items = [...results.children];
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); active = Math.max(0, Math.min(items.length - 1, active + (e.key === "ArrowDown" ? 1 : -1))); items.forEach((x, i) => x.classList.toggle("on", i === active)); }
+  if (e.key === "Enter" && items[Math.max(0, active)]) items[Math.max(0, active)].click();
+});
+document.addEventListener("click", e => { if (!e.target.closest(".search")) results.hidden = true; });
+function pickHit(x) {
+  results.hidden = true;
+  if (current && current.graph && current.graph.select(x.id)) { showDetails(x.id); return; }
+  showDetails(x.id);
+}
+
+// ---------------------------------------------------------------- theme, reload
+function setTheme(t) {
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  try { t ? localStorage.setItem("myrn-theme", t) : localStorage.removeItem("myrn-theme"); } catch (_) {}
+  if (current && current.graph) current.graph.themeChanged();
+}
+try { const t = localStorage.getItem("myrn-theme"); if (t) document.documentElement.dataset.theme = t; } catch (_) {}
+$("#theme").addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  setTheme(dark ? "light" : "dark");
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (current && current.graph) current.graph.themeChanged(); });
+$("#reload").addEventListener("click", () => { cache.clear(); route(); });
+
+if (!TOKEN) fill(view, h("div", { class: "page" }, errorBox(new Error("Open the URL that `myrn ui` printed (it carries an access token)."))));
+else { api("overview").then(s => { $("#proj").textContent = s.root; }).catch(() => {}); route(); }
+</script>
+</body>
+</html>

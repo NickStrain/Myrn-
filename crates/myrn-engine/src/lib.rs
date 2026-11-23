@@ -15,5 +15,7 @@ pub mod learn;
 pub mod pack;
 pub mod retrieve;
 pub mod review;
+pub mod sharing;
 pub mod summarize;
 pub mod validity;
+pub mod viz;

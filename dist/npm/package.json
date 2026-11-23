@@ -1,0 +1,25 @@
+{
+  "name": "myrn",
+  "version": "0.0.0-dev",
+  "description": "Persistent project memory for AI coding agents",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/NickStrain/Myrn-",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NickStrain/Myrn-.git"
+  },
+  "keywords": ["ai", "agents", "mcp", "claude", "codex", "code-graph", "memory"],
+  "bin": {
+    "myrn": "bin/myrn.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js",
+    "test": "node --test test/*.test.js"
+  },
+  "files": ["bin/", "install.js", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=18"
+  },
+  "os": ["linux", "darwin", "win32"],
+  "cpu": ["x64", "arm64"]
+}

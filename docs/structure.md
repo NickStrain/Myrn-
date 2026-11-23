@@ -23,10 +23,11 @@ the design doc: adapters → core engine → stores.
 │   └── myrn-embed/            optional embedding helper (off the hot path)
 ├── bench/                     paired with/without benchmark (Evaluation section)
 ├── tests/fixtures/            sample repos, recorded hook payloads, sample notes
-├── dist/                      Homebrew, Scoop, winget, npm wrapper packaging
+├── dist/                      render.py (Homebrew, Scoop, winget manifests per release), npm/ wrapper
 ├── scripts/                   install.sh, install.ps1
 ├── docs/design/               architecture and design document
-└── .github/workflows/ci.yml   fmt, clippy, test on Linux, macOS, Windows
+└── .github/workflows/         ci.yml: tests on x86-64 and ARM64 for Linux, macOS, Windows;
+                               release.yml: binaries, checksums, manifests, publishing
 ```
 
 ## Dependency direction

@@ -65,6 +65,19 @@ pub fn run(ctx: &Ctx) -> Result<ExitCode> {
             out += &format!(" ({}; see `myrn doctor`)", flags.join(", "));
         }
         out += "\n";
+        if !s.conflicts.is_empty() {
+            out += &format!(
+                "conflicts   {} pair(s) of records disagree; keep one \
+                 (`myrn forget <id>`, or have the agent `supersede` it):\n",
+                s.conflicts.len()
+            );
+            for c in &s.conflicts {
+                out += &format!(
+                    "            {} ({}) {}\n              vs {} ({}) {}\n",
+                    c.a, c.a_visibility, c.a_title, c.b, c.b_visibility, c.b_title
+                );
+            }
+        }
         out += &format!(
             "agents      {}\n",
             if s.connected_agents.is_empty() {

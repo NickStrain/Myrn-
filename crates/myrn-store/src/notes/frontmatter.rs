@@ -78,8 +78,9 @@ pub struct Parsed {
 }
 
 const INVERSE_FIXES: &str = "fixed_in";
-/// Header fields other tools commonly add; kept without complaint.
-const TOLERATED: [&str; 8] = [
+/// Header fields other tools commonly add, and the provenance fields Myrn
+/// writes itself (`written_by`, `published_by`, `published_at`); kept without complaint.
+const TOLERATED: [&str; 11] = [
     "tags",
     "aliases",
     "cssclasses",
@@ -88,9 +89,31 @@ const TOLERATED: [&str; 8] = [
     "date",
     "visibility",
     "publish",
+    "written_by",
+    "published_by",
+    "published_at",
 ];
 
 impl Note {
+    /// A header field Myrn does not interpret (`created`, `published_by`, ...), as text.
+    pub fn extra_str(&self, key: &str) -> Option<String> {
+        self.extra
+            .iter()
+            .find(|(k, _)| k == key)
+            .and_then(|(_, v)| scalar(v))
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+    }
+
+    /// Set (or replace) a header field Myrn does not interpret.
+    pub fn set_extra(&mut self, key: &str, value: &str) {
+        let v = Value::String(value.to_string());
+        match self.extra.iter_mut().find(|(k, _)| k == key) {
+            Some((_, old)) => *old = v,
+            None => self.extra.push((key.to_string(), v)),
+        }
+    }
+
     /// A new note with no id yet; `notes::write` assigns one from the content.
     pub fn new(ntype: &str, body: &str) -> Note {
         Note {

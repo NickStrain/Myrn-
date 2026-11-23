@@ -12,16 +12,15 @@ pub mod hook;
 pub mod init;
 pub mod log;
 pub mod mcp;
+pub mod publish;
 pub mod query;
 pub mod rebuild;
 pub mod show;
 pub mod status;
 pub mod summarize;
 pub mod trace;
+pub mod ui;
 pub mod verify;
-
-// Not built yet (Phase 5); kept to fix the layout.
-pub mod publish;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
