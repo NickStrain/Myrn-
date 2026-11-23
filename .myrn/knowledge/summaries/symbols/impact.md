@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#impact
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#impact@5d4fb7fe9b7d781d
+map_version: '2'
 ---
 # impact
 
-Calls e.impact(id) and returns the ImpactReport. Panics with the JSON-serialized result if the lookup is not Found.
+Calls engine impact on an id and returns the ImpactReport, panicking if the result is not found.
+
+## Behaviour
+
+- Found(report) -> the ImpactReport with direct and indirect callers and tests
+- any other Lookup variant -> panic with the JSON of the result
+- unknown id -> panic
+
+## Terms
+
+impact report, blast radius, affected callers, affected tests
 
 ## Connections
 

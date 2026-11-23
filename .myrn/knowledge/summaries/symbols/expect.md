@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#Expect
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#Expect@23eee287a1c7c7e2
+map_version: '2'
 ---
 # Expect
 
-Expected answers for one symbol: id, calls, called_by, tests (direct tests only), and all_tests (every test that reaches the symbol directly or through callers). Consumed by check.
+Describes the expected answers for one symbol: its calls, callers, direct tests, and all tests that reach it.
+
+## Behaviour
+
+- calls and called_by are the ids expected in explain's call and caller lists
+- tests are direct test links from explain
+- all_tests is the union of direct and indirect test links from impact
+
+## Terms
+
+expected answers, test expectation, call graph expectation, reference answers
 
 ## Connections
 

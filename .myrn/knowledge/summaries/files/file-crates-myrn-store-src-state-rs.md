@@ -6,11 +6,11 @@ title: crates/myrn-store/src/state.rs
 source: myrn summarize
 about: file:crates/myrn-store/src/state.rs
 anchors:
-- file:crates/myrn-store/src/state.rs@dd27e3070747f1e6
+- file:crates/myrn-store/src/state.rs@65fc709a7eb965e9
 ---
 # crates/myrn-store/src/state.rs
 
-Private per-project state, stored as state.json next to memory.db so it survives `myrn rebuild` and never goes in the repo. It holds the recording consent flag, connected agents, and a capped hook-timing log, with load and save helpers.
+Private per-project state stored as state.json beside memory.db, outside the repo, so it survives myrn rebuild. It defines the State struct (consent, connected agents, hook timings, embeddings flag), the AgentState and HookTiming structs, the load, save and record_timing methods on State, and one round-trip unit test.
 
 ## Connections
 

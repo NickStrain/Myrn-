@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/connect.rs#cmd::connect::ask
 anchors:
 - sym:crates/myrn/src/cmd/connect.rs#cmd::connect::ask@939b4b833dadd6ad
+map_version: '2'
 ---
 # connect::ask
 
-Prints a [y/N] prompt and reads one stdin line. If stdin is not a terminal it returns Ok(false) without prompting, and only y or yes (case-insensitive) counts as yes.
+Prints a yes/no question on stdout and reads one line from stdin, returning true only for an explicit yes.
+
+## Behaviour
+
+- stdin is not a terminal -> returns false without printing anything
+- user types Y or yes with spaces around it -> true
+- empty line or any other text -> false
+
+## Terms
+
+prompt, consent prompt, yes no, stdin read, confirmation, non interactive
 
 ## Connections
 

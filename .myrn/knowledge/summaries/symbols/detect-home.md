@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/detect.rs#detect::home
 anchors:
 - sym:crates/myrn-adapters/src/detect.rs#detect::home@3d7893973e91a158
+map_version: '2'
 ---
 # detect::home
 
-Returns the HOME environment variable as a PathBuf, falling back to USERPROFILE if HOME is unset, or None if neither is set. It does not check that the directory exists, and an empty HOME value is returned as Some("") without falling back to USERPROFILE.
+Returns the HOME environment variable as a path, falling back to USERPROFILE only when HOME is unset. Returns None only when neither variable is set.
+
+## Behaviour
+
+- HOME=/home/u -> Some(/home/u)
+- HOME unset, USERPROFILE=C:/Users/u -> Some(C:/Users/u)
+- HOME set to empty string -> Some(empty path), no fallback to USERPROFILE
+
+## Terms
+
+user directory, HOME variable, USERPROFILE, profile directory, user folder, HOME fallback
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/task.rs#task::Task::validate
 anchors:
 - sym:bench/src/task.rs#task::Task::validate@80a55cdb2ba3089b
+map_version: '2'
 ---
 # Task::validate
 
-Requires answer_contains for questions, setup and check for bugfix and replay, and check and solution for features. It also rejects check file paths that are absolute or contain '..'. It returns an error on the first failure and does not check that the repo exists or that ids are unique.
+Checks that a task has the fields its kind requires and that every check file path stays inside the repo. Returns an error naming the task id on the first failure.
+
+## Behaviour
+
+- A Question with an empty answer_contains returns an error.
+- A Bugfix or Replay without both setup and check returns an error.
+- A check file key of /etc/x or a/../b is rejected; a/b..c is allowed because only a leading slash and an exact .. component are rejected.
+
+## Terms
+
+validation, schema check, path traversal, relative path, consistency check, required fields, bail
 
 ## Connections
 

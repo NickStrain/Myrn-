@@ -6,11 +6,11 @@ title: crates/myrn/
 source: myrn summarize
 about: module:crates/myrn
 anchors:
-- module:crates/myrn@a0239ef7d89ecb2b
+- module:crates/myrn@7d037225327fd3b3
 ---
 # crates/myrn/
 
-The `myrn` CLI binary crate with a clap-based dispatcher in src/main.rs that builds a cmd::Ctx from global flags and routes each subcommand (including `mcp`, which runs the MCP server) to a handler in src/cmd/; most handlers build an engine from Ctx, call one engine method, and print via ctx.emit, while hook.rs is the never-fail entry for agent hook scripts and diff/forget/gc/publish/trace/verify are stubs. tests/connect.rs drives the real binary end to end against a temp MYRN_HOME and temp git repo, using the setup/Env/hook/settings/text helpers, to cover init, connect consent and hooks, doctor, disconnect, and episode log and graph output.
+crates/myrn/ is the command-line binary crate for myrn. src/main.rs defines the clap CLI, parses arguments, builds a cmd::Ctx and dispatches to one thin handler module per subcommand under src/cmd/, which call engine methods and render text or JSON, with the real logic living in the engine and sibling crates. tests/connect.rs runs the built binary end to end against a temp git repo covering init, connect, hooks, doctor, Codex setup and disconnect.
 
 ## Connections
 

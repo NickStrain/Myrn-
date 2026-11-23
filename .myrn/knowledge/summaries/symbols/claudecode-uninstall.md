@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::ClaudeCode::uninstall
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::ClaudeCode::uninstall@b12b09286eda9e47
+map_version: '2'
 ---
 # ClaudeCode::uninstall
 
-Removes the CLAUDE.md block only if install created the file (per the created list), removes myrn's hooks from settings.local.json, and runs 'claude mcp remove'. Returns the list of changes; other hooks are kept.
+Removes the CLAUDE.md instruction block, strips myrn hooks from settings.local.json, and unregisters the MCP server. Returns the list of changes made.
+
+## Behaviour
+
+- The created list is passed to pull_only::remove to decide about the file
+- Missing settings file is skipped; the file is only written if a hook was removed
+- MCP change is recorded only when the CLI runs and exits with success
+
+## Terms
+
+teardown, cleanup, remove hooks, undo install
 
 ## Connections
 

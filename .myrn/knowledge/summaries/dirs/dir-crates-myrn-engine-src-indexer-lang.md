@@ -6,11 +6,11 @@ title: crates/myrn-engine/src/indexer/lang/
 source: myrn summarize
 about: module:crates/myrn-engine/src/indexer/lang
 anchors:
-- module:crates/myrn-engine/src/indexer/lang@f730b6531ab78628
+- module:crates/myrn-engine/src/indexer/lang@dfb1cf9297285285
 ---
 # crates/myrn-engine/src/indexer/lang/
 
-Language-registry and path-mapping layer for the indexer: `mod.rs` defines the supported languages (Rust, Python, JavaScript, TypeScript, TSX) and maps file paths to each language's tree-sitter grammar, resolution family, qualified-name separator, and module prefix. It also provides pure-string Rust and Python module-path helpers and a Python test-file detector, all without filesystem access.
+Language registry for the indexer: the five supported languages (Rust, Python, JavaScript, TypeScript, Tsx) and the per-language rules the indexer uses to recognise files, pick a tree-sitter grammar, choose the qualified-name separator, and map a file path to module segments or a test-file flag. The rule helpers rust_module, python_module, module_prefix and is_python_test_file in mod.rs are the entry points other indexer code calls.
 
 ## Connections
 

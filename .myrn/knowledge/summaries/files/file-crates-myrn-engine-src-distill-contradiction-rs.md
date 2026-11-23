@@ -6,15 +6,16 @@ title: crates/myrn-engine/src/distill/contradiction.rs
 source: myrn summarize
 about: file:crates/myrn-engine/src/distill/contradiction.rs
 anchors:
-- file:crates/myrn-engine/src/distill/contradiction.rs@84959b4a4fcbd6a0
+- file:crates/myrn-engine/src/distill/contradiction.rs@2938c68031464b2f
 ---
 # crates/myrn-engine/src/distill/contradiction.rs
 
-Adds contradicts edges between facts and decisions that conflict with a new record, using a narrow lexical check: the statements must share most of their content words and differ in negation parity. It holds the negation word list, the SAME_CLAIM threshold (0.6), the tokenizer, and the opposite, find, and tests items.
+Contradiction detection for fact and decision text. The only item in this excerpt is `find`, which looks up existing facts and decisions attached to target nodes by `about` edges and keeps those that the new body text negates, using the store's `opposite` check.
 
 ## Connections
 
 - **Location:** `crates/myrn-engine/src/distill/contradiction.rs`
 - **In:** [[dir-crates-myrn-engine-src-distill]]
-- **Defines:** [[contradiction-words]], [[contradiction-opposite]], [[contradiction-find]]
+- **Defines:** [[contradiction-find]]
+- **Imports:** [[file-crates-myrn-store-src-notes-claims-rs]]
 - **Imported by:** [[file-crates-myrn-engine-src-distill-mod-rs]], [[file-crates-myrn-engine-src-distill-record-rs]]

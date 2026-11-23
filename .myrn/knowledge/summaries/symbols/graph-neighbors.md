@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/graph.rs#graph::neighbors
 anchors:
 - sym:crates/myrn-store/src/graph.rs#graph::neighbors@0ae6b77eecfa5d2a
+map_version: '2'
 ---
 # graph::neighbors
 
-Returns (neighbour Node, edge status) pairs for one relation in the given direction, ordered by path then start_line. Edges whose other endpoint has no node row are dropped by the inner JOIN.
+Returns the nodes one hop away over one relation in the given direction, paired with the edge status.
+
+## Behaviour
+
+- Dir::Out from 'a' over 'calls' -> dst nodes of a's 'calls' edges
+- edge whose other end is missing from nodes -> omitted (inner JOIN)
+- results ordered by path, then start_line
+
+## Terms
+
+adjacency, callers, callees, traversal, one hop, related nodes, neighbour lookup
 
 ## Connections
 

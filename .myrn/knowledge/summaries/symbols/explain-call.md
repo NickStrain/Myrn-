@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/tools/explain.rs#tools::explain::call
 anchors:
 - sym:crates/myrn-mcp/src/tools/explain.rs#tools::explain::call@81bb77ca274a3990
+map_version: '2'
 ---
 # explain::call
 
-Reads the required "symbol" argument with str_arg, calls engine.explain on it through a mutable Engine reference, and returns the card rendered to a String; errors from the argument read or from engine.explain are propagated with ?.
+Reads the `symbol` argument, asks the engine to explain it, and returns the resulting card rendered as a string.
+
+## Behaviour
+
+- args {"symbol": "a::b"} -> engine.explain("a::b") result rendered via e.render() as Ok(String)
+- missing or non-string "symbol" -> error from str_arg propagated with ?
+- engine.explain error -> propagated as Err; takes &mut Engine, so the lookup may change engine state
+
+## Terms
+
+explain handler, tool invocation, symbol lookup, card rendering, dispatch, engine call
 
 ## Connections
 

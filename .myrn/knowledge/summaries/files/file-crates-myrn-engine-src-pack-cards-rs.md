@@ -6,11 +6,11 @@ title: crates/myrn-engine/src/pack/cards.rs
 source: myrn summarize
 about: file:crates/myrn-engine/src/pack/cards.rs
 anchors:
-- file:crates/myrn-engine/src/pack/cards.rs@48b9b0a72ad1ed1f
+- file:crates/myrn-engine/src/pack/cards.rs@8cb7ac1eb868d32d
 ---
 # crates/myrn-engine/src/pack/cards.rs
 
-Builds the compact cards that agents read in place of opening source files: a Link type for relations, SymbolCard, FileCard, and ImpactReport, each with a render method that produces aligned plain-text output. SymbolCard::render_compact is the reduced form used for prompt injection.
+Card builders that turn graph nodes and their relations into the plain text an agent reads: a Link type for related nodes, card structs for symbols, files and change impact, and shared helpers for rows, lists and test summaries. SymbolCard has render (full card) and render_compact (prompt card), and FileCard and ImpactReport each have render.
 
 ## Connections
 

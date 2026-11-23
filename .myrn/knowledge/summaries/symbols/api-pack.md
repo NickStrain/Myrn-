@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/api.rs#api::Pack
 anchors:
 - sym:crates/myrn-engine/src/api.rs#api::Pack@31ac91ed5d7cc3a1
+map_version: '2'
 ---
 # api::Pack
 
-Context text, the ids of the items included in it, and its token count; Pack::empty gives a blank one.
+A rendered context block: its text, the ids of the items included, and its token count.
+
+## Behaviour
+
+- Pack::empty gives empty text, no items and zero tokens
+- tokens is computed from the text by budget::tokens
+
+## Terms
+
+context pack, prompt block, injected text, token count, included items
 
 ## Connections
 

@@ -6,15 +6,15 @@ title: crates/myrn/src/main.rs
 source: myrn summarize
 about: file:crates/myrn/src/main.rs
 anchors:
-- file:crates/myrn/src/main.rs@43f598045488335c
+- file:crates/myrn/src/main.rs@0362e113a7a420ed
 ---
 # crates/myrn/src/main.rs
 
-Binary entry point for the myrn CLI, which also runs the MCP server via the mcp subcommand. It declares the clap argument model (Cli, Command, DebugCommand) and main, which builds a cmd::Ctx from the global flags and dispatches each subcommand to its handler in the cmd module.
+Entry point for the `myrn` binary: it defines the clap CLI structs and enums (global flags, every subcommand, embeddings and debug subcommands), then `main` parses arguments, builds `cmd::Ctx`, and dispatches each command to its `cmd::*` handler. Errors go to stderr as `myrn: ...` with a failure exit code.
 
 ## Connections
 
 - **Location:** `crates/myrn/src/main.rs`
 - **In:** [[dir-crates-myrn-src]]
-- **Defines:** [[cli-main]], [[command]], [[debugcommand]], [[main-main]]
+- **Defines:** [[cli-main]], [[command]], [[embeddingsaction]], [[debugcommand]], [[main-main]]
 - **Imports:** [[file-crates-myrn-src-cmd-mod-rs]]

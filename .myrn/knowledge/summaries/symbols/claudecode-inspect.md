@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::ClaudeCode::inspect
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::ClaudeCode::inspect@eed221504bab23a3
+map_version: '2'
 ---
 # ClaudeCode::inspect
 
-Read-only check that returns Findings. In Hooks mode it checks each event for a hook that exists, points at the current binary, and is installed exactly once. In PullOnly mode it checks for the CLAUDE.md block. It also checks 'claude mcp get myrn' and reports the check as skipped if the CLI is unavailable.
+Checks the installed state and returns one Finding per check. Hooks mode checks each event; pull-only mode checks the instruction block; both then check MCP registration.
+
+## Behaviour
+
+- Hook event missing, pointing at another binary, or installed more than once -> ok false
+- Unreadable or absent settings file is treated as an empty object, so every hook check fails
+- claude CLI not available -> MCP finding is ok true with a not-checked message
+
+## Terms
+
+health check, doctor, verify, drift, status, diagnose
 
 ## Connections
 

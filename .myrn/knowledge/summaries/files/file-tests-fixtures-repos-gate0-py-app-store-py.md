@@ -10,7 +10,7 @@ anchors:
 ---
 # tests/fixtures/repos/gate0/py/app/store.py
 
-Defines an in-memory token registry: the TokenStore class keeps an unbounded list of issued tokens with membership lookup and append, plus a stub now() helper that returns a fixed value.
+Minimal token registry: TokenStore keeps an in-memory list of issued tokens with lookup and insert, and a module-level now() helper that returns a fixed value.
 
 ## Connections
 

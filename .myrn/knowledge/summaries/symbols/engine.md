@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/tests/protocol.rs#engine
 anchors:
 - sym:crates/myrn-mcp/tests/protocol.rs#engine@5350abbcc078425b
+map_version: '2'
 ---
 # engine
 
-Creates a temp git repo with src/lib.rs (doc-commented `inc` and a `two` that calls it), commits it, runs `Engine::init` with a temp home directory, and returns the TempDir (kept alive for the test) plus the Engine.
+Builds a temporary git repo with src/lib.rs (inc and two, with a doc comment on inc), commits it as 'first', and returns the TempDir with an Engine initialised on that repo.
+
+## Behaviour
+
+- no args -> (TempDir, Engine) for a repo with one commit 'first' and home dir under the temp dir
+- the TempDir must stay alive; dropping it deletes the repo the Engine points at
+- any filesystem, git or Engine::init failure panics through unwrap
+
+## Terms
+
+test fixture, temp repo, sample repository, git commit, test setup, indexed repo, temp dir
 
 ## Connections
 

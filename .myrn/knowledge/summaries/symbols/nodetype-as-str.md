@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/node.rs#node::NodeType::as_str
 anchors:
 - sym:crates/myrn-model/src/node.rs#node::NodeType::as_str@87b15ccc2e677f3b
+map_version: '2'
 ---
 # NodeType::as_str
 
-Returns the snake_case string name for a variant (e.g. RootCause to "root_cause") as a static str; must be kept in sync with the enum when variants are added.
+Returns the fixed lowercase snake_case name of a node type as a static string.
+
+## Behaviour
+
+- RootCause -> "root_cause"
+- Test -> "test"
+- Exhaustive match with no fallback and no allocation
+
+## Terms
+
+string name, label, serialized name, snake_case, text form
 
 ## Connections
 

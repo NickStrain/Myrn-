@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::classify_rust
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::classify_rust@91233a1321949c3b
+map_version: '2'
 ---
 # Walker::classify_rust
 
-Maps Rust nodes to defs (fn, struct, enum, trait, const, static, macro, and others), impl and inline-mod scopes, use/mod imports, and call-expression refs; function_item is a method inside an impl or trait, and macro invocations are handled by rust_macro_calls.
+Maps Rust AST nodes to actions: items become defs, impl and inline mod become scopes, use and mod x; become imports, and calls and macro invocations become references. Comments and string literals are skipped.
+
+## Behaviour
+
+- impl<T> Display for Wrapper<T> opens a Type scope named 'Wrapper'
+- Path::f() gives a Path reference with qualifier 'Path' (generics stripped); recv.f() gives a Method with receiver text cut to 80 characters
+- A fn with #[test], #[tokio::test] or #[rstest] is marked is_test; a bodiless fn signature still becomes a def
+
+## Terms
+
+Rust classification, item kinds, struct enum trait, use declaration, impl block, call expression, macro invocation
 
 ## Connections
 

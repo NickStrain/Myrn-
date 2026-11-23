@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/tools/impact.rs#tools::impact::spec
 anchors:
 - sym:crates/myrn-mcp/src/tools/impact.rs#tools::impact::spec@15ad147cfd4a2cfa
+map_version: '2'
 ---
 # impact::spec
 
-Returns the MCP tool descriptor JSON for `impact`, with a required string input `symbol` accepting a symbol name, qualified name, file path, or path:line. Pure; no side effects.
+Builds the JSON tool definition for 'impact', with a description and an input schema that requires a string 'symbol'.
+
+## Behaviour
+
+- no input -> always returns the same fixed JSON object with name 'impact'
+- 'symbol' accepts a symbol name, qualified name, file path, or path:line
+- 'symbol' is the only property and is listed as required
+
+## Terms
+
+tool schema, tool definition, input schema, MCP tool metadata, advertised tool, tool registration
 
 ## Connections
 

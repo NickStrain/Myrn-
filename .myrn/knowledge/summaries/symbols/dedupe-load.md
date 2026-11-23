@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/dedupe.rs#distill::dedupe::load
 anchors:
 - sym:crates/myrn-engine/src/distill/dedupe.rs#distill::dedupe::load@10ea19d5b020fe57
+map_version: '2'
 ---
 # dedupe::load
 
-Runs the given SQL with positional args, expects two columns (key, JSON data), and returns each row that deserializes as a Note; rows that fail to parse are silently skipped, not errors.
+Runs a SQL query with bound arguments and turns each row into an Existing, skipping rows whose JSON does not parse as a Note.
+
+## Behaviour
+
+- row whose data fails serde_json parsing -> silently dropped, not an error
+- no matching rows -> empty Vec
+- SQL must select path first and data second, since column 0 becomes the key
+
+## Terms
+
+query helper, row decode, json parse, skip corrupt rows, notes query, bind arguments
 
 ## Connections
 

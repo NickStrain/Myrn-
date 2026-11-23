@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/walk.rs#indexer::walk::load_ignore
 anchors:
 - sym:crates/myrn-engine/src/indexer/walk.rs#indexer::walk::load_ignore@0acba9edfa348c27
+map_version: '2'
 ---
 # walk::load_ignore
 
-Builds a Gitignore matcher rooted at `root` from `ignore_file` if it exists; returns an empty matcher on a missing file or build error, never failing.
+Builds a Gitignore matcher rooted at root from ignore_file, returning an empty matcher if the file is missing, unreadable, or fails to build.
+
+## Behaviour
+
+- ignore_file does not exist -> empty matcher that ignores nothing
+- malformed or unreadable ignore_file -> add error discarded, matcher built from whatever was added
+- build failure -> Gitignore::empty(), no error returned
+
+## Terms
+
+ignore file, gitignore, .myrn/ignore, exclude patterns, ignore rules, matcher, skip paths, exclusion list
 
 ## Connections
 

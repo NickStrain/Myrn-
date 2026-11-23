@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/adapter.rs#adapter::InstallCtx
 anchors:
 - sym:crates/myrn-adapters/src/adapter.rs#adapter::InstallCtx@fbcc96f909f3e06f
+map_version: '2'
 ---
 # adapter::InstallCtx
 
-Input to install, uninstall, and inspect: the repo root, the absolute path of the myrn binary that hooks should invoke, and whether to run the agent's own CLI (such as claude mcp add) when that agent is installed.
+Carries the repo root, the absolute path of the myrn binary that hooks should call, and whether install may run the agent's own CLI.
+
+## Behaviour
+
+- run_agent_cli true -> install may run the agent CLI (e.g. claude mcp add) when the agent is detected
+- run_agent_cli false -> only config files are edited, no agent CLI is run
+- binary -> absolute path written into hook commands
+
+## Terms
+
+install context, repo root, binary path, agent cli, hook binary
 
 ## Connections
 

@@ -7,14 +7,23 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/api.rs#api::Engine::show
 anchors:
 - sym:crates/myrn-engine/src/api.rs#api::Engine::show@a1ef9e84ef6e8c6e
+map_version: '2'
 ---
 # Engine::show
 
-Resolves a query to one node and returns it together with all its edges.
+Returns one node with all its edges.
+
+## Behaviour
+
+- Ambiguous and not-found results from pick are passed through unchanged
+
+## Terms
+
+node details, edges, inspect node, node lookup
 
 ## Connections
 
-- **Location:** `crates/myrn-engine/src/api.rs:1020-1029`
+- **Location:** `crates/myrn-engine/src/api.rs:1086-1095`
 - **Signature:** `pub fn show(&self, query: &str) -> Result<Lookup<(Node, Vec<graph::Edge>)>>`
 - **In:** [[file-crates-myrn-engine-src-api-rs]]
 - **Calls:** [[engine-pick]], [[graph-edges-of]]

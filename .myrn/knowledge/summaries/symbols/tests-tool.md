@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/mod.rs#capture::tests::tool
 anchors:
 - sym:crates/myrn-engine/src/capture/mod.rs#capture::tests::tool@44e57b4144e8ae48
+map_version: '2'
 ---
 # tests::tool
 
-Test helper that builds an Event of kind ToolResult with session 's', cwd '/r', tool 'Bash', the given outcome, files and command, and no error.
+Test helper that builds an Event with session "s", cwd /r and a Bash ToolResult carrying the given outcome, files and optional command. The error field is always None.
+
+## Behaviour
+
+- tool(FileEdit, &["src/a.rs"], None) -> Bash result with files ["src/a.rs"] and no command
+- tool(Failure, &[], Some("cargo test")) -> same event with command "cargo test"
+
+## Terms
+
+test event builder, fake tool call, bash tool result, mock event, fixture builder
 
 ## Connections
 

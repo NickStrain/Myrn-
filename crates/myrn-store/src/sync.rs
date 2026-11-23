@@ -509,14 +509,16 @@ fn link(tx: &Transaction<'_>) -> Result<()> {
                 issue(&r.path, id, "dangling", "summary is not `about` any code")?;
             }
             let text = n.summary_text();
+            let (behaviour, terms) = n.summary_details();
+            let (behaviour, terms) = (behaviour.join("\n"), terms.join(", "));
             for t in summary_targets {
                 tx.execute(
                     "UPDATE nodes SET summary = ?2 WHERE id = ?1",
                     params![t, text],
                 )?;
                 tx.execute(
-                    "INSERT INTO summary_search (id, text) VALUES (?1, ?2)",
-                    params![t, text],
+                    "INSERT INTO summary_search (id, text, behaviour, terms) VALUES (?1, ?2, ?3, ?4)",
+                    params![t, text, behaviour, terms],
                 )?;
             }
             continue;

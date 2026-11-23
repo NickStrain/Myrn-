@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::rust_import
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::rust_import@0f06c1c87b8ebe5a
+map_version: '2'
 ---
 # Resolver::rust_import
 
-Splits a Rust `use` spec, turning a trailing `::*` into a glob flag, and resolves the path through rust_path to (file, qname, glob).
+Parses a Rust use spec, treats a trailing '::*' as a glob, and resolves the path with rust_path.
+
+## Behaviour
+
+- 'crate::a::B' -> (file of module a, Some('a::B'), false)
+- 'crate::a::*' -> glob flag true, path 'crate::a'
+- unresolvable path -> None
+
+## Terms
+
+use declaration, use spec, glob import, Rust import, use statement
 
 ## Connections
 

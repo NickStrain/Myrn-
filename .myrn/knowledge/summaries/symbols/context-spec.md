@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/tools/context.rs#tools::context::spec
 anchors:
 - sym:crates/myrn-mcp/src/tools/context.rs#tools::context::spec@87c6af4f8a26a40d
+map_version: '2'
 ---
 # context::spec
 
-Returns the MCP tool descriptor JSON with name `context`, a description telling agents to call it before searching, and an input schema with required string `task` and optional integer `budget`. Takes no arguments and has no side effects. The schema text says the default budget is 1500, but this function does not set it; the default is whatever the engine applies when `budget` is absent.
+Returns the JSON tool definition for `context`, with its description and an input schema that requires `task` (string) and accepts an optional integer `budget`.
+
+## Behaviour
+
+- no arguments -> the same fixed JSON every call; nothing is read from input
+- schema lists only `task` as required; `budget` is optional and documented as default 1500
+- the default 1500 appears only in the description text; this function does not enforce it
+
+## Terms
+
+tool definition, tool schema, MCP tool listing, input schema, tool description, task parameter, token budget parameter
 
 ## Connections
 

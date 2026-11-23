@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/paths.rs#paths::Layout
 anchors:
 - sym:crates/myrn-store/src/paths.rs#paths::Layout@c3d5f1aa0a352894
+map_version: '2'
 ---
 # paths::Layout
 
-Holds the resolved paths for one project: repo_root, repo_dir (<repo>/.myrn), data_dir, and db_path. All fields are set once by Layout::new.
+Holds the resolved paths for one project: repo root, `.myrn` dir, project data dir, and the database path.
+
+## Behaviour
+
+- fields are filled only by Layout::new; no filesystem access happens in the struct
+- db_path differs per linked worktree, so each worktree has its own database
+- all fields are public PathBufs
+
+## Terms
+
+project layout, path set, project paths, path struct, resolved locations
 
 ## Connections
 

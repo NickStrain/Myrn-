@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/doctor.rs#cmd::doctor::run
 anchors:
 - sym:crates/myrn/src/cmd/doctor.rs#cmd::doctor::run@af9048eeef434b61
+map_version: '2'
 ---
 # doctor::run
 
-Opens the Engine at the current directory with ctx.data_dir, takes engine.doctor() checks, drops any check named 'agents', and appends agent_checks; it emits the list via ctx.emit with a renderer that prints ok/warn/FAIL and pads the name to 15 columns, then returns ExitCode::FAILURE only if some check is Level::Fail (Warn does not fail). Errors from opening the engine, agent_checks, or emit propagate via ?.
+Opens the engine at the current directory, runs engine.doctor(), replaces its "agents" row with agent_checks output, prints every row, and returns FAILURE if any row is Fail.
+
+## Behaviour
+
+- cwd is the engine root; ctx.data_dir is passed to Engine::open when set
+- engine.doctor() rows named "agents" are dropped before agent_checks rows are appended
+- any Level::Fail gives ExitCode::FAILURE; Warn alone still gives SUCCESS
+
+## Terms
+
+doctor, health check, diagnose, exit code, status report, engine diagnostics
 
 ## Connections
 

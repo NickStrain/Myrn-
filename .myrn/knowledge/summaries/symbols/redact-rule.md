@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::Rule
 anchors:
 - sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::Rule@eb700e5832bdea7f
+map_version: '2'
 ---
 # redact::Rule
 
-Pairs a static redaction kind label with a compiled regex; the entries in the TOKENS table are instances of it.
+Pairs a redaction kind label with its compiled regex for the token table. It is private to this module.
+
+## Behaviour
+
+- kind is passed to mark() when a match is replaced
+- re is compiled once by rule() when the static TOKENS table is first used
+
+## Terms
+
+compiled pattern, token rule, kind label, matcher
 
 ## Connections
 

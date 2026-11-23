@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/capture/consent.rs
 
-Consent state for session recording: a single predicate, may_record, that gates whether an agent's session may be captured. Consent is given once in `myrn connect` and stored in the private state.json; nothing from a session is written without it.
+Consent gate for session recording: a single predicate, may_record, that decides whether an agent's session may be captured, based on the one-time consent flag and the agent's configured mode in the private state.json.
 
 ## Connections
 

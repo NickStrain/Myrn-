@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::command_line
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::command_line@ca8d92159fb6c225
+map_version: '2'
 ---
 # codex::command_line
 
-Builds the hook command as the binary path in double quotes followed by 'hook codex <event>'. The quoting lets the command run under POSIX shells and cmd.exe.
+Builds the hook command string: the quoted binary path, then 'hook codex', then the event name.
+
+## Behaviour
+
+- /opt/myrn and SessionStart -> quoted path then 'hook codex SessionStart'
+- a path with spaces stays inside the quotes
+- output contains the ' hook codex ' marker that is_ours checks for
+
+## Terms
+
+hook command, quoted command, shell command text
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/mod.rs#indexer::refresh
 anchors:
 - sym:crates/myrn-engine/src/indexer/mod.rs#indexer::refresh@4d015c2c2f851409
+map_version: '2'
 ---
 # indexer::refresh
 
-Syncs the graph with the walked working tree and then with Git history, and returns an IndexReport. Files with unchanged size and mtime are skipped. Files whose mtime changed but whose hash matches only get size and mtime updated. Removed files are deleted, and changed files are parsed in parallel and persisted in one transaction. Edge resolution and module GC run only when something changed or the 'resolved' meta flag is missing. Git history errors are recorded in report.errors rather than returned. Writes the last_refresh meta key.
+Walks root and skips files whose size and mtime match the files table, then reads and hashes the rest and, in one transaction, deletes removed files and re-parses changed ones. If anything was parsed or removed, or the 'resolved' meta flag is missing, it runs gc_modules and resolve_all, then indexes Git history and writes last_refresh.
+
+## Behaviour
+
+- same hash but new mtime -> only mtime and size updated, no re-parse
+- unreadable file -> skipped, existing row left unchanged
+- parse error -> persisted with error text and added to errors; Git failure -> added to errors, call still succeeds
+
+## Terms
+
+incremental, sync, update index, reindex, diff, stale files, walk, rebuild
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/task.rs#task::load_tasks
 anchors:
 - sym:bench/src/task.rs#task::load_tasks@1f9439dc9cdef599
+map_version: '2'
 ---
 # task::load_tasks
 
-Walks dir recursively with an explicit stack, parses and validates each .yaml or .yml file, sorts by id, and errors on duplicate ids. Any read, parse, or validation failure aborts the whole load. It does not check that the referenced repo exists.
+Walks dir recursively, parses each .yaml or .yml file as a Task, validates it, and returns all tasks sorted by id. Fails if two tasks share an id.
+
+## Behaviour
+
+- Two YAML files with the same id return a duplicate task id error.
+- A single file that fails to parse or validate aborts the whole load.
+- load_tasks does not check that task.repo exists in the repo map; the shipped-task test does that.
+
+## Terms
+
+task loader, recursive scan, yaml files, duplicate id, sort order, task set, directory walk
 
 ## Connections
 

@@ -6,11 +6,11 @@ title: crates/myrn/src/cmd/status.rs
 source: myrn summarize
 about: file:crates/myrn/src/cmd/status.rs
 anchors:
-- file:crates/myrn/src/cmd/status.rs@20589ca591cb175f
+- file:crates/myrn/src/cmd/status.rs@2a740b1bfeb4ce27
 ---
 # crates/myrn/src/cmd/status.rs
 
-Implements the `myrn status` CLI subcommand: it reads engine status and prints a plain-text report covering project id, file counts by language, graph and link counts, record states, note health, connected agents, and the store path. Output is produced via `ctx.emit`, which serializes the status struct for JSON output or runs the text renderer otherwise.
+Implements the `myrn status` command. It loads the engine status and formats index health, file and graph counts, record states, note and conflict problems, connected agents, and the store path as the text passed to `ctx.emit`. It has one function, `run`.
 
 ## Connections
 

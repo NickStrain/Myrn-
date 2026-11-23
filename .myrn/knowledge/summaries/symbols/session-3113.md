@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/web/src/session.ts#Session
 anchors:
 - sym:tests/fixtures/repos/gate0/web/src/session.ts#Session@500c5b681d1f59b8
+map_version: '2'
 ---
 # Session
 
-Holds a token string and an issued timestamp set to now() at construction; issued is a public, mutable number field.
+Holds a public token string and an issued timestamp taken from now() at construction, and reports whether it is still fresh.
+
+## Behaviour
+
+- new Session("abc") -> token is "abc" and issued is now()
+- isFresh() is true while issued + 10 is greater than now()
+- issued is a plain number field and can be read or overwritten directly
+
+## Terms
+
+session, auth token, issue time, timestamp, expiry window, time to live
 
 ## Connections
 

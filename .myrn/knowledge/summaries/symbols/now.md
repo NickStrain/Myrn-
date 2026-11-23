@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/web/src/store.ts#now
 anchors:
 - sym:tests/fixtures/repos/gate0/web/src/store.ts#now@c2cae9e5de476a9b
+map_version: '2'
 ---
 # now
 
-Returns the hardcoded number 42 with no reference to the current time, so despite the name it is not a clock and should not be relied on for timestamps.
+Returns the number 42 as a fixed placeholder; it does not read the clock despite its name.
+
+## Behaviour
+
+- now() -> 42 on every call
+- takes no arguments
+- not a timestamp, so do not rely on it for time
+
+## Terms
+
+current time, timestamp, clock, time helper, stub
 
 ## Connections
 

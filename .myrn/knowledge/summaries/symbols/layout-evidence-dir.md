@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/paths.rs#paths::Layout::evidence_dir
 anchors:
 - sym:crates/myrn-store/src/paths.rs#paths::Layout::evidence_dir@21da9dd1b3edf494
+map_version: '2'
 ---
 # Layout::evidence_dir
 
-Returns data_dir/evidence.
+Returns the evidence directory in the per-user data dir.
+
+## Behaviour
+
+- -> <data_dir>/evidence
+- created by create_dirs
+
+## Terms
+
+evidence, evidence store, evidence folder
 
 ## Connections
 

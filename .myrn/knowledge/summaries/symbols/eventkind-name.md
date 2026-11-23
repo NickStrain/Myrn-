@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/event.rs#event::EventKind::name
 anchors:
 - sym:crates/myrn-model/src/event.rs#event::EventKind::name@1a95f137aa4f1a15
+map_version: '2'
 ---
 # EventKind::name
 
-Returns the static snake_case label for the variant (session_start, prompt_submitted, tool_result, or session_end) without inspecting the payload or allocating.
+Returns the fixed snake_case label for the variant, matching the serde tag string.
+
+## Behaviour
+
+- SessionStart -> "session_start"
+- ToolResult(_) -> "tool_result" regardless of tool or outcome
+- SessionEnd -> "session_end" regardless of reason or continued
+
+## Terms
+
+event name, variant name, label, tag string, event type string
 
 ## Connections
 

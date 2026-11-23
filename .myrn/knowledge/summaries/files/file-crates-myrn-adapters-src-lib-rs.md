@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-adapters/src/lib.rs
 
-Root module of the adapters crate, which holds all agent-specific code. It declares the adapter, claude_code, codex, detect, and pull_only submodules, re-exports Adapter, Change, Finding, InstallCtx, Installed, and Mode, and provides the registry functions all() and by_name().
+Root module of the adapters crate, which holds all agent-specific code. It declares the adapter, claude_code, codex, detect and pull_only submodules, re-exports Adapter, Change, Finding, InstallCtx, Installed and Mode, and provides the registry lookups all and by_name.
 
 ## Connections
 

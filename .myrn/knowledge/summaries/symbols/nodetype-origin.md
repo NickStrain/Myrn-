@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/node.rs#node::NodeType::origin
 anchors:
 - sym:crates/myrn-model/src/node.rs#node::NodeType::origin@d4ff310a34a042d4
+map_version: '2'
 ---
 # NodeType::origin
 
-Classifies a variant as Origin::Derived for the five code-derived kinds and Origin::Earned for everything else via a wildcard arm, so new variants default to Earned.
+Classifies a node type as Derived (File, Symbol, Module, Commit, Test) or Earned (every other variant), using a match with a wildcard arm.
+
+## Behaviour
+
+- Test -> Derived
+- Bug -> Earned
+- Any variant missing from the five-item derived list falls through the wildcard to Earned, so a new variant is earned unless this match is updated
+
+## Terms
+
+provenance, derived or earned, classification, which origin, rebuildable
 
 ## Connections
 

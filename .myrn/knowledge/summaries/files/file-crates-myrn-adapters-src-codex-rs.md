@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-adapters/src/codex.rs
 
-Codex adapter. It installs and removes myrn's hook entries in .codex/hooks.json, its MCP server block in .codex/config.toml, and an instruction block in AGENTS.md, and it translates Codex hook payloads into myrn events. Its main parts are the install, uninstall, and inspect lifecycle methods, the TOML block helpers, and the payload translator.
+Codex adapter for myrn. It writes and removes the myrn hooks in .codex/hooks.json, the managed [mcp_servers.myrn] block in .codex/config.toml, and the AGENTS.md instruction block. It also converts Codex hook payloads into myrn events and formats hook output for Codex.
 
 ## Connections
 

@@ -6,11 +6,11 @@ title: crates/myrn-engine/src/indexer/
 source: myrn summarize
 about: module:crates/myrn-engine/src/indexer
 anchors:
-- module:crates/myrn-engine/src/indexer@686d383e394b27f6
+- module:crates/myrn-engine/src/indexer@eaf1937ad25bff01
 ---
 # crates/myrn-engine/src/indexer/
 
-Indexer for myrn-engine: builds the code and Git-history graph from the working tree. mod.rs drives refresh, which re-parses only changed files and calls parse.rs (tree-sitter Def/Ref/Import extraction per file, language rules from lang/), walk.rs (gitignore-aware source enumeration), and git.rs (libgit2 commit, file, and symbol-touch edges); symbols.rs then resolves raw references and imports into calls/imports/tests edges across files, while body_hash.rs provides whitespace- and comment-insensitive node hashing for change detection.
+Builds the myrn-engine code graph in SQLite from the working tree and Git history, without a model. mod.rs runs refresh: walk.rs lists source files, parse.rs re-parses only changed ones into definitions, calls and imports, and everything is persisted in one transaction. symbols.rs then resolves cross-file calls, imports and tests edges, and git.rs adds commit nodes and touches edges. lang/ supplies per-language file recognition, grammars, separators and module paths, body_hash.rs gives whitespace- and comment-insensitive hashes, and scip.rs is an empty placeholder for precise references.
 
 ## Connections
 

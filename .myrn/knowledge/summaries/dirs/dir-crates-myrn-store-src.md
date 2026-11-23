@@ -6,11 +6,11 @@ title: crates/myrn-store/src/
 source: myrn summarize
 about: module:crates/myrn-store/src
 anchors:
-- module:crates/myrn-store/src@0a46ba20d3db750c
+- module:crates/myrn-store/src@544893e76b93ff18
 ---
 # crates/myrn-store/src/
 
-Storage layer for Myrn, split into the SQLite side (db.rs opens memory.db and runs migrations; graph.rs holds nodes and edges; fts.rs is the FTS index keyed by nodes.rowid; vector.rs is an empty placeholder) and the file side (notes/ holds the Markdown knowledge notes, which are the source of truth; episodes.rs keeps per-session JSONL logs; state.rs keeps private state.json; paths.rs resolves Layout). sync.rs keeps the notes table and note-derived graph rows in step with note files on disk, and lib.rs re-exports the public types.
+Storage layer for Myrn, where Markdown notes in notes/ are the source of truth for earned knowledge and the SQLite memory.db (code graph, FTS search index) is always rebuildable from code and notes, with writes going note first, then index. db.rs opens the database and runs migrations, graph.rs and fts.rs manage nodes, edges and search rows, sync.rs keeps notes and graph in step, episodes.rs writes append-only JSONL logs, state.rs holds per-project state outside the repo, and paths.rs defines where all of it lives.
 
 ## Connections
 

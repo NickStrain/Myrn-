@@ -6,11 +6,11 @@ title: tests/
 source: myrn summarize
 about: module:tests
 anchors:
-- module:tests@3c85f3c75c60ef5f
+- module:tests@908ac947348a26a5
 ---
 # tests/
 
-Contains fixtures/, a fixture repo that exercises token refresh across three parallel implementations under fixtures/repos/: py/ (Session(token, issued_at) with refresh(token_store, token) over an unbounded list-based TokenStore and a stubbed now()), src/ (a Rust gate0 crate with refresh re-exported at the crate root), and web/src/ (a TypeScript Session with a 10-unit freshness window and a TokenStore imported from ./store). Each has a success-path test for token "abc" (test_session.py::test_refresh_known_token, tests/refresh.rs, web/session.test.ts), but only the Rust session module has an unknown-token unit test, so the expired-token path and the integration and web unknown-token paths are uncovered.
+Test fixtures for the code-map and agent tooling, not production code. tests/fixtures/repos/gate0/ holds three parallel implementations of one session-token refresh path (Python in py/, Rust in src/ and tests/, TypeScript in web/), each looking up a token in an in-memory store and returning a new Session or nothing; the tests only cover the known token 'abc' success path.
 
 ## Connections
 

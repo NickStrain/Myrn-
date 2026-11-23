@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/notes.rs#note_snapshot
 anchors:
 - sym:crates/myrn-engine/tests/notes.rs#note_snapshot@9ac1cfd51e4ab448
+map_version: '2'
 ---
 # note_snapshot
 
-Collects sorted text rows describing what notes contribute: earned non-episode nodes with type, title, status and doc, note-sourced edges, anchors, symbol summaries, note_issues, and a full-text search hit for 'unhashable'. Used to compare the index before and after a rebuild.
+Builds a sorted list of string lines covering all note-derived index state, so two indexes can be compared directly.
+
+## Behaviour
+
+- earned non-episode nodes -> 'id|type|title|status|doc' lines
+- note-evidence edges -> 'src rel dst' lines, anchors -> 'note symbol hash' with '-' for nulls
+- summaries, note_issues, and nodes matching the full-text term 'unhashable' are included too
+
+## Terms
+
+index snapshot, note state, comparable dump, index contents, rebuild comparison
 
 ## Connections
 

@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::RefKind::parse
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::RefKind::parse@06abcd2e86c23cc2
+map_version: '2'
 ---
 # RefKind::parse
 
-Inverse of as_str; returns None for any string other than the three known forms.
+Maps a lowercase tag back to its RefKind, returning None for anything else.
+
+## Behaviour
+
+- 'call' -> Some(Call), 'path' -> Some(Path), 'method' -> Some(Method)
+- 'Call', '' or 'function' -> None; the match is case-sensitive and exact
+
+## Terms
+
+deserialize, from string, reverse lookup, tag to kind, string to kind, decode
 
 ## Connections
 

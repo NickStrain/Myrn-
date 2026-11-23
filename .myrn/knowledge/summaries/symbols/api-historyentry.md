@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/api.rs#api::HistoryEntry
 anchors:
 - sym:crates/myrn-engine/src/api.rs#api::HistoryEntry@696a51664e0348bf
+map_version: '2'
 ---
 # api::HistoryEntry
 
-One commit in a history result: sha, summary, author, unix time and optional change kind. Parents are kept for ordering and are not serialized.
+One commit that touched a file or symbol: sha, summary, author, unix time, change kind and optional change label. Parent shas are kept for ordering but not serialised.
+
+## Behaviour
+
+- change is the git change kind for file queries and modified for symbol queries
+- parents is skipped in serialisation and used only to order commits made in the same second
+
+## Terms
+
+commit entry, changelog, change kind, author, parent commits, git log
 
 ## Connections
 

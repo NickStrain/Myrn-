@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::find
 anchors:
 - sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::find@9c3139be42ea0075
+map_version: '2'
 ---
 # seed::find
 
-Resolves a query (node id, `path:line`, file path, qualified or bare name, trimmed of backticks and trailing `()`) to nodes in tried order, returning the first non-empty match set; name matches fall back to case-insensitive, filter to those whose qualname ends with the query's segments, drop shadowed stubs, and sort exact-qualname first, code before tests, then shallower and by path.
+Resolves a query (node id, path:line, file path, qualified name or bare name) to matching nodes, best match first. Read-only, touches only the database.
+
+## Behaviour
+
+- empty, whitespace or only-backtick input -> empty list
+- exact node id -> that one node, checked before any other form
+- src/a.rs:42 -> smallest symbol or test in that path whose line range contains line 42
+
+## Terms
+
+symbol lookup, resolve name, qualified name, file path, line number, locate definition, best match, case insensitive
 
 ## Connections
 

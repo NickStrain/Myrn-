@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::lookup_in_crate
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::lookup_in_crate@e7449f275f1578b8
+map_version: '2'
 ---
 # Resolver::lookup_in_crate
 
-Returns the first non-test Rust symbol with this qualified name that lives in the same crate as the given file.
+Returns the first non-test Rust symbol with the qualified name that is in the same crate as the given file.
+
+## Behaviour
+
+- match only in another crate -> None
+- non-Rust symbol with the same name -> skipped
+- several matches in the crate -> the first in index order
+
+## Terms
+
+crate lookup, same crate, Rust crate match, crate scope
 
 ## Connections
 

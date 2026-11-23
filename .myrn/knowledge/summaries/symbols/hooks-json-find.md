@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/adapter.rs#adapter::hooks_json::find
 anchors:
 - sym:crates/myrn-adapters/src/adapter.rs#adapter::hooks_json::find@e8ad55a23606055b
+map_version: '2'
 ---
 # hooks_json::find
 
-Read-only. Returns references to handlers under hooks[event] across all groups that is_ours matches.
+Returns references to every handler under doc.hooks[event] that is_ours accepts, across all groups.
+
+## Behaviour
+
+- No hooks key or no event -> empty vec
+- Groups without a hooks array are skipped
+- Handlers returned in order, borrowed from doc rather than cloned
+
+## Terms
+
+locate hook, lookup handler, existing hooks, filter hooks, list hooks
 
 ## Connections
 

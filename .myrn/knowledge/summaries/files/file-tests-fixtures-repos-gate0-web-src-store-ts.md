@@ -10,7 +10,7 @@ anchors:
 ---
 # tests/fixtures/repos/gate0/web/src/store.ts
 
-Defines an in-memory token registry (TokenStore) that records issued tokens and checks whether a given token was issued, plus a standalone now() helper that returns a fixed value. Both exports are the file's main parts.
+Defines the in-memory TokenStore class, which keeps a list of issued tokens and supports lookup and insert, plus a standalone now() helper that currently returns a fixed value of 42.
 
 ## Connections
 

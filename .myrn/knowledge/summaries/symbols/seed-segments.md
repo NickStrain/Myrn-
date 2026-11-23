@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::segments
 anchors:
 - sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::segments@ca2efea14b6f943a
+map_version: '2'
 ---
 # seed::segments
 
-Splits a qualified name into segments on `::` and `.`, dropping empty parts and a trailing `#<digits>` collision suffix. Note the `#n` strip only applies when the suffix is all digits.
+Splits a qualified name on :: and . into segments, after removing a trailing #digits collision suffix.
+
+## Behaviour
+
+- auth::session::Session -> [auth, session, Session]
+- Session.refresh#2 -> [Session, refresh]
+- empty segments from a..b or a leading dot are dropped; f#x keeps its # because x is not digits
+
+## Terms
+
+split, qualified name, path segments, collision suffix, hash suffix, module path
 
 ## Connections
 

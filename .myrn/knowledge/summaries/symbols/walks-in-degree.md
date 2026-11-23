@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/retrieve/walks.rs#retrieve::walks::in_degree
 anchors:
 - sym:crates/myrn-engine/src/retrieve/walks.rs#retrieve::walks::in_degree@2f16f3cbff19f16b
+map_version: '2'
 ---
 # walks::in_degree
 
-Counts incoming `calls` edges to the given id from sources not starting with `test:`, as a measure of how central the symbol is to non-test code; returns an i64 and errors on query failure.
+Counts incoming calls edges to the given symbol id, skipping sources whose id starts with test:. Returns an i64.
+
+## Behaviour
+
+- Symbol with no incoming calls edges -> 0
+- Edges from a source id starting with test: are excluded, other sources count
+- Counts edge rows, so a duplicate edge row adds one each time
+
+## Terms
+
+centrality, fan-in, caller count, popularity, importance, incoming calls, how central
 
 ## Connections
 

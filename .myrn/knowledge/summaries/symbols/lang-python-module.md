@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::python_module
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::python_module@f07c8fb18e2984db
+map_version: '2'
 ---
 # lang::python_module
 
-Converts a Python file path to its dotted module segments by stripping the .py or .pyi suffix and splitting on slashes. It removes a leading src segment when more segments follow and a trailing __init__, so src/pkg/__init__.py becomes ["pkg"].
+Turns a Python file path into dotted module segments. It drops a leading src directory and a trailing __init__, and treats .pyi the same as .py.
+
+## Behaviour
+
+- pkg/a.py -> [pkg, a]
+- src/pkg/__init__.py -> [pkg]
+- src/__init__.py -> [], because src is dropped only when more than one segment remains
+
+## Terms
+
+dotted module path, module name, package path, __init__, python module
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/doctor.rs#cmd::doctor::agent_checks
 anchors:
 - sym:crates/myrn/src/cmd/doctor.rs#cmd::doctor::agent_checks@e2acbb091d189a92
+map_version: '2'
 ---
 # doctor::agent_checks
 
-If no agents are connected, returns one 'agents' Warn and stops early, so the recording, injection, and latency checks are skipped. Otherwise it emits an Ok line per agent (mode with '_' shown as '-', plus written files), one line per adapter inspect() finding (Fail if not ok), then always-Ok 'recording' and 'injection' checks and a 'hook latency' Warn when the median exceeds 500 ms (median is ms[len/2], so the upper value for even counts); agent names unknown to myrn_adapters::by_name are silently skipped, and state() or install_ctx errors propagate.
+Builds the check rows from engine state: a Warn "agents" row when no agent is connected, otherwise a connected row and adapter inspection rows per agent, plus recording consent, injection setting and hook latency rows.
+
+## Behaviour
+
+- no agents in state -> single Warn row "agents" saying run `myrn connect`, then returns early with no other rows
+- agent name with no matching adapter (by_name returns None) is skipped silently
+- hook latency: median is sorted ms[len/2] (upper median for even counts); Warn if above 500 ms; zero calls gives Ok "no hook calls yet"
+
+## Terms
+
+agent connection, install check, adapter inspection, hook latency, median latency, recording consent, injection setting, connect
 
 ## Connections
 

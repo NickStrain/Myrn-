@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/retrieve/walks.rs
 
-Graph traversal helpers for the retrieve layer: finds a type's direct members, a symbol's direct tests, and performs a bounded breadth-first walk over incoming `calls` edges to build impact reach (callers and tests). Also provides an in-degree count of non-test callers used as a centrality measure.
+Graph traversal helpers over the myrn store graph, used for impact analysis: listing a type's direct members, finding tests that call a symbol, a bounded breadth-first walk of incoming calls edges, and a count of non-test callers. Main parts are members, direct_tests, the Reach result struct, callers, and in_degree.
 
 ## Connections
 

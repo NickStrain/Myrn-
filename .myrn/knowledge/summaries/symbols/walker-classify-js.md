@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::classify_js
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::classify_js@7ad8f5ea1786a3b8
+map_version: '2'
 ---
 # Walker::classify_js
 
-Maps JS/TS functions, classes, methods, interfaces, types, enums, namespaces, and arrow or function-valued variables to defs; `test`/`it`/`describe`/`suite` string-titled calls (with only/skip/concurrent/todo modifiers) become test defs or scopes; re-exports become '#*' imports.
+Maps JS and TypeScript declarations, arrow functions bound to const, describe/it/test blocks, calls, new expressions and import/export statements to actions.
+
+## Behaviour
+
+- describe('refresh', ...) opens a Module scope; it('returns', ...) makes a test def named 'returns' nested under 'refresh'
+- const f = () => ... becomes a function def; const x = require('m') is handed to js_require
+- Any export with a source, including named re-exports, records spec 'm#*'
+
+## Terms
+
+TypeScript classification, describe block, test title, arrow function, re-export, new expression, class declaration
 
 ## Connections
 

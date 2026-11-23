@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::family
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::family@b1499aa25cc1c6a4
+map_version: '2'
 ---
 # Lang::family
 
-Maps Rust to Family::Rust and Python to Family::Python. JavaScript, TypeScript and Tsx all map to Family::Js.
+Groups each language into a Family used for resolution rules. JavaScript, TypeScript and Tsx all map to Family::Js.
+
+## Behaviour
+
+- Rust -> Family::Rust
+- Python -> Family::Python
+- JavaScript, TypeScript, Tsx -> Family::Js
+
+## Terms
+
+resolution family, language group, shared rules, rule family, family
 
 ## Connections
 

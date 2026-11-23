@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/report.rs#report::Verdict::label
 anchors:
 - sym:bench/src/report.rs#report::Verdict::label@a915baf94a62df4e
+map_version: '2'
 ---
 # Verdict::label
 
-Returns the report display string for a verdict: PASS, INCONCLUSIVE, FAIL, or NO DATA.
+Returns the upper-case display text for a verdict.
+
+## Behaviour
+
+- Pass -> 'PASS'
+- Inconclusive -> 'INCONCLUSIVE', NoData -> 'NO DATA'
+- Used in render headings and the Gate 1 and Step 20 lines
+
+## Terms
+
+display text, label, upper case, heading text, report wording
 
 ## Connections
 

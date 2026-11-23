@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/sync.rs#sync::NotesSummary
 anchors:
 - sym:crates/myrn-store/src/sync.rs#sync::NotesSummary@54e37a9631db9c13
+map_version: '2'
 ---
 # sync::NotesSummary
 
-Aggregate counts for status and doctor: private and shared note totals, files with header problems, dangling issues and duplicate issues.
+Counts for the notes health view: private and shared note rows, files with header problems, dangling problems, and duplicate problems.
+
+## Behaviour
+
+- malformed counts distinct file paths with 'header' issues, not issue rows
+- dangling and duplicates count issue rows of those kinds
+- all counts are 0 when there are no notes and no issues
+
+## Terms
+
+health counts, note stats, status summary, problem totals
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/query.rs#cmd::query::history
 anchors:
 - sym:crates/myrn/src/cmd/query.rs#cmd::query::history@441a427b80837591
+map_version: '2'
 ---
 # query::history
 
-Calls engine.history(path, limit) and emits the result, with text rendered by myrn_mcp::tools::history::render. The path is a file path string and limit is a usize.
+Runs engine.history for a path with a limit and emits the result, rendered by myrn_mcp's history renderer.
+
+## Behaviour
+
+- path: &str, limit: usize -> engine.history(path, limit), rendered by myrn_mcp::tools::history::render
+- Rendering is delegated to the MCP tool module, so text output matches the MCP tool
+- Any error from ctx.engine() or engine.history is returned via ?
+
+## Terms
+
+file history, path log, past changes, changelog, change history, revisions
 
 ## Connections
 

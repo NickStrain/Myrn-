@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::Codex::uninstall
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::Codex::uninstall@48bcd4928e85582c
+map_version: '2'
 ---
 # Codex::uninstall
 
-Reverses install. It removes the AGENTS.md instruction block, removes myrn hook entries (deleting hooks.json if it becomes empty), strips the managed MCP block (deleting config.toml if nothing remains), and removes .codex/ if it is empty. It returns the list of changes made.
+Removes the AGENTS.md block, myrn hook entries and the MCP block. It deletes files left empty and removes .codex/ if it is empty.
+
+## Behaviour
+
+- hooks.json with only myrn hooks left -> the file is deleted
+- config.toml with only the myrn block left -> the file is deleted
+- other user content is kept; the .codex directory removal error is ignored
+
+## Terms
+
+teardown, undo install, clean up, remove hooks, disconnect
 
 ## Connections
 

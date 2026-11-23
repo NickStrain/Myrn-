@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-adapters/src/claude_code.rs
 
-Claude Code adapter. It installs and checks myrn's hooks in .claude/settings.local.json, the pull-only instruction block in CLAUDE.md, and the MCP registration via the claude CLI. It also translates Claude Code hook payloads into myrn events and formats hook output back to Claude Code.
+Claude Code adapter for myrn. It installs and removes its hooks in .claude/settings.local.json and its pull-only block in CLAUDE.md, registers the MCP server through the claude CLI, and converts Claude Code hook payloads to and from myrn events.
 
 ## Connections
 

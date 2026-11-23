@@ -7,14 +7,25 @@ source: myrn summarize
 about: sym:bench/src/runner.rs#runner::item_path
 anchors:
 - sym:bench/src/runner.rs#runner::item_path@e665d5198b9d41fe
+map_version: '2'
 ---
 # runner::item_path
 
-Returns the file path from a node id: the text after the first ':' up to any '#'. For example, sym:src/a.rs#f gives src/a.rs. Returns None when the id has no ':'.
+Extracts the file path from a node id: the text between the first : and the first # (or the end).
+
+## Behaviour
+
+- sym:src/a.rs#m::f -> "src/a.rs"
+- file:src/a.rs -> "src/a.rs"
+- nope, with no colon -> None
+
+## Terms
+
+file path, source file, location, file part, file of symbol
 
 ## Connections
 
-- **Location:** `bench/src/runner.rs:540-543`
+- **Location:** `bench/src/runner.rs:695-698`
 - **Signature:** `fn item_path(id: &str) -> Option<&str>`
 - **In:** [[file-bench-src-runner-rs]]
 - **Called by:** [[runner-collect-injections]]

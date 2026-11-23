@@ -6,11 +6,11 @@ title: crates/myrn/tests/
 source: myrn summarize
 about: module:crates/myrn/tests
 anchors:
-- module:crates/myrn/tests@4fa8b8c35f4c9efc
+- module:crates/myrn/tests@8165ea5e1e095e93
 ---
 # crates/myrn/tests/
 
-Integration tests that drive the real `myrn` binary end to end, as an agent would, with MYRN_HOME set to a temp dir and a temp git repo built by the `setup`, `Env`, `hook`, `settings`, and `text` helpers. The single test file `connect.rs` covers init, `connect --agent` consent gating, Claude and Codex hooks (SessionStart, UserPromptSubmit, PostToolUse, Stop) with injection and per-session dedupe, `doctor` drift detection, `--pull-only` Codex setup, `disconnect`, and episode log checks for secret redaction, ignore paths, and `show episode:` graph output.
+Integration test directory for the myrn CLI. It holds connect.rs, which runs the real myrn binary end to end against a temp git repo: init, connect with consent, hook payloads on stdin, doctor, pull-only Codex setup, and disconnect. Its two tests share helper functions that build the temp repo and invoke myrn.
 
 ## Connections
 

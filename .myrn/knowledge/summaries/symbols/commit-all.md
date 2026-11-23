@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#commit_all
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#commit_all@cb3d1f6b31a9bcbe
+map_version: '2'
 ---
 # commit_all
 
-Stages all files in dir (add_all and update_all with '*') and commits them to HEAD as 'Gate Zero'. Opens the repo or initializes it if absent, and parents the commit on the current HEAD when one exists, so repeated calls build history; the first call creates the root commit.
+Opens the git repo at dir, or initialises one if none exists, then stages all files and commits them to HEAD with the Gate Zero signature.
+
+## Behaviour
+
+- dir not a repo -> git init, then a root commit with no parent
+- second call -> commit whose parent is the current HEAD
+- files deleted from disk are removed from the index via update_all before committing
+
+## Terms
+
+git commit, stage all, init repo, snapshot, fixture history
 
 ## Connections
 

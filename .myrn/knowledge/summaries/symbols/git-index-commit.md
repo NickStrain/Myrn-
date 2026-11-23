@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/git.rs#indexer::git::index_commit
 anchors:
 - sym:crates/myrn-engine/src/indexer/git.rs#indexer::git::index_commit@1330331656920d41
+map_version: '2'
 ---
 # git::index_commit
 
-Upserts a commit node (id from commit_id, title = summary, qname = 7-char short SHA, doc = message truncated to 2000 chars, extra JSON with author, time, parents, and reverts parsed from 'This reverts commit <hex>') and its FTS entry. For non-merge commits, it diffs against the first parent with rename detection and zero context, inserts commit_files rows (copies stored as added, old_path only for renames), and for added, modified, or renamed files in a language Lang::from_path recognizes, adds 'touches' edges to the innermost overlapping definitions (test definitions use test_id); merge commits get only the node.
+Writes one commit node with its FTS entry, then records each changed file and adds 'touches' edges from the commit to the innermost changed symbols in supported languages.
+
+## Behaviour
+
+- merge commit (more than one parent) -> node and FTS written, no file rows or touches edges
+- root commit -> diffed against the empty tree, so all its files show as added
+- file with no hunks, unsupported language, deleted file, or unparseable blob -> file row kept but no touches edges; a parent-less or deleted-only change is not parsed
+
+## Terms
+
+commit node, file change rows, touched symbols, revert detection, rename tracking, change attribution, hunk mapping
 
 ## Connections
 

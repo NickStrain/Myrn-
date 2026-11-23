@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::parse_name
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::parse_name@e7b86be55a32e6e4
+map_version: '2'
 ---
 # Lang::parse_name
 
-Inverse of name: finds the Lang whose name matches the input exactly (case-sensitive) and returns None if there is no match.
+Inverse of name: returns the Lang whose name equals the input exactly. The match is case-sensitive.
+
+## Behaviour
+
+- tsx -> Some(Tsx)
+- Rust -> None, because matching is case-sensitive
+- empty string -> None
+
+## Terms
+
+from string, lookup, language id, case sensitive, parse, string to language
 
 ## Connections
 

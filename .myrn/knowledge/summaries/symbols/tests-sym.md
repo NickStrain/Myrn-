@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::tests::sym
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::tests::sym@2df0f596152b8529
+map_version: '2'
 ---
 # tests::sym
 
-Test helper that builds a Sym from a path and qname, deriving name from the last segment and is_test from the kind.
+Test helper that builds a Sym from a path, qualified name and kind, deriving language, short name, id and is_test.
+
+## Behaviour
+
+- ('src/a.rs', 'a::f', 'function') -> name 'f'
+- kind 'test' -> is_test true
+- path with unsupported extension -> panics on unwrap
+
+## Terms
+
+test helper, fixture symbol, make symbol, sample node
 
 ## Connections
 

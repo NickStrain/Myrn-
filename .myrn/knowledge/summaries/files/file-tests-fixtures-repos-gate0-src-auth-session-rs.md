@@ -10,7 +10,7 @@ anchors:
 ---
 # tests/fixtures/repos/gate0/src/auth/session.rs
 
-Defines the auth Session type, which holds a token string and the issued timestamp, and a refresh function that looks a token up in a TokenStore and returns a fresh Session for it. Also includes a single unit test for the unknown-token case.
+Defines the auth Session type (token plus issue timestamp), its constructor and freshness check, and refresh(), which looks up a token in a TokenStore and returns a fresh Session or None. Includes one unit test for an unknown token.
 
 ## Connections
 

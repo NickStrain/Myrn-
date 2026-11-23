@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::rule
 anchors:
 - sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::rule@31f5a2c34d3c12ab
+map_version: '2'
 ---
 # redact::rule
 
-Builds a Rule from a kind label and a pattern string, compiling the regex with `Regex::new` and panicking if the pattern is invalid.
+Compiles a regex string into a Rule. It panics if the pattern is invalid.
+
+## Behaviour
+
+- rule('github-token', pattern) -> Rule with kind 'github-token' and the compiled regex
+- An invalid pattern panics with 'valid redaction pattern'
+
+## Terms
+
+pattern compilation, regex constructor, rule builder, startup panic
 
 ## Connections
 

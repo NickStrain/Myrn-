@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::manual_mcp
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::manual_mcp@27ccc481fb873e13
+map_version: '2'
 ---
 # claude_code::manual_mcp
 
-Returns the shell line 'claude mcp add --scope local myrn -- "<binary>" mcp' for the user to run when automatic registration is not possible.
+Formats the shell command a user can run by hand to register the myrn MCP server at local scope.
+
+## Behaviour
+
+- /opt/myrn/bin/myrn -> claude mcp add --scope local myrn -- "/opt/myrn/bin/myrn" mcp
+- The path is wrapped in double quotes without escaping
+- Pure string formatting with no side effects
+
+## Terms
+
+manual registration, fallback command, register by hand, mcp add
 
 ## Connections
 

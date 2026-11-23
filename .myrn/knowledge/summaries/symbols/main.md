@@ -7,14 +7,25 @@ source: myrn summarize
 about: sym:bench/src/main.rs#main
 anchors:
 - sym:bench/src/main.rs#main@caa4973d35f4372c
+map_version: '2'
 ---
 # main
 
-Calls real_main, prints the error chain to stderr prefixed with myrn-bench: on failure, and maps any error to ExitCode::FAILURE.
+Calls real_main and converts its result into the process exit code, printing any error to stderr first.
+
+## Behaviour
+
+- real_main returns Ok(code) -> that ExitCode is returned unchanged
+- real_main returns Err -> prints 'myrn-bench: ' followed by the full error chain to stderr and exits with FAILURE
+- no error -> exit status comes only from the subcommand
+
+## Terms
+
+entry point, exit code, error output, failure status, startup
 
 ## Connections
 
-- **Location:** `bench/src/main.rs:98-106`
+- **Location:** `bench/src/main.rs:132-140`
 - **Signature:** `fn main() -> ExitCode`
 - **In:** [[file-bench-src-main-rs]]
 - **Calls:** [[real-main]]

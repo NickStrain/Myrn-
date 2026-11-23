@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::doc
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::doc@9621059d3fc2d401
+map_version: '2'
 ---
 # Walker::doc
 
-Extracts the doc comment: Python first-statement string, Rust contiguous /// or /** lines above the item (skipping attributes), JS /** above the item or its export wrapper; keeps the first paragraph, collapsed to one line, max 300 chars.
+Pulls the first paragraph of a definition's documentation: a Python docstring, Rust /// or /** */ lines above it, or a JSDoc block above it.
+
+## Behaviour
+
+- Rust '/// a', '///', '/// b' gives 'a'; '////' lines are not doc comments
+- Python first statement '"""A login session."""' gives 'A login session.'
+- A plain // comment above a JS function gives None, since only /** blocks count; results are whitespace-collapsed, capped at 300 characters, and empty gives None
+
+## Terms
+
+docstring, doc comment, documentation, summary, JSDoc, rustdoc, first paragraph
 
 ## Connections
 

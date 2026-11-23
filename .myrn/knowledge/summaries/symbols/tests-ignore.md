@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/mod.rs#capture::tests::ignore
 anchors:
 - sym:crates/myrn-engine/src/capture/mod.rs#capture::tests::ignore@796246bc75d78a52
+map_version: '2'
 ---
 # tests::ignore
 
-Test helper that builds a Gitignore for root containing the single rule 'secrets/'.
+Test helper that builds a Gitignore rooted at `root` containing the single rule `secrets/`.
+
+## Behaviour
+
+- root /r -> matcher that ignores secrets/prod.env
+- a rule that fails to parse panics through unwrap
+
+## Terms
+
+test fixture, gitignore fixture, secrets rule, test helper, ignore rules
 
 ## Connections
 

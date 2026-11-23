@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/summarize.rs#write
 anchors:
 - sym:crates/myrn-engine/tests/summarize.rs#write@bf0595a78a1deb5b
+map_version: '2'
 ---
 # write
 
-Writes each (relative path, content) pair under root, creating parent directories and overwriting existing files. Panics on any I/O error. Used to seed the fixture repo and to edit files mid-test.
+Creates each listed file under root, making parent directories as needed, and overwrites existing files.
+
+## Behaviour
+
+- [("a/b.rs", "x")] -> creates root/a/ and writes root/a/b.rs with content x
+- existing file -> content replaced, no error
+- IO failure -> panics via unwrap
+
+## Terms
+
+fixture files, seed files, create directories, overwrite file, test setup
 
 ## Connections
 

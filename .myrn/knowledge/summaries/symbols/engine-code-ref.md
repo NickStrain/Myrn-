@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::Engine::code_ref
 anchors:
 - sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::Engine::code_ref@4531c2fd7fbb5c66
+map_version: '2'
 ---
 # Engine::code_ref
 
-Converts a graph node into a Ref. For symbol and test nodes the header is the bare qname if it is unique across symbols and tests, otherwise path#qname, and an anchor is attached when the node has a body hash. Other nodes use their path, or their id if they have no path.
+Turns a graph node into a Ref, choosing a header and computing an anchor from its body hash.
+
+## Behaviour
+
+- symbol or test with a unique qname -> header is the qname
+- same qname on several symbol or test nodes -> header is path#qname
+- symbol or test with body_hash -> anchor target is the header and hash is the first 12 hex chars
+
+## Terms
+
+header, qualified name, body hash, anchor, node reference, qname collision
 
 ## Connections
 

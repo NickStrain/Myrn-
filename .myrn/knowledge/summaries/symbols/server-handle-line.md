@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/server.rs#server::handle_line
 anchors:
 - sym:crates/myrn-mcp/src/server.rs#server::handle_line@a283426f6445cba5
+map_version: '2'
 ---
 # server::handle_line
 
-Parses one input line as JSON and returns the response Value, or None when nothing should be sent: a parse failure yields a -32700 error with a null id, and a top-level array is handled as a batch where notifications are dropped and None is returned if no responses remain.
+Parses one input line as JSON. A top-level array is dispatched element by element, and any other value goes to handle.
+
+## Behaviour
+
+- invalid JSON -> error with id null, code -32700, message starting with parse error
+- empty array, or every element yields no response -> None
+- batch -> array of only the responses; notifications and non-object elements are dropped silently
+
+## Terms
+
+batch, JSON-RPC batch, parse error, request line, array of requests, batch response
 
 ## Connections
 

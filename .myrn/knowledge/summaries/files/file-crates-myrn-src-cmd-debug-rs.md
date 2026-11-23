@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/src/cmd/debug.rs
 
-Implements the `myrn debug` developer subcommand. `review` either samples learned records into a Gate 2 checklist for a human to mark, or scores a previously marked checklist file, and `render_score` formats the resulting Score as plain text.
+Developer tools for the `myrn debug` command. `review` builds the Gate 2 record-review checklist, or scores a marked checklist file. `render_score` formats that score as plain text.
 
 ## Connections
 

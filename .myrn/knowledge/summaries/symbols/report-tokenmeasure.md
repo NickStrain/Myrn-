@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:bench/src/report.rs#report::TokenMeasure
 anchors:
 - sym:bench/src/report.rs#report::TokenMeasure@05e5682e9c118d6c
+map_version: '2'
 ---
 # report::TokenMeasure
 
-Type alias for a closure that maps a RunRecord to a per-run token count as f64.
+Type alias for a per-run token count function, passed by reference to compare_by and the render table.
+
+## Behaviour
+
+- Passed as &tokens or &total_tokens
+- Returns f64 for every run, so no run is skipped
+
+## Terms
+
+token function, measure, per-run count, token extractor
 
 ## Connections
 

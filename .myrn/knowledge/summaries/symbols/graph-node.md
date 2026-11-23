@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/graph.rs#graph::Node
 anchors:
 - sym:crates/myrn-store/src/graph.rs#graph::Node@5b2e1a687a594dc1
+map_version: '2'
 ---
 # graph::Node
 
-Row model for one graph node with 16 optional or required fields matching NODE_COLUMNS order; ntype serializes as "type". Default produces an empty node with no id or path.
+Holds one graph node's columns, with ntype serialised as the key 'type'. Option fields are None when the column is NULL.
+
+## Behaviour
+
+- Default -> empty id, ntype and origin, and None for every Option field
+- serde output uses key 'type' for ntype
+- extra, status and body_hash are opaque strings, not parsed here
+
+## Terms
+
+node record, vertex, entity, row struct, symbol record, graph entry
 
 ## Connections
 

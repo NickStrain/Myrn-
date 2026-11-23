@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::ClaudeCode::install
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::ClaudeCode::install@67b730181bbba2cd
+map_version: '2'
 ---
 # ClaudeCode::install
 
-In Hooks mode, replaces myrn's hooks for all six EVENTS and keeps other hooks. In PullOnly mode, removes myrn's hooks and writes the CLAUDE.md block. It then runs 'claude mcp remove' and 'claude mcp add --scope local' and adds the manual command to Installed.manual if the CLI is missing or fails. It writes files, so it is idempotent but not read-only.
+Writes hooks or the pull-only instruction block into the repo, removing old myrn hooks first. Then runs the MCP registration through the claude CLI, and adds a manual command to the result if that fails.
+
+## Behaviour
+
+- Hooks mode -> replaces myrn hooks in settings.local.json, keeping other hooks and permissions
+- PullOnly mode -> strips myrn hooks if present, then adds the CLAUDE.md block
+- MCP step always runs remove then add; a failed add or missing CLI adds a manual line, not an error
+
+## Terms
+
+setup, hook install, mcp registration, pull only mode, idempotent, reinstall
 
 ## Connections
 

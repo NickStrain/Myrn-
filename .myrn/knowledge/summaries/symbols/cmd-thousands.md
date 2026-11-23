@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/mod.rs#cmd::thousands
 anchors:
 - sym:crates/myrn/src/cmd/mod.rs#cmd::thousands@7bb6abacc98774e6
+map_version: '2'
 ---
 # cmd::thousands
 
-Formats an i64 with comma separators every three digits and keeps a leading minus for negatives. n.abs() panics on i64::MIN in debug builds and wraps in release builds.
+Formats a signed 64-bit integer as a string with a comma inserted before every group of three digits.
+
+## Behaviour
+
+- 1234567 -> "1,234,567"
+- -1234 -> "-1,234"; 0 and 999 -> no commas added
+- i64::MIN: n.abs() overflows, which panics in debug builds and wraps in release builds
+
+## Terms
+
+digit grouping, comma separator, number formatting, thousands separator, format number, sign handling
 
 ## Connections
 

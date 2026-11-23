@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/summarize.rs#cmd::summarize::run
 anchors:
 - sym:crates/myrn/src/cmd/summarize.rs#cmd::summarize::run@9714a0b12f05593d
+map_version: '2'
 ---
 # summarize::run
 
-Takes ctx, dry_run, an optional limit, and optional jobs; jobs overrides config.summarize.jobs when given, and config.summarize.command is passed through. It calls engine.summarize, which writes notes to the vault's summaries directory (dry_run only reports stale counts), then emits the report to stdout. It returns exit code 1 if any file failed to summarize (the report is still printed) and 0 otherwise, and propagates engine or emit errors as Err.
+Runs the summarize engine with the given flags, streams progress to stderr unless JSON output is on, then prints the report and returns exit code 1 if any file failed, otherwise 0.
+
+## Behaviour
+
+- dry_run true -> prints only counts of out of date files, functions and types, and directories, plus a hint to run again without it
+- ctx.json true -> progress lines on stderr are suppressed; the report is still emitted
+- report.failures non-empty -> ExitCode 1; empty -> ExitCode SUCCESS; a failure in the emit call is discarded by the let _ binding
+
+## Terms
+
+project map, dry run, stale, out of date, exit code, parallel workers, progress output, deferred files
 
 ## Connections
 

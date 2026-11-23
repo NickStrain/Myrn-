@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::tests::files
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::tests::files@a6e027b9b93cec92
+map_version: '2'
 ---
 # tests::files
 
-Test helper that derives a deduplicated (path, lang) list from a slice of Sym.
+Test helper that builds a (path, language) list from symbols, removing only consecutive duplicates.
+
+## Behaviour
+
+- symbols from one file listed together -> one entry
+- same path appearing non-consecutively -> duplicate entries kept
+- empty symbol list -> empty list
+
+## Terms
+
+test helper, file list, fixture files, dedup, path and language
 
 ## Connections
 

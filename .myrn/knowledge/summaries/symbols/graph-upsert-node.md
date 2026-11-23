@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/graph.rs#graph::upsert_node
 anchors:
 - sym:crates/myrn-store/src/graph.rs#graph::upsert_node@0e2fcc4c6b4ca0af
+map_version: '2'
 ---
 # graph::upsert_node
 
-INSERT OR REPLACE into nodes and returns last_insert_rowid. Replacing an existing row deletes and reinserts it, so the returned rowid can change and callers must not cache it as stable.
+Writes a node with INSERT OR REPLACE keyed on id and returns the rowid of that insert.
+
+## Behaviour
+
+- new id -> row inserted, its rowid returned
+- existing id -> old row replaced, returns the rowid of the new insert
+- None fields are stored as NULL
+
+## Terms
+
+upsert, insert or replace, save node, store node, rowid, search index key, write node
 
 ## Connections
 

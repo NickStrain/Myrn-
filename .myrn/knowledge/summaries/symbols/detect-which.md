@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/detect.rs#detect::which
 anchors:
 - sym:crates/myrn-adapters/src/detect.rs#detect::which@e0dbf29275155c22
+map_version: '2'
 ---
 # detect::which
 
-Takes a name and returns the first regular file named that on PATH, or None if no match exists or PATH is unset. On Windows it tries each PATHEXT extension (default .EXE;.CMD;.BAT, lowercased) and then the bare name last; on other platforms it only tries the bare name. It checks is_file only, not execute permission.
+Searches PATH directories in order and returns the first path where name, with a suffix, is an existing file. Returns None if PATH is unset or nothing matches.
+
+## Behaviour
+
+- PATH unset, or no match in any entry -> None
+- Unix, name=ls, /usr/bin contains ls -> Some(/usr/bin/ls); only is_file is checked, not the execute bit
+- Windows, PATHEXT=.EXE;.CMD -> tries name.exe, name.cmd, then bare name; directories with a matching name are skipped
+
+## Terms
+
+executable lookup, PATH search, find binary, command lookup, PATHEXT suffix, binary on PATH
 
 ## Connections
 

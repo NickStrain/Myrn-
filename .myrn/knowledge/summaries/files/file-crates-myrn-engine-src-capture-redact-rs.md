@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/capture/redact.rs
 
-Secret redaction for captured text, run before anything is written. It applies, in order: whole private-key blocks, known token formats (AWS, GitHub, GitLab, Slack, JWT, API keys, Stripe, Google, npm, PyPI), credentials in URLs and auth headers, sensitive KEY=VALUE and --flag VALUE assignments, and finally a Shannon-entropy check for unknown random strings, with hex, paths and identifiers exempted.
+Secret redaction for captured text, applied before anything is written. It runs pattern rules for private-key blocks, known token formats, URL and header credentials, sensitive KEY=VALUE and --flag values, then an entropy check for random strings. The public entry point is redact, and the file ends with unit tests.
 
 ## Connections
 

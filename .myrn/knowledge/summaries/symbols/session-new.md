@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/src/auth/session.rs#auth::session::Session::new
 anchors:
 - sym:tests/fixtures/repos/gate0/src/auth/session.rs#auth::session::Session::new@ed2cbc7d0342c315
+map_version: '2'
 ---
 # Session::new
 
-Takes an owned token String and returns a Session with issued set to store::now() at construction time. Reads the clock but has no other side effects.
+Builds a Session from a token string and stamps issued with store::now().
+
+## Behaviour
+
+- "abc" -> Session with token "abc" and issued = store::now()
+- takes ownership of the String; no validation of token contents
+- issued is always the current time, never a caller-supplied value
+
+## Terms
+
+create session, constructor, issue session, stamp time
 
 ## Connections
 

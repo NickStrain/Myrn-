@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/mcp.rs#cmd::mcp::run
 anchors:
 - sym:crates/myrn/src/cmd/mcp.rs#cmd::mcp::run@0b8126644f6ac717
+map_version: '2'
 ---
 # mcp::run
 
-Takes `&Ctx`, calls `ctx.engine()?` to build the engine, then blocks in `myrn_mcp::serve(engine)` for the stdio session; any error from engine construction or serving propagates via `?`, and it returns `ExitCode::SUCCESS` only after `serve` returns Ok. No side effects beyond what `ctx.engine()` and `serve` perform.
+Builds the engine from the command context, starts the MCP server on stdio with it, and returns success once serve returns.
+
+## Behaviour
+
+- ctx.engine() fails -> the error is returned via `?` and serve is never called
+- myrn_mcp::serve(engine) returns Err -> the error propagates as Err and ExitCode::SUCCESS is not returned
+- serve returns Ok -> returns Ok(ExitCode::SUCCESS)
+
+## Terms
+
+mcp subcommand, stdio server, model context protocol, start server, serve, entry point, exit code
 
 ## Connections
 

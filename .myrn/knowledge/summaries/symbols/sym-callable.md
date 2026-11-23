@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Sym::callable
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Sym::callable@678d80abae931bb3
+map_version: '2'
 ---
 # Sym::callable
 
-True for non-test function, method, class or struct symbols, the only kinds that can be call targets.
+Reports whether the symbol can be the target of a call: not a test and kind is function, method, class or struct.
+
+## Behaviour
+
+- kind 'function' and not a test -> true
+- kind 'test' -> false
+- any other kind -> false
+
+## Terms
+
+callable, call target, invocable, function or method, non-test
 
 ## Connections
 

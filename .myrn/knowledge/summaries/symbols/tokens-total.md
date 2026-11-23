@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:bench/src/metrics.rs#metrics::Tokens::total
 anchors:
 - sym:bench/src/metrics.rs#metrics::Tokens::total@7932990a57c6d282
+map_version: '2'
 ---
 # Tokens::total
 
-Returns the sum of all four token counters, including injected context and cache reads.
+Returns the sum of all four token counts, including cached context that was re-read.
+
+## Behaviour
+
+- All zero -> 0
+- cache_read and cache_creation are added, not excluded
+
+## Terms
+
+total tokens, sum, context tokens, overall usage
 
 ## Connections
 

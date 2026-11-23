@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/notes/layout.rs#notes::layout::make_id
 anchors:
 - sym:crates/myrn-store/src/notes/layout.rs#notes::layout::make_id@080da283cadfdbc8
+map_version: '2'
 ---
 # layout::make_id
 
-Builds an id of the form prefix-hex, where hex is the first len characters of the blake3 hash of the type and whitespace-normalized content (whitespace runs collapsed to single spaces, trimmed). len is clamped to 4 through 64, so smaller or larger values are adjusted. The same type and text always give the same id, and the type is part of the hash, so identical text under different types gets different ids.
+Builds an id of the form prefix-hash from the note type and content, using the first `len` hex digits of a blake3 hash. The content is whitespace-normalised before hashing, so equal knowledge gets the same id.
+
+## Behaviour
+
+- Runs of whitespace, including newlines, collapse to one space: "Refresh returns\n401" and "Refresh returns 401" give the same id
+- len below 4 is raised to 4; len above 64 is capped at 64; the result is always 4 to 64 hex digits
+- The type is hashed with the content, so the same text as fact and as decision gives different ids; root_cause uses the prefix rootcause
+
+## Terms
+
+content hash, deterministic id, stable id, dedupe key, fingerprint, hash length, whitespace normalisation
 
 ## Connections
 

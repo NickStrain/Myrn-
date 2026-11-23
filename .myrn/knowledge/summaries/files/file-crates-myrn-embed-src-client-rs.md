@@ -6,14 +6,16 @@ title: crates/myrn-embed/src/client.rs
 source: myrn summarize
 about: file:crates/myrn-embed/src/client.rs
 anchors:
-- file:crates/myrn-embed/src/client.rs@3c87d02b67d88caa
+- file:crates/myrn-embed/src/client.rs@e23de2c2af828c68
 ---
 # crates/myrn-embed/src/client.rs
 
-Client module used by the engine to talk to the myrn-embed helper; the source shown is only the module doc comment, which states that it falls back cleanly when the helper is unavailable. No types, functions, or implementation are present in the provided source, so the main parts cannot be confirmed from this excerpt.
+Client for asking for text embeddings: it sends texts to a local helper process over loopback TCP, starts that helper if it is not running, or falls back to loading the model in this process. Every failure returns None so callers can fall back to lexical search.
 
 ## Connections
 
 - **Location:** `crates/myrn-embed/src/client.rs`
 - **In:** [[dir-crates-myrn-embed-src]]
+- **Defines:** [[client-request]], [[client-embed]], [[client-start]], [[client-local]], [[client-local-client]]
+- **Imports:** [[file-crates-myrn-embed-src-helper-rs]]
 - **Imported by:** [[file-crates-myrn-embed-src-lib-rs]]

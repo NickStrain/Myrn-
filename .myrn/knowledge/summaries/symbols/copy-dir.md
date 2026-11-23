@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#copy_dir
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#copy_dir@cf8159461c045252
+map_version: '2'
 ---
 # copy_dir
 
-Recursively copies every entry under from into to, creating directories as needed. Panics on any IO error via unwrap.
+Recursively copies a directory tree from one path to another, creating directories as needed. Panics on any IO error.
+
+## Behaviour
+
+- from has a/b.txt -> to/a/b.txt is created with the same contents
+- empty from -> only the to directory is created
+- existing files in to are overwritten by std::fs::copy
+
+## Terms
+
+recursive copy, duplicate tree, mirror directory, clone files
 
 ## Connections
 

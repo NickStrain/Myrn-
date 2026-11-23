@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/id.rs#id::test_id
 anchors:
 - sym:crates/myrn-model/src/id.rs#id::test_id@2926a97da95b6013
+map_version: '2'
 ---
 # id::test_id
 
-Takes a path and qualified name and returns `test:<path>#<qname>`, using the same scheme as symbol_id but with a `test:` prefix.
+Builds a test node id from a file path and a qualified name, using the `test:` prefix instead of `sym:`.
+
+## Behaviour
+
+- ("tests/a.rs", "a::t") -> "test:tests/a.rs#a::t"
+- Same format as symbol_id, so only the prefix distinguishes a test from a symbol
+
+## Terms
+
+test node, test case id, unit test, test identifier
 
 ## Connections
 

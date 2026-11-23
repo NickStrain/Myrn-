@@ -221,7 +221,7 @@ pub fn tests_summary(tests: &[Link]) -> String {
 impl SymbolCard {
     /// The card injected into a prompt: short relation lists, tests as one
     /// line, commits only when asked for, and the code when it is short.
-    pub fn render_compact(&self, code: Option<&str>, with_commits: bool) -> String {
+    pub fn render_compact(&self, code: Option<&str>, with_commits: bool, with_tests: bool) -> String {
         let n = &self.node;
         let mut out = String::new();
         let _ = writeln!(
@@ -251,7 +251,9 @@ impl SymbolCard {
         if !self.called_by.is_empty() {
             list(&mut out, "called by", &self.called_by, 3);
         }
-        row(&mut out, "tests", &tests_summary(&self.tests));
+        if with_tests {
+            row(&mut out, "tests", &tests_summary(&self.tests));
+        }
         for (i, k) in self.known.iter().take(2).enumerate() {
             row(&mut out, if i == 0 { "known" } else { "" }, &k.line());
         }

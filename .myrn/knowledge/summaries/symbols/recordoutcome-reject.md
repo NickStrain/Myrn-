@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/mod.rs#distill::RecordOutcome::reject
 anchors:
 - sym:crates/myrn-engine/src/distill/mod.rs#distill::RecordOutcome::reject@0fff94561d3fd973
+map_version: '2'
 ---
 # RecordOutcome::reject
 
-Builds an unaccepted outcome with the given reasons as messages and empty ids, with updated set to false.
+Builds a rejected outcome from a list of reasons, with nothing stored.
+
+## Behaviour
+
+- reject(vec!["x"]) -> accepted false, messages ['x'], ids empty, updated false.
+- reject(vec![]) -> accepted false with no messages; no error is raised.
+- Does not touch the store; it only builds the value.
+
+## Terms
+
+rejection, refusal, failed check, validation failure, reject outcome
 
 ## Connections
 

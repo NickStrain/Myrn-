@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::tests::parse
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::tests::parse@1cc98cdd5e1090fd
+map_version: '2'
 ---
 # tests::parse
 
-Test helper: parses a source snippet with a fresh FileParser and unwraps.
+Test helper that parses a source string with a fresh FileParser and panics on error.
+
+## Behaviour
+
+- Takes the language, a fake path and the source text
+- The path matters: it sets the Rust module prefix and Python test-file detection
+- Returns a Parsed; any Err becomes a panic through unwrap
+
+## Terms
+
+test helper, fixture parse, parse fixture, unwrap, test input
 
 ## Connections
 

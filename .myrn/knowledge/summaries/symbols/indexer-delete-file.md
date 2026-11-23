@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/mod.rs#indexer::delete_file
 anchors:
 - sym:crates/myrn-engine/src/indexer/mod.rs#indexer::delete_file@2a0f0f0571ed9c54
+map_version: '2'
 ---
 # indexer::delete_file
 
-Removes all derived data for one path: its FTS entry, its non-module nodes, edges sourced from those nodes, refs, and its files row. Module nodes are kept. Callers must run this before persist when re-indexing a file.
+Removes a file's search entries, its non-module nodes, edges whose source is one of those nodes, its refs, and its files row.
+
+## Behaviour
+
+- module nodes are kept; gc_modules prunes them later
+- edges from other files pointing into this file are not removed here
+- refresh calls this before persist, so a re-parsed file starts clean
+
+## Terms
+
+remove, clean up, purge, drop file, forget file, cascade delete
 
 ## Connections
 

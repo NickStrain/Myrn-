@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::tests::ctx
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::tests::ctx@234c17d2fdb6a41c
+map_version: '2'
 ---
 # tests::ctx
 
-Test helper that builds an InstallCtx for a root with the binary path '/opt/my rn/myrn', which exercises quoting because the path contains a space.
+Test helper that builds an InstallCtx with the given repo root, the binary path '/opt/my rn/myrn' (contains a space) and run_agent_cli set to false.
+
+## Behaviour
+
+- root given -> repo_root equals that root
+- binary is always '/opt/my rn/myrn'
+- run_agent_cli is always false
+
+## Terms
+
+test fixture, install context, spaced path, test setup
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/consent.rs#capture::consent::may_record
 anchors:
 - sym:crates/myrn-engine/src/capture/consent.rs#capture::consent::may_record@d13f759bfbe4cdb3
+map_version: '2'
 ---
 # consent::may_record
 
-Takes &State and an agent name and returns true only if state.capture_consent is set and that agent's entry in state.agents exists with mode equal to "hooks"; returns false otherwise, with no side effects. Both conditions must hold, so an agent with any other mode is never recorded even when consent is given.
+Returns true only when recording consent has been given globally and the named agent is registered with mode "hooks".
+
+## Behaviour
+
+- state.capture_consent false -> false, regardless of agent
+- agent name not present in state.agents -> false (lookup yields None, is_some_and returns false)
+- consent true and agent mode "hooks" -> true; any other mode string such as "manual" -> false
+
+## Terms
+
+recording consent, capture permission, session logging gate, opt-in check, hooks mode, privacy gate
 
 ## Connections
 

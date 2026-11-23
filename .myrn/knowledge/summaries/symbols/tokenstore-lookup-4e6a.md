@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/web/src/store.ts#TokenStore.lookup
 anchors:
 - sym:tests/fixtures/repos/gate0/web/src/store.ts#TokenStore.lookup@61453401771def1a
+map_version: '2'
 ---
 # TokenStore::lookup
 
-Takes a token string and returns the matching stored string via linear find with strict equality, or undefined if absent; does not mutate state.
+Returns the stored token string that strictly equals the argument, or undefined if none matches.
+
+## Behaviour
+
+- lookup('x') with 'x' stored -> 'x'
+- lookup('X') when only 'x' stored -> undefined (case-sensitive)
+- empty store -> undefined
+
+## Terms
+
+find token, check token, validate token, token exists, token match
 
 ## Connections
 

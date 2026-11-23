@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/sync.rs#sync::walk::rec
 anchors:
 - sym:crates/myrn-store/src/sync.rs#sync::walk::rec@ce70f5022c34a8a1
+map_version: '2'
 ---
 # walk::rec
 
-Recursive directory visitor used by walk; silently skips unreadable directories and entries whose metadata cannot be read.
+Recursive helper of walk that visits one directory and pushes a Found for each .md file in it and its subdirectories.
+
+## Behaviour
+
+- entries whose metadata cannot be read are skipped
+- rel is empty at the root and grows with '/' separators for subdirectories
+- a file that ends in '.md' is pushed; other files are ignored
+
+## Terms
+
+recursion, directory walk, helper, subfolder scan
 
 ## Connections
 

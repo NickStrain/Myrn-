@@ -6,11 +6,11 @@ title: crates/myrn-engine/src/retrieve/
 source: myrn summarize
 about: module:crates/myrn-engine/src/retrieve
 anchors:
-- module:crates/myrn-engine/src/retrieve@454b21a5c23fd5ce
+- module:crates/myrn-engine/src/retrieve@d064837d9887aa21
 ---
 # crates/myrn-engine/src/retrieve/
 
-Retrieval subsystem for the myrn engine, built as seeded, typed graph traversal rather than plain similarity search. mod.rs only declares the submodules: seed (picks start nodes from symbols, paths, path:line locations, or full-text matches), walks (bounded BFS over incoming calls edges plus direct-member and test lookups), rank (one-hop expansion and scoring with a MIN_SCORE gate of 3.0), and recall (bug lookup by normalized error signature, rendered into a token-budgeted block).
+Retrieval subsystem of the myrn engine: finds relevant code and known-bug records by seeding a graph from a task or error text, then walking typed edges (calls, tests, notes, bugs) rather than relying on plain similarity search. Flow is seed.rs (pick starting nodes) → walks.rs (graph traversal helpers) → rank.rs (one-hop expansion and ordering), with recall.rs providing known-bug lookup from error text; mod.rs only declares these four submodules.
 
 ## Connections
 

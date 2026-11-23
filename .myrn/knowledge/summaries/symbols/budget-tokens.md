@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/pack/budget.rs#pack::budget::tokens
 anchors:
 - sym:crates/myrn-engine/src/pack/budget.rs#pack::budget::tokens@9a11f2b97802b5e5
+map_version: '2'
 ---
 # budget::tokens
 
-Returns the approximate token count of s as its character count divided by 4, rounded up. It counts chars, not bytes, so an empty string is 0 and 1 to 4 chars is 1.
+Estimates the token count of a string as its Unicode character count divided by four, rounded up.
+
+## Behaviour
+
+- empty string -> 0
+- abcd (4 chars) -> 1; abcde (5 chars) -> 2
+- counts chars, not bytes: 4 multibyte chars -> 1
+
+## Terms
+
+size estimate, character count, approximate length, ceiling division, rounds up, chars per token
 
 ## Connections
 

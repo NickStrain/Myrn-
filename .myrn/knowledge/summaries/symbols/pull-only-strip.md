@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/pull_only.rs#pull_only::strip
 anchors:
 - sym:crates/myrn-adapters/src/pull_only.rs#pull_only::strip@554f402f2d7b2b28
+map_version: '2'
 ---
 # pull_only::strip
 
-Returns the text with the first START...END span removed, along with one newline after END and any trailing newlines before START, joining the remaining parts with a blank line; returns the input unchanged if either marker is missing or END comes before START. Only the first block is removed, and whitespace other than newlines before START is not trimmed, so a whitespace-only prefix survives as non-empty.
+Private helper that returns the text with the first marker block and one newline after its END marker removed. It trims trailing newlines from the text before the block so no extra blank lines are left.
+
+## Behaviour
+
+- block at end with text before -> text before, then one newline
+- block in the middle -> text before, blank line, text after
+- END before START, or either marker missing -> input returned unchanged
+
+## Terms
+
+remove block, trim block, blank line, marker removal, text without block, strip markers
 
 ## Connections
 

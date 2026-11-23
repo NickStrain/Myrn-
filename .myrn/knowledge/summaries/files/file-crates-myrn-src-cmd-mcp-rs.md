@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/src/cmd/mcp.rs
 
-Implements the `myrn mcp` CLI subcommand, which starts the MCP server over stdio. Its only item is `run`, which builds the engine from the shared `Ctx` and hands it to `myrn_mcp::serve`.
+Defines the `myrn mcp` subcommand, which starts the MCP (Model Context Protocol) server over stdio. It builds the engine from the shared command context and hands it to the `myrn_mcp` crate's serve function.
 
 ## Connections
 

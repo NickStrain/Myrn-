@@ -2,6 +2,7 @@
 //! Row ids match `nodes.rowid`, so a node's entry can be removed cheaply.
 
 use anyhow::Result;
+use rusqlite::OptionalExtension;
 use rusqlite::{params, Connection};
 
 /// Split identifiers into lowercase words: `TokenStore::lookup_by_id` -> token store lookup by id.
@@ -96,12 +97,27 @@ pub fn query_summaries(conn: &Connection, terms: &[String], limit: usize) -> Res
     if terms.is_empty() {
         return Ok(Vec::new());
     }
+    // Columns: id (unindexed), summary text, behaviour, terms. The terms are
+    // the words people use for the code, so they weigh most.
     let mut stmt = conn.prepare(
         "SELECT id FROM summary_search WHERE summary_search MATCH ?1
-         ORDER BY bm25(summary_search) LIMIT ?2",
+         ORDER BY bm25(summary_search, 0.0, 1.0, 1.5, 3.0) LIMIT ?2",
     )?;
     let rows = stmt.query_map(params![terms.join(" OR "), limit as i64], |r| r.get(0))?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// The behaviour and terms text of a node's code-map note, lowercased, or
+/// empty when it has none.
+pub fn summary_details(conn: &Connection, id: &str) -> Result<String> {
+    let text: Option<String> = conn
+        .query_row(
+            "SELECT behaviour || ' ' || terms FROM summary_search WHERE id = ?1 LIMIT 1",
+            [id],
+            |r| r.get(0),
+        )
+        .optional()?;
+    Ok(text.unwrap_or_default().to_lowercase())
 }
 
 #[cfg(test)]

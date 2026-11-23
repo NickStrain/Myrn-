@@ -7,14 +7,25 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/review.rs#review::Engine::excerpt
 anchors:
 - sym:crates/myrn-engine/src/review.rs#review::Engine::excerpt@b8529ff9acd9e76c
+map_version: '2'
 ---
 # Engine::excerpt
 
-Returns the node's source text read from disk under the engine root, or an empty string if the node has no path or the file cannot be read. Non-file nodes use their start and end lines, file nodes use the first 40 lines, and the result is capped at 40 lines with a trailing ellipsis only for non-file nodes that run past the cap.
+Reads the node's file and returns the lines of its span, capped at 40, with an ellipsis line appended when a symbol's span is cut short.
+
+## Behaviour
+
+- node with no path, or unreadable file -> empty string
+- symbol or test with start and end lines -> that line range, with start clamped to at least line 1
+- span longer than 40 lines -> first 40 lines plus an ellipsis line; file nodes get the first 40 lines and never an ellipsis
+
+## Terms
+
+code snippet, source excerpt, line range, truncation, span, code preview, line cap
 
 ## Connections
 
-- **Location:** `crates/myrn-engine/src/review.rs:143-164`
+- **Location:** `crates/myrn-engine/src/review.rs:147-168`
 - **Signature:** `fn excerpt(&self, n: &Node) -> String`
 - **In:** [[file-crates-myrn-engine-src-review-rs]]
 - **Calls:** [[engine-root]]

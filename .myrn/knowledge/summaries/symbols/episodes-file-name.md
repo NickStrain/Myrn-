@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/episodes.rs#episodes::file_name
 anchors:
 - sym:crates/myrn-store/src/episodes.rs#episodes::file_name@eab94b1f74a99654
+map_version: '2'
 ---
 # episodes::file_name
 
-Maps a session id to a safe filename by replacing any character outside ASCII alphanumerics, '-' and '_' with '_', truncating to 128 chars, and returning 'unknown.jsonl' for empty input. Pure function with no I/O; this is what stops agent-supplied ids from escaping the directory.
+Turns a session id into a safe '<id>.jsonl' filename by replacing characters outside ASCII letters, digits, '-' and '_' with '_', and truncating to 128 characters.
+
+## Behaviour
+
+- '../../etc/passwd' -> '______etc_passwd.jsonl' (path traversal blocked)
+- '' -> 'unknown.jsonl'
+- 'abc-123_x' -> 'abc-123_x.jsonl' (unchanged)
+
+## Terms
+
+sanitize, session id, path traversal, filename, slug, escape, truncate
 
 ## Connections
 

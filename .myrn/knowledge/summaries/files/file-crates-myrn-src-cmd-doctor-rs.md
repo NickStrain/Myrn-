@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/src/cmd/doctor.rs
 
-Implements the `myrn doctor` subcommand. It combines engine diagnostics with per-agent adapter checks, prints them as a text table, and sets the exit code from whether any check failed. Its two functions are run (entry point, rendering, exit code) and agent_checks (agent, recording, injection, and hook-latency checks).
+myrn `doctor` subcommand. `run` is the entry point: it merges the engine's diagnostics with per-agent checks, prints them, and sets the exit code. `agent_checks` builds the agent, recording, injection and hook-latency rows from the engine state.
 
 ## Connections
 

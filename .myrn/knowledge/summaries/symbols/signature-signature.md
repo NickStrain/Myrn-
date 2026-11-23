@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/signature.rs#distill::signature::Signature
 anchors:
 - sym:crates/myrn-engine/src/distill/signature.rs#distill::signature::Signature@20689d35c8349679
+map_version: '2'
 ---
 # signature::Signature
 
-Struct with `kind` (error class such as TypeError, E0308, TS2345, panic, or error) and a scrubbed `message`; derives Serialize, Eq, and Hash-free equality, and is what gets stored and compared.
+Holds a normalized error as a kind and a scrubbed message. Derives Debug, Clone, PartialEq, Eq and Serialize.
+
+## Behaviour
+
+- kind 'E0308' and message 'mismatched types' -> two fields, serialized as JSON keys kind and message
+- equality compares both fields exactly, case-sensitive
+- empty message is allowed; text() then returns only the kind
+
+## Terms
+
+error key, failure fingerprint, error kind, error message, normalized error, error record
 
 ## Connections
 

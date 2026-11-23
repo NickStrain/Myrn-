@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/disconnect.rs#cmd::disconnect::run
 anchors:
 - sym:crates/myrn/src/cmd/disconnect.rs#cmd::disconnect::run@808e143771f46985
+map_version: '2'
 ---
 # disconnect::run
 
-Takes the context and a list of agent names (an empty list means every agent in state) and runs each matching adapter's uninstall with the creation records saved in state, printing each change and removing the agent from state; unknown names are printed and skipped, and capture consent is cleared only when no agent remains in hooks mode. An error from uninstall returns early via ? before save_state, so agents already processed in that call are not persisted as removed.
+Uninstalls the named agents, or all agents in state if none are given, through their adapters, prints each change, removes them from state, and saves state.
+
+## Behaviour
+
+- no agents given and state has none -> prints 'No agents are connected.' and returns success without saving
+- unknown name -> prints 'unknown agent `name`', skips it, and leaves its state entry untouched
+- an adapter uninstall error -> returns Err before save_state, so no state changes are written
+
+## Terms
+
+disconnect, uninstall, remove hooks, unregister MCP, agent state, capture consent, consent reset, instruction lines
 
 ## Connections
 

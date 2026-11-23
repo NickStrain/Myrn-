@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/web/src/store.ts#TokenStore
 anchors:
 - sym:tests/fixtures/repos/gate0/web/src/store.ts#TokenStore@a1555e7cf80590f9
+map_version: '2'
 ---
 # TokenStore
 
-Class holding issued tokens in a private string array; the only state is the tokens list, which lives only in process memory and is not persisted.
+In-memory store holding issued tokens as a private string array, exposing lookup and insert.
+
+## Behaviour
+
+- insert('abc') then lookup('abc') -> 'abc'
+- lookup on a token never inserted -> undefined
+- duplicate inserts are kept; the array is not deduplicated
+
+## Terms
+
+token store, issued tokens, token list, token registry, session token
 
 ## Connections
 

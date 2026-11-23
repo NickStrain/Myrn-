@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/metrics.rs#metrics::mean
 anchors:
 - sym:bench/src/metrics.rs#metrics::mean@e53d2c2264312973
+map_version: '2'
 ---
 # metrics::mean
 
-Arithmetic mean of a slice of f64; returns None for an empty slice.
+Returns the arithmetic mean of a slice of f64.
+
+## Behaviour
+
+- [1.0, 2.0, 3.0] -> Some(2.0)
+- [] -> None
+- [5.0] -> Some(5.0)
+
+## Terms
+
+average, arithmetic mean, sample average
 
 ## Connections
 

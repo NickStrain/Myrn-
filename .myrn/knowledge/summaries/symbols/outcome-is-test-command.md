@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/outcome.rs#capture::outcome::is_test_command
 anchors:
 - sym:crates/myrn-engine/src/capture/outcome.rs#capture::outcome::is_test_command@19939fdbe6faeeef
+map_version: '2'
 ---
 # outcome::is_test_command
 
-Splits the command on & ; | newline and ( into segments, drops leading VAR=value words, then checks whether the remaining words start with any entry in RUNNERS on whole-word boundaries, so cargo testify does not match. It does not parse quotes, so a separator inside a quoted string still splits the segment.
+Returns true if any segment of a shell command, split on & ; | newline and (, starts with one of the RUNNERS word sequences such as cargo test, pytest or npm test.
+
+## Behaviour
+
+- 'cd crates/x && cargo test' -> true (the segment after && is checked)
+- 'RUST_BACKTRACE=1 cargo nextest run' -> true (leading KEY=value words are skipped); '--x=1 cargo test' -> false (words starting with '-' are not skipped)
+- 'cargo testify', 'cat pytest.ini', 'echo npm', 'git commit -m \'cargo test passes\'' -> false (whole-word match on the leading words only; quotes are not parsed)
+
+## Terms
+
+test run, test runner, runner invocation, test detection, command chaining, env assignment prefix, pass fail source, test command
 
 ## Connections
 

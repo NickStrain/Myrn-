@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/node.rs#node::Origin::as_str
 anchors:
 - sym:crates/myrn-model/src/node.rs#node::Origin::as_str@a522257c3f0744f2
+map_version: '2'
 ---
 # Origin::as_str
 
-Returns "derived" or "earned" as a static str.
+Returns "derived" or "earned" as a static string for the origin.
+
+## Behaviour
+
+- Derived -> "derived"
+- Earned -> "earned"
+- Exhaustive match with no fallback
+
+## Terms
+
+label, string name, text form, serialized value
 
 ## Connections
 

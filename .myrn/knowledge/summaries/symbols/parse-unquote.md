@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::unquote
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::unquote@827cffed0f5b5e37
+map_version: '2'
 ---
 # parse::unquote
 
-Strips a string literal's quotes (single, double, triple, or backtick) and any leading Python prefix (r, b, f, u in any case) when present; returns the input unchanged otherwise.
+Strips one layer of surrounding quotes (triple, single, double or backtick) and any Python string prefix such as r, b, f or u.
+
+## Behaviour
+
+- A double-quoted ./store gives ./store; r'raw' gives raw; f triple-quoted doc gives doc
+- refresh with no quotes is returned unchanged; an empty double-quoted string gives an empty result
+- A prefix is removed only when a quote follows it; unmatched quote characters are returned unchanged
+
+## Terms
+
+strip quotes, string literal, string prefix, quoted text, module path string
 
 ## Connections
 

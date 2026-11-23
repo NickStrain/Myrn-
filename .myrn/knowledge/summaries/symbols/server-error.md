@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/server.rs#server::error
 anchors:
 - sym:crates/myrn-mcp/src/server.rs#server::error@d9e3b4c27c18d6f9
+map_version: '2'
 ---
 # server::error
 
-Builds a JSON-RPC 2.0 error response object with the given id, numeric code and message.
+Builds a JSON-RPC 2.0 error response object from the given id, numeric code and message.
+
+## Behaviour
+
+- error(Value::Null, -32700, msg) -> id null, used for parse errors
+- id is copied as given with no validation
+- code is passed through as i64 with no range check
+
+## Terms
+
+error envelope, error response, JSON-RPC error, error object, error code, error builder
 
 ## Connections
 

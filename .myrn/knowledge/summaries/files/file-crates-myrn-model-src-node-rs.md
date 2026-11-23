@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-model/src/node.rs
 
-Defines the node taxonomy for the code map: the Origin enum (derived vs earned) and NodeType enum with its 12 variants, plus string conversion, parsing, and origin classification helpers. Includes a round-trip test covering all variants.
+Defines the node kinds for the code map: the Origin enum (derived or earned), the 12-variant NodeType enum, their snake_case string names, string parsing, and the mapping from each type to its origin. Includes a round-trip unit test that checks every type parses back from its name and that Bug is earned.
 
 ## Connections
 

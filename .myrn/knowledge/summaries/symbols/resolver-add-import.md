@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::add_import
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::add_import@055265b6023848e7
+map_version: '2'
 ---
 # Resolver::add_import
 
-Records one import (spec, optional alias, scope) and returns the target file if it is in the repository. A named import that cannot be resolved gets an external binding so later calls through it are not guessed, and `*` aliases become whole-file namespace bindings.
+Records one import in the import graph and bindings, and returns the imported repository file if one was found.
+
+## Behaviour
+
+- file extension not supported -> None, nothing recorded
+- unresolved spec with an alias not '*' -> records an external binding and returns None
+- 'import * as R' (glob with alias) -> binds R to the whole target file
+
+## Terms
+
+import recording, alias, wildcard import, namespace import, external import, import graph
 
 ## Connections
 

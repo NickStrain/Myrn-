@@ -6,11 +6,11 @@ title: crates/myrn-engine/src/pack/log.rs
 source: myrn summarize
 about: file:crates/myrn-engine/src/pack/log.rs
 anchors:
-- file:crates/myrn-engine/src/pack/log.rs@cf0a84899b3807bb
+- file:crates/myrn-engine/src/pack/log.rs@086d6bb964627454
 ---
 # crates/myrn-engine/src/pack/log.rs
 
-Records which notes were injected into a session so that later usage and outcomes can be attributed to them. Contains a single function, `record`, which writes the injection rows to the `usage` table.
+Records which note IDs were injected into a session by inserting one usage row per ID into the usage table, copying each note's current status from the nodes table. Single public function, record.
 
 ## Connections
 

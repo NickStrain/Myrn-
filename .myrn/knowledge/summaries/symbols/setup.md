@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#setup
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#setup@fa565b82c7e6c539
+map_version: '2'
 ---
 # setup
 
-Creates a fresh tempdir, copies the fixture into repo/, commits it with message 'Add token store and session refresh', and calls Engine::init(root, Some(home)). Asserts the init report has no errors. Each test calls this for an isolated engine, and the tempdir is deleted when the returned Fixture is dropped.
+Creates a temp dir, copies the gate0 fixture into it as repo, commits it with the message 'Add token store and session refresh', and initialises an Engine with a separate home dir.
+
+## Behaviour
+
+- each call -> a fresh temp directory, so tests do not share state
+- Engine::init report with any errors -> assertion failure with the error list
+- returns a Fixture whose root is the committed repo
+
+## Terms
+
+test setup, temp repo, init engine, fresh index, test fixture
 
 ## Connections
 

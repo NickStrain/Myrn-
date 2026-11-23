@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/relation.rs#relation::Relation::as_str
 anchors:
 - sym:crates/myrn-model/src/relation.rs#relation::Relation::as_str@b60da0812fa42da9
+map_version: '2'
 ---
 # Relation::as_str
 
-Returns the canonical snake_case string for a variant (e.g. Calls to "calls", ImplementedBy to "implemented_by"); this match must be kept in sync with the enum and the ALL array, since parse depends on it.
+Returns the snake_case name of a variant as a static string, consuming the value (Relation is Copy). Used as the stored and serialized form.
+
+## Behaviour
+
+- Relation::PartOf -> part_of
+- Relation::Related -> related
+- Returns &'static str, so no allocation is made
+
+## Terms
+
+name string, string form, text form, wire name, label, serialize, to string
 
 ## Connections
 

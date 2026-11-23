@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/episode.rs#capture::episode::persist
 anchors:
 - sym:crates/myrn-engine/src/capture/episode.rs#capture::episode::persist@31cc18c5e51431f9
+map_version: '2'
 ---
 # episode::persist
 
-Upserts the episode node (id from episode_id(session), origin 'earned', title from the first line of the task clipped to 100 chars, status from outcome, full JSON in extra), then deletes this episode's existing 'touches' edges and reinserts them. Symbols are linked only if they exist in the graph; an edited file is linked directly only if no touched symbol belongs to it and its file node exists. 'produced' edges are not modified.
+Upserts the episode node with its status and summary, then replaces its touches edges with edges to symbols and edited files that exist in the graph.
+
+## Behaviour
+
+- title is the first line of the task clipped to 100 chars; no task -> title is null
+- symbol touches are created only if the symbol node exists; files edited with no changed symbol get a file touch if the file node exists; read-only files get no edge
+- an edited file that contains a touched symbol gets no file edge, only the symbol edge; produced edges are left alone
+
+## Terms
+
+graph write, store, save, sync, upsert, link files, edges
 
 ## Connections
 

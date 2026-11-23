@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-adapters/src/pull_only.rs
 
-Manages one marked block in an agent instruction file that tells the agent to call the myrn MCP `context` tool first, with START/END markers and the TEXT body. Public entry points are add (creates or refreshes the block, returns true if the file was created), remove (strips the block and optionally deletes an emptied file it created, returns true if anything changed), and has_block; add and remove leave all other content untouched.
+Pull-only mode for myrn: adds, detects, and removes one marked block (START/END comment markers around the fixed TEXT) in an agent instruction file such as AGENTS.md or CLAUDE.md, telling the agent to call the `context` MCP tool first. Only the marked block is read or changed, and the rest of the file is kept as is.
 
 ## Connections
 

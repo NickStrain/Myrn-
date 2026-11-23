@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/indexer/mod.rs
 
-Builds the derived code and Git-history graph from the working tree. It exposes refresh, which re-parses only files whose content changed, plus helpers for parsing, persisting, deleting, and garbage-collecting module nodes.
+Indexer entry point that turns the working tree and Git history into SQLite graph nodes, edges and file rows without a model, re-parsing only files whose content changed. It holds the IndexReport struct, refresh (walk, diff, parse, one transaction, resolve, Git history), and the helpers parse_all, delete_file, persist and gc_modules.
 
 ## Connections
 

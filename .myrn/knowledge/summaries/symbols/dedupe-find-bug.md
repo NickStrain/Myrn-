@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/dedupe.rs#distill::dedupe::find_bug
 anchors:
 - sym:crates/myrn-engine/src/distill/dedupe.rs#distill::dedupe::find_bug@f0f09463ea9dce97
+map_version: '2'
 ---
 # dedupe::find_bug
 
-Scans all bug notes (shared first, then by path), skips those without a signature, keeps those with similarity >= 0.75, and drops any whose non-empty symbol set is disjoint from the caller's non-empty symbols; returns the highest-similarity match, with ties going to the earlier row. Read-only.
+Finds the stored bug notes whose signature is at least SAME_BUG (0.75) similar to the given signature and whose code overlaps the given symbols, and returns the most similar one.
+
+## Behaviour
+
+- similarity 0.75 -> accepted; 0.74 -> rejected
+- either side with no symbols -> code check skipped and signature alone decides
+- both sides have symbols but none in common -> rejected even with an identical signature
+
+## Terms
+
+duplicate bug, same error, signature match, code overlap, fuzzy match, best match
 
 ## Connections
 

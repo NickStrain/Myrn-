@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/paths.rs#paths::Layout::new
 anchors:
 - sym:crates/myrn-store/src/paths.rs#paths::Layout::new@fa1792481333d4af
+map_version: '2'
 ---
 # Layout::new
 
-Builds a Layout from the repo root, data home, project id, and optional worktree key. data_dir is data_home/projects/<id>, and db_path is memory.db there, or under worktrees/<key>/ for linked worktrees. This is pure path computation with no filesystem access.
+Builds a Layout from the repo root, data home, project id, and optional worktree key by joining paths. It does no filesystem I/O and no validation.
+
+## Behaviour
+
+- worktree Some("wt1") -> db_path = <data_home>/projects/<id>/worktrees/wt1/memory.db
+- worktree None -> db_path = <data_home>/projects/<id>/memory.db
+- repo_dir = <repo_root>/.myrn; project_id and worktree key are not sanitised
+
+## Terms
+
+layout constructor, worktree database, memory db path, project id, linked worktree, path construction
 
 ## Connections
 

@@ -7,10 +7,19 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/api.rs#api::Explained
 anchors:
 - sym:crates/myrn-engine/src/api.rs#api::Explained@24fa2d0485b8ffba
+map_version: '2'
 ---
 # api::Explained
 
-Symbol card or file card returned by explain, tagged by type.
+Either a symbol card or a file card, as returned by explain. Serialised with a type tag.
+
+## Behaviour
+
+- Serialised type values are symbol and file
+
+## Terms
+
+card, explanation, symbol or file, summary card
 
 ## Connections
 

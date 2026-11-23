@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::Codex::format
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::Codex::format@04754051f4ce017e
+map_version: '2'
 ---
 # Codex::format
 
-Produces the hook output JSON for a given event. Stop returns a block decision with the context as the reason, which makes the agent take one more step. SessionStart, UserPromptSubmit, and PostToolUse return hookSpecificOutput with additionalContext. Empty context or any other event returns an empty string, and the context is clipped.
+Builds the stdout JSON for a hook from its context: a block decision with reason for Stop, or hookSpecificOutput additionalContext for SessionStart, UserPromptSubmit and PostToolUse.
+
+## Behaviour
+
+- blank context -> empty string
+- Stop with context -> a decision of block with the clipped context as reason
+- other events such as SessionEnd -> empty string
+
+## Terms
+
+hook output, stdout json, additional context, block decision, hook reply
 
 ## Connections
 

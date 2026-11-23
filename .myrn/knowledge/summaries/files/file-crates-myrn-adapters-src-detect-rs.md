@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-adapters/src/detect.rs
 
-Locates installed agents by checking for a directory or binary. It provides home(), which reads the user's home directory from the environment, and which(), which searches PATH for an existing file by name.
+Helpers for locating installed agents. home() returns the user's home directory from environment variables, and which() finds an executable by name by searching the PATH entries, with PATHEXT suffixes on Windows.
 
 ## Connections
 

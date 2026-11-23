@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/git.rs#indexer::git::index_history
 anchors:
 - sym:crates/myrn-engine/src/indexer/git.rs#indexer::git::index_history@978e12c666c77996
+map_version: '2'
 ---
 # git::index_history
 
-Discovers the repo from root and indexes up to depth commits from HEAD, newest first by time, skipping any commit already in the graph and stopping at the first one found there. Returns the number added, or 0 without error if the repo is missing, HEAD is unborn, or meta 'git_head' already equals HEAD; 'git_head' is only updated in the same transaction after all commits are indexed.
+Walks up to `depth` commits from HEAD newest-first, indexes each unindexed one in a single transaction, and records HEAD in meta key git_head; returns how many commits were added.
+
+## Behaviour
+
+- root not inside a git repo, or no HEAD -> Ok(0) without touching the DB
+- meta git_head equals current HEAD -> Ok(0), no walk
+- walk stops at the first commit whose node already exists, so older history is not re-scanned
+
+## Terms
+
+backfill, sync git history, history import, incremental indexing, commit walk, catch up history
 
 ## Connections
 

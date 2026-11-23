@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::resolve
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::resolve@355bc3a023517900
+map_version: '2'
 ---
 # Resolver::resolve
 
-Entry point for one raw reference: dispatches on its kind (unknown kinds count as call) to resolve_bare, resolve_path or resolve_method, then removes duplicate targets.
+Resolves one raw reference from the source symbol into target indexes with edge status, dispatching on reference kind and removing duplicate targets.
+
+## Behaviour
+
+- kind 'call' -> resolve_bare; 'path' -> resolve_path; 'method' -> resolve_method
+- unknown kind text -> treated as Call
+- same target found twice -> returned once
+
+## Terms
+
+reference resolution, call resolution, dispatch, deduplicate targets, edge status
 
 ## Connections
 

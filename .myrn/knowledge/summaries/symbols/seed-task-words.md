@@ -6,17 +6,28 @@ title: seed::task_words
 source: myrn summarize
 about: sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::task_words
 anchors:
-- sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::task_words@9b321f8ce965f541
+- sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::task_words@68823b03095fa5d4
+map_version: '2'
 ---
 # seed::task_words
 
-Extracts deduplicated search words from task text via `fts::split_identifier`, keeping words of at least 3 characters that are not stopwords and not all digits. Order of first occurrence is preserved.
+Extracts distinctive search words from a task description, dropping stopwords, all-digit words and repeats.
+
+## Behaviour
+
+- Fix the refresh token bug in the session -> [refresh, token, bug, session]
+- two-letter words count only when they appear inside backticks or code tokens, so `*.gz` keeps gz
+- one-letter words and two-letter words outside literals are dropped; repeats keep first position
+
+## Terms
+
+search words, keywords, stopwords, task terms, query words, tokens
 
 ## Connections
 
-- **Location:** `crates/myrn-engine/src/retrieve/seed.rs:136-147`
+- **Location:** `crates/myrn-engine/src/retrieve/seed.rs:140-156`
 - **Signature:** `pub fn task_words(task: &str) -> Vec<String>`
 - **In:** [[file-crates-myrn-engine-src-retrieve-seed-rs]]
-- **Calls:** [[fts-split-identifier]]
+- **Calls:** [[seed-backticked-spans]], [[seed-code-tokens]], [[fts-split-identifier]]
 - **Called by:** [[seed-seeds]]
-- **Tests:** `words_drop_noise`
+- **Tests:** `short_words_count_inside_literals`, `words_drop_noise`

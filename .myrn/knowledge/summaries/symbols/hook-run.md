@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/hook.rs#cmd::hook::run
 anchors:
 - sym:crates/myrn/src/cmd/hook.rs#cmd::hook::run@3bdd5f6f241ff22b
+map_version: '2'
 ---
 # hook::run
 
-Calls handle and always returns ExitCode::SUCCESS. It prints the returned text only if it is non-empty and sends any error to stderr as 'myrn hook: ...', so stdout stays empty on failure.
+Calls handle and prints its non-empty output to stdout. Any error from handle goes to stderr and the process still exits with SUCCESS.
+
+## Behaviour
+
+- handle returns non-empty text -> printed with a trailing newline
+- handle returns empty string -> nothing printed
+- handle returns Err -> "myrn hook: <error chain>" on stderr, exit code 0
+
+## Terms
+
+exit code, error swallowing, stdout print, fail open, silent failure, never block agent
 
 ## Connections
 

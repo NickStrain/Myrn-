@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::classify_python
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::classify_python@38d6aee596899b5e
+map_version: '2'
 ---
 # Walker::classify_python
 
-Maps Python defs and classes, call refs (identifier or attribute), and import and from-import statements to records; a `test*` function is a test only in test files or in a class whose name starts with `Test`.
+Maps Python def and class nodes to defs, calls to references, and import statements to Import records. Import nodes return Skip after recording, and comments and strings are skipped.
+
+## Behaviour
+
+- In a file named test_session.py, a module-level def test_refresh is is_test; the same name in app.py is not
+- A method in class TestAuth is is_test only if its own name starts with test
+- import os.path gives spec 'os.path' alias 'os.path'; from .m import a as b gives spec '.m.a' alias 'b'
+
+## Terms
+
+Python classification, pytest test, class method, import statement, from import, module import
 
 ## Connections
 

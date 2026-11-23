@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/src/cmd/summarize.rs
 
-CLI handler for `myrn summarize`, which writes the project map of summary notes (project, directories, files, functions and types) into the Obsidian vault. It merges command-line flags with the `summarize` config, calls the engine, and prints either a dry-run staleness count or a full report. Progress lines go to stderr unless JSON output is requested.
+Implements the myrn summarize command, which writes the project map of summary notes for the project, its directories, files and functions, and asks the model only about code that changed. It builds the engine options from the CLI flags and config, prints a text or JSON report, and sets the exit code from the failure list.
 
 ## Connections
 

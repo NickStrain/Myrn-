@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/metrics.rs#metrics::answer_ok
 anchors:
 - sym:bench/src/metrics.rs#metrics::answer_ok@8d18bc3dc90f9d81
+map_version: '2'
 ---
 # metrics::answer_ok
 
-Returns true only if every expected string appears in the answer, compared case-insensitively.
+Checks that every expected string appears in the answer as a case-insensitive substring.
+
+## Behaviour
+
+- answer 'It is BinaryDetection::quit', expected ['quit', 'binarydetection'] -> true
+- answer 'quit', expected ['convert'] -> false
+- Empty expected list -> true (all over nothing)
+
+## Terms
+
+answer check, grading, expected strings, case-insensitive match, substring match, correctness
 
 ## Connections
 

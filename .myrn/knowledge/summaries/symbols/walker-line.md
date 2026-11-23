@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::line
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::line@6fc6ed7b85c9cb60
+map_version: '2'
 ---
 # Walker::line
 
-Returns the 1-based start line of a node.
+Gives the 1-based line number where a node starts.
+
+## Behaviour
+
+- Node on the first row of the file -> 1
+- Node starting on 0-based row 9 -> 10
+- Used for start_line on defs and for the line stored on refs and imports
+
+## Terms
+
+line number, start line, row, position, source line
 
 ## Connections
 

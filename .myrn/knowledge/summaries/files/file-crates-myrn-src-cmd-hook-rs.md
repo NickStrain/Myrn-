@@ -6,11 +6,11 @@ title: crates/myrn/src/cmd/hook.rs
 source: myrn summarize
 about: file:crates/myrn/src/cmd/hook.rs
 anchors:
-- file:crates/myrn/src/cmd/hook.rs@3526fe931a425d37
+- file:crates/myrn/src/cmd/hook.rs@9b6232a4a22d2af1
 ---
 # crates/myrn/src/cmd/hook.rs
 
-Implements the 'myrn hook <agent> <event>' subcommand that agent hook scripts call. It reads the agent's event payload from stdin, maps it through the agent adapter, writes any context to inject on stdout, records the event, and saves hook timing; it holds the never-fail contract, the 4 MiB stdin cap (MAX_PAYLOAD), and the entry points run and handle.
+Entry point for `myrn hook <agent> <event>`, which agent hooks call with a JSON payload on stdin. Contains `run`, which prints the result and always exits 0, and `handle`, which translates the payload, injects or recalls context, records usage, outcome, and timing, and returns the adapter-formatted output.
 
 ## Connections
 

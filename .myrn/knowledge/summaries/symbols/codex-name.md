@@ -7,10 +7,19 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::Codex::name
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::Codex::name@9c55b2b38a47b107
+map_version: '2'
 ---
 # Codex::name
 
-Returns the adapter id 'codex'.
+Returns the static adapter id 'codex'.
+
+## Behaviour
+
+- always returns 'codex'
+
+## Terms
+
+adapter id, short name, identifier
 
 ## Connections
 

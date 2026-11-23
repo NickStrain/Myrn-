@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/server.rs#server::serve
 anchors:
 - sym:crates/myrn-mcp/src/server.rs#server::serve@385d91a4e6762fd5
+map_version: '2'
 ---
 # server::serve
 
-Takes ownership of the Engine and loops over stdin lines until EOF, skipping blank lines and writing each non-empty response as one line to stdout followed by a flush; read or write failures propagate as errors.
+Reads lines from stdin until EOF, skips blank lines, and writes each non-empty response to stdout as one JSON line, then flushes.
+
+## Behaviour
+
+- blank or whitespace-only line -> skipped, nothing written
+- handle_line returns None (notification or empty batch) -> nothing written
+- stdin closes -> Ok(()); a read or write io error -> returned as Err
+
+## Terms
+
+stdio loop, stdin reader, main loop, stdout writer, line reader, server loop
 
 ## Connections
 

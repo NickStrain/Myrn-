@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/src/cmd/disconnect.rs
 
-Implements the `myrn disconnect` subcommand, which removes the hooks, MCP registrations, and instruction lines that were installed for connected agents, and updates the saved engine state to match. Its only item is the `run` function.
+Implements the `myrn disconnect` command, which removes hooks, MCP registrations and instruction lines for the named agents, or for every agent in saved state when none are named. It also clears capture consent once no hook-mode agent remains and saves the updated state.
 
 ## Connections
 

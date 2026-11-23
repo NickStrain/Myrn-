@@ -6,14 +6,25 @@ title: runner::Tools
 source: myrn summarize
 about: sym:bench/src/runner.rs#runner::Tools
 anchors:
-- sym:bench/src/runner.rs#runner::Tools@45e86d35933d4603
+- sym:bench/src/runner.rs#runner::Tools@56998dc148490e98
+map_version: '2'
 ---
 # runner::Tools
 
-External settings for the run: the claude binary path, the myrn binary path, an optional model name, and the permission mode string passed to Claude Code.
+Settings shared by all runs: the claude and myrn binaries, the model, the permission mode, per-repo project maps, the shared store flag, and the embedding model directory.
+
+## Behaviour
+
+- model None -> the --model flag is omitted
+- shared_store true -> one myrn store per repo and condition, reused across runs
+- embeddings Some -> the model is copied in and semantic search is enabled
+
+## Terms
+
+binaries, executables, options, config, settings, permission mode, project map, embedding model
 
 ## Connections
 
-- **Location:** `bench/src/runner.rs:90-95`
+- **Location:** `bench/src/runner.rs:101-113`
 - **Signature:** `pub struct Tools`
 - **In:** [[file-bench-src-runner-rs]]

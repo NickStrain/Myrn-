@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/adapter.rs#adapter::read_json
 anchors:
 - sym:crates/myrn-adapters/src/adapter.rs#adapter::read_json@6e2d43a4718cb873
+map_version: '2'
 ---
 # adapter::read_json
 
-Reads a JSON file into a Value. A missing or blank file yields an empty object; invalid JSON returns an error that names the path.
+Reads a JSON object file and returns an empty object when the file is missing or blank.
+
+## Behaviour
+
+- Missing file -> {}
+- Blank or whitespace-only file -> {}
+- Invalid JSON -> Err naming the file path
+
+## Terms
+
+load json, config file, parse json, empty object, missing file
 
 ## Connections
 

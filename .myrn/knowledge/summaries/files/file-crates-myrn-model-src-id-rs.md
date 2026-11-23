@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-model/src/id.rs
 
-Builds the string identifiers for derived graph nodes (files, modules, symbols, tests, commits, episodes) and provides the parent-directory helper used to derive module ids. Ids are readable and deterministic from path and qualified name; a unit test at the bottom checks symbol, module, and parent_dir behavior.
+Builds the readable, stable string identifiers used for derived graph nodes (files, modules, symbols, tests, commits, episodes) and includes a helper that extracts a path's parent directory. Each id is a prefix plus the input, so the same code always gets the same id; a unit test at the bottom checks the symbol, root-module, and parent-directory cases.
 
 ## Connections
 

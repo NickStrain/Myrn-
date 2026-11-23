@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::sym
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::sym@7e6131f05c2e6593
+map_version: '2'
 ---
 # Resolver::sym
 
-Returns the Sym at the given index.
+Returns the symbol stored at the given position in the symbols list.
+
+## Behaviour
+
+- position from index_of -> that Sym
+- position past the end -> panics from indexing
+
+## Terms
+
+symbol lookup, get symbol, position access, symbol by index
 
 ## Connections
 

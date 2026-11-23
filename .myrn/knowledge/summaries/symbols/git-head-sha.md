@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/git.rs#indexer::git::head_sha
 anchors:
 - sym:crates/myrn-engine/src/indexer/git.rs#indexer::git::head_sha@5ab293dcbf16922e
+map_version: '2'
 ---
 # git::head_sha
 
-Returns the full SHA of the commit HEAD resolves to (peeling tags and refs), or None if HEAD is unborn or does not point to a commit.
+Returns the full SHA of the commit HEAD points to, peeling symbolic refs and tags to a commit.
+
+## Behaviour
+
+- checked-out branch with commits -> 40-char hex SHA of its tip
+- HEAD on an unborn branch or not resolvable to a commit -> None
+- any libgit2 error -> None, never an error
+
+## Terms
+
+HEAD, current commit, checked-out revision, tip sha, head revision, branch tip
 
 ## Connections
 

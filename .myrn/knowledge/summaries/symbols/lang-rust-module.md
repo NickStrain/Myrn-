@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::rust_module
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::rust_module@828da3a0f56447b4
+map_version: '2'
 ---
 # lang::rust_module
 
-Takes a repo-relative path to a Rust file and returns (crate directory, module segments). It uses the rightmost src, tests, examples or benches directory as the crate root, drops lib.rs, main.rs and mod.rs stems, and returns an empty module path for src/bin binaries. Files outside any root directory return their parent directory and an empty path.
+Splits a Rust file path into its crate directory and its module path inside the crate. The last src, tests, examples or benches directory marks the crate root, and mod.rs contributes only its parent directory name.
+
+## Behaviour
+
+- crates/a/src/auth/session.rs -> crate crates/a, module [auth, session]
+- src/bin/tool.rs -> crate empty, module [], since binary roots have no module path
+- build.rs with no root directory -> its own directory as crate, module []
+
+## Terms
+
+crate root, module path, module name, crate directory, Rust module, source root, mod.rs
 
 ## Connections
 

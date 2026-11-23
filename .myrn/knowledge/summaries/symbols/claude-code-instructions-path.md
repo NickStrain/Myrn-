@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::instructions_path
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::instructions_path@dc7fa900736faaca
+map_version: '2'
 ---
 # claude_code::instructions_path
 
-Returns root/CLAUDE.md, the file that receives the pull-only instruction block.
+Returns CLAUDE.md at the repo root, where the pull-only instruction block is written.
+
+## Behaviour
+
+- /repo -> /repo/CLAUDE.md
+- Used by install, uninstall and inspect in pull-only mode
+
+## Terms
+
+instruction file, project instructions, memory file
 
 ## Connections
 

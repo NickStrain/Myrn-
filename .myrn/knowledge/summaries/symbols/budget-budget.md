@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/pack/budget.rs#pack::budget::Budget
 anchors:
 - sym:crates/myrn-engine/src/pack/budget.rs#pack::budget::Budget@b1c507c432f25168
+map_version: '2'
 ---
 # budget::Budget
 
-Holds a private limit and used count plus a public out String that collects accepted text. Gotcha: out is pub, so writing to it directly bypasses the used accounting.
+Holds a token limit, a running count of tokens used, and the accumulated output string. Only out is public; limit and used are private and change only through push.
+
+## Behaviour
+
+- used never exceeds limit, because push refuses any text that would overflow it
+- out is the only way to read the accumulated text
+
+## Terms
+
+size cap, allowance, context limit, bounded buffer, capacity, text accumulator
 
 ## Connections
 

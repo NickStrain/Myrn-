@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/src/cmd/init.rs
 
-Implements the `myrn init` subcommand: it indexes the current working directory's repository and creates the local store, covering code only with no session capture. Its single entry point, `run`, delegates indexing to `Engine::init` and formats the resulting report.
+CLI entry point for the `myrn init` subcommand. It indexes the current working directory through the engine, creates the local store, and prints a plain-text summary of the indexing counts, link counts, warnings, and storage locations. It records no session data.
 
 ## Connections
 

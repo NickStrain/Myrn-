@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/task.rs#task::Task
 anchors:
 - sym:bench/src/task.rs#task::Task@420ee4fd541c43c8
+map_version: '2'
 ---
 # task::Task
 
-One task parsed from YAML with deny_unknown_fields. id, repo, kind, and prompt are required. setup, solution, check, answer_contains, and touches are optional or defaulted, and timeout_secs defaults to 900. The prompt should describe the symptom, not the location.
+Holds one benchmark task: id, repo, kind, the prompt the agent sees, and optional setup, solution, and check sections. Unknown YAML keys are rejected, and the struct fills in defaults for omitted optional fields.
+
+## Behaviour
+
+- A YAML key not declared on the struct fails parsing because of deny_unknown_fields.
+- Omitting timeout_secs gives 900.
+- Omitting answer_contains, touches, setup, solution, or check gives an empty list or None.
+
+## Terms
+
+benchmark task, yaml task, task definition, agent session, session timeout, touches, answer_contains, prompt
 
 ## Connections
 

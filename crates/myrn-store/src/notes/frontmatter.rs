@@ -151,6 +151,45 @@ impl Note {
             .to_string()
     }
 
+    /// The extra sections of a code-map note: `## Behaviour` bullets (what the
+    /// code does on concrete inputs and edge cases) and `## Terms` (the words a
+    /// person or a bug report would use for it, comma-separated).
+    pub fn summary_details(&self) -> (Vec<String>, Vec<String>) {
+        let mut behaviour = Vec::new();
+        let mut terms = Vec::new();
+        let mut section = "";
+        for line in self.body.lines() {
+            let l = line.trim();
+            if let Some(h) = l.strip_prefix("## ") {
+                section = match h.trim() {
+                    "Behaviour" | "Behavior" => "behaviour",
+                    "Terms" => "terms",
+                    _ => "",
+                };
+                continue;
+            }
+            match section {
+                "behaviour" => {
+                    if let Some(b) = l
+                        .strip_prefix("- ")
+                        .map(str::trim)
+                        .filter(|b| !b.is_empty())
+                    {
+                        behaviour.push(b.to_string());
+                    }
+                }
+                "terms" => terms.extend(
+                    l.split(',')
+                        .map(str::trim)
+                        .filter(|t| !t.is_empty())
+                        .map(str::to_string),
+                ),
+                _ => {}
+            }
+        }
+        (behaviour, terms)
+    }
+
     /// Header `title`, else the first heading or line of the body.
     pub fn display_title(&self) -> String {
         if let Some(t) = self.title.as_deref().filter(|t| !t.trim().is_empty()) {

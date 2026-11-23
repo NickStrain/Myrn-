@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::exported_from
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::exported_from@3d0ea24c2a7e5310
+map_version: '2'
 ---
 # Resolver::exported_from
 
-Finds a name as seen from outside a file: a top-level symbol, a named re-export or a wildcard re-export, recursing through glob targets up to the given depth.
+Finds a name as seen from outside a file: a top-level symbol, then a named re-export, then a wildcard re-export, recursing up to depth.
+
+## Behaviour
+
+- top-level symbol with the name in the file -> that symbol
+- name only available through a wildcard re-export -> followed into that target
+- depth 0 and no own symbol -> empty
+
+## Terms
+
+re-export, wildcard re-export, star export, top-level symbol, module export, public name
 
 ## Connections
 

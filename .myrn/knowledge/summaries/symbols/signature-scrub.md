@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/signature.rs#distill::signature::scrub
 anchors:
 - sym:crates/myrn-engine/src/distill/signature.rs#distill::signature::scrub@24e8715b91bdb3a0
+map_version: '2'
 ---
 # signature::scrub
 
-Applies 11 ordered regex rules that replace timestamps with TIME, UUIDs and long hex with ID, addresses with ADDR, paths with PATH, digit runs of 7+ with N, and remaining numbers with N (also `_N`/`-N` suffixes), then collapses whitespace; rule order matters, since paths are replaced before generic numbers.
+Replaces volatile parts of a message (timestamps, UUIDs, addresses, paths, long digit runs, hex ids, numbers) with fixed placeholders, then collapses whitespace.
+
+## Behaviour
+
+- 'token 3f9a2c1d8e expired at 2026-11-17T10:22:01Z' -> 'token ID expired at TIME'
+- 'connect ECONNREFUSED 127.0.0.1:5432' -> 'connect ECONNREFUSED N.N:N'
+- 'user_42' -> 'user_N'; 'utf8', 'i32', 'md5' keep their digits; 'and/or' -> PATH
+
+## Terms
+
+normalize message, redact, mask, placeholder, strip volatile parts, path stripping, sanitize, number replacement
 
 ## Connections
 

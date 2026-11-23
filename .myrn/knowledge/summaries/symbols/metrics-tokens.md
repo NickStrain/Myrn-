@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:bench/src/metrics.rs#metrics::Tokens
 anchors:
 - sym:bench/src/metrics.rs#metrics::Tokens@ac5134a1a3cd5328
+map_version: '2'
 ---
 # metrics::Tokens
 
-Four u64 counters (input, cache_creation, cache_read, output) for one session's token usage, serialized with serde.
+Holds the four API token counts for a session: input, cache creation, cache read and output.
+
+## Behaviour
+
+- Default -> all four counts are 0
+- Serde derive: the four field names are the JSON keys
+
+## Terms
+
+token counts, usage, cache tokens, prompt tokens, output tokens
 
 ## Connections
 

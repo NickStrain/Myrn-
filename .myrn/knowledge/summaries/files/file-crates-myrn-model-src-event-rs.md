@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-model/src/event.rs
 
-Defines the normalized event model shared by all agent adapters. Each adapter translates its agent's hook payloads into these types, so the engine never handles agent-specific formats. Contains the Event envelope, the EventKind enum, and the ToolOutcome and ToolResult types it uses.
+Defines the normalized agent event types (Event, EventKind, ToolOutcome, ToolResult) that every adapter translates its hook payloads into, along with EventKind::name, which returns the snake_case tag for each variant. Serde derives set the JSON shape.
 
 ## Connections
 

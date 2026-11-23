@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/tests/connect.rs#setup
 anchors:
 - sym:crates/myrn/tests/connect.rs#setup@f1fcb3dd8220a59a
+map_version: '2'
 ---
 # setup
 
-Creates a temp git repo with src/lib.rs (refresh_session calls validate_token), makes one commit, runs myrn init, and asserts it succeeds. Returns the Env and panics on any failure.
+Creates a throwaway git repo with a seeded src/lib.rs, makes its first commit, runs myrn init in it, and returns the Env.
+
+## Behaviour
+
+- src/lib.rs has refresh_session calling validate_token, with a doc comment on refresh_session
+- first commit has no parent, since the parents slice is empty
+- panics if myrn init exits non-zero
+
+## Terms
+
+fixture, seed repo, git init, initial commit, myrn init, test project
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/review.rs#review::ReviewItem
 anchors:
 - sym:crates/myrn-engine/src/review.rs#review::ReviewItem@547dae452eed8793
+map_version: '2'
 ---
 # review::ReviewItem
 
-One exported learned record with id, type (serialized as 'type'), status, title, body, source, evidence lines, link lines, linked CodeRefs, and origin. Origin is empty until the caller sets it and defaults to empty when deserialized.
+One exported learned note (id, type, status, title, body, source) with its evidence, typed links, linked code excerpts, and an origin label that the caller fills in.
+
+## Behaviour
+
+- the ntype field is serialized as 'type'
+- evidence entries read 'kind: value', or just the value when kind is empty
+- inverse links read '<target> fixes this'; others read '<rel> <target>'
+
+## Terms
+
+export record, learned note, evidence, typed link, linked code, origin label, serialized item
 
 ## Connections
 

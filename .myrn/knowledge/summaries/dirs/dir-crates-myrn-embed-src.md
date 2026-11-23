@@ -6,13 +6,13 @@ title: crates/myrn-embed/src/
 source: myrn summarize
 about: module:crates/myrn-embed/src
 anchors:
-- module:crates/myrn-embed/src@e2b7ea978bc40e96
+- module:crates/myrn-embed/src@5f9e0e609c11583c
 ---
 # crates/myrn-embed/src/
 
-myrn-embed is an optional embedding helper crate and the only long-lived process in the system, kept off the hot path. lib.rs only declares the public `client` and `helper` submodules; client.rs is the engine-side client that talks to the helper and is documented to fall back cleanly when it is unavailable, and helper.rs is the helper-process entry point that loads a model, serves embeddings, and exits when idle. The provided excerpts contain only doc comments, so the function signatures, types, and protocol details cannot be confirmed from them.
+Optional Model2Vec static-embedding support for the myrn tool, split into a client that requests embeddings, a helper process that loads the model once and serves them over a token-guarded localhost TCP port, and a model module that loads, encodes, and downloads the Model2Vec weights. lib.rs holds the shared constants, path and availability helpers, similarity and f32 byte-encoding utilities, and gates the model module behind a feature flag; callers fall back to lexical search whenever the client returns None.
 
 ## Connections
 
 - **In:** [[dir-crates-myrn-embed]]
-- **Files:** [[file-crates-myrn-embed-src-client-rs]], [[file-crates-myrn-embed-src-helper-rs]], [[file-crates-myrn-embed-src-lib-rs]]
+- **Files:** [[file-crates-myrn-embed-src-client-rs]], [[file-crates-myrn-embed-src-helper-rs]], [[file-crates-myrn-embed-src-lib-rs]], [[file-crates-myrn-embed-src-model-rs]]

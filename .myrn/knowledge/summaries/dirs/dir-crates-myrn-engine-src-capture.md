@@ -6,11 +6,11 @@ title: crates/myrn-engine/src/capture/
 source: myrn summarize
 about: module:crates/myrn-engine/src/capture
 anchors:
-- module:crates/myrn-engine/src/capture@58d3b988dc2f45bf
+- module:crates/myrn-engine/src/capture@8cc5450ba3ff599c
 ---
 # crates/myrn-engine/src/capture/
 
-Session capture for the engine: converts normalized agent events into redacted episode log entries, gated by consent (consent.rs, checked via may_record; capture is off until granted). mod.rs holds path rules (repo-relative only, skips .git and gitignored files) and text cleaning; redact.rs scrubs secrets before any write; outcome.rs detects test runs and recent commits; episode.rs folds the log into an Episode and persists it as a graph node with touches edges.
+Session capture for the episode log: mod.rs turns normalized events into redacted, repo-relative log entries via to_entry, dropping paths outside the repo or matched by .myrn/ignore. consent.rs gates recording through may_record, which reads the one-time consent flag and agent mode from the private state.json, and redact.rs scrubs secrets before anything is written. episode.rs folds log entries into an Episode and persists it as a graph node with touches edges, while outcome.rs supplies is_test_command and commits_since for attaching outcomes.
 
 ## Connections
 

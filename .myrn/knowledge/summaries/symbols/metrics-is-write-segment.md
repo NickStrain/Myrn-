@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/metrics.rs#metrics::is_write_segment
 anchors:
 - sym:bench/src/metrics.rs#metrics::is_write_segment@b013657b377a3861
+map_version: '2'
 ---
 # metrics::is_write_segment
 
-Classifies a single shell segment as a write by its first word (sed/gsed -i, perl with an i flag, tee, patch, git apply) or, by default, by a file redirect.
+Decides whether one shell segment writes a file: in-place sed, perl -i, tee, patch, git apply, or a redirect to a real file.
+
+## Behaviour
+
+- 'sed -n 1,20p a.py' -> false, and 'sed -i.bak' -> true
+- 'perl -Mstrict -e ...' -> true, because any dash word containing 'i' counts
+- 'git log -p' -> false, and any tee or patch word -> true
+
+## Terms
+
+write segment, in-place flag, patch tool, redirect write, file mutation
 
 ## Connections
 

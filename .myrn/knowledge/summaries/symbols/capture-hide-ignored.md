@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/mod.rs#capture::hide_ignored
 anchors:
 - sym:crates/myrn-engine/src/capture/mod.rs#capture::hide_ignored@0e9415cb88671ca2
+map_version: '2'
 ---
 # capture::hide_ignored
 
-Replaces each space-separated word whose core (after trimming quotes and punctuation) contains '/' or '.' and matches the ignore rules with [ignored path], resolving relative candidates against root. Returns the text unchanged when the ignore set is empty or nothing matched.
+Replaces each whitespace-separated word that names an ignored path with "[ignored path]", keeping surrounding quotes and punctuation. Paths are resolved against the repo root, not the command's working directory.
+
+## Behaviour
+
+- empty ignore set -> text returned unchanged without checks
+- "cat secrets/prod.env && ls" with secrets/ ignored -> "cat [ignored path] && ls"
+- "secrets/x", (quoted, trailing comma) -> "[ignored path]", with the quotes and comma kept
+
+## Terms
+
+mask path, private path, gitignore word, secrets path, redact ignored, ignored file reference
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/notes/wikilink.rs#notes::wikilink::normalize
 anchors:
 - sym:crates/myrn-store/src/notes/wikilink.rs#notes::wikilink::normalize@0cae3e1cd86326fc
+map_version: '2'
 ---
 # wikilink::normalize
 
-Takes the raw text between [[ and ]] and returns Some(basename) or None. It drops any |alias and #heading suffix, trims whitespace, strips a trailing .md (repeatedly), keeps only the last path segment after /, and returns None if nothing remains, so [[ ]] and [[#x]] yield None. Case is preserved, and folder components are discarded, so same-named notes in different folders collapse to one target.
+Reduces a raw link string to a bare note name by dropping any |alias, #heading, directory path and trailing .md, then trimming. Returns None when nothing remains.
+
+## Behaviour
+
+- 'folder/Target.md#Heading|alias' -> Some('Target'); 'bugs/bug-7f3a91.md|the bug' -> Some('bug-7f3a91')
+- 'diagram#Top' -> Some('diagram'); 'x.md.md' -> Some('x'); 'x.MD' -> Some('x.MD') because the .md strip is case-sensitive
+- '', ' ', 'a/', '#Heading' or '.md' -> None
+
+## Terms
+
+link target, alias, heading anchor, basename, path prefix, md suffix, note name, file name
 
 ## Connections
 

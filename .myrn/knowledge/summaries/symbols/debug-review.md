@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/debug.rs#cmd::debug::review
 anchors:
 - sym:crates/myrn/src/cmd/debug.rs#cmd::debug::review@2bdfb67f070af5e4
+map_version: '2'
 ---
 # debug::review
 
-When score is set, it reads that file, passes its text to review::score, and emits the result through ctx.emit (JSON or render_score text), ignoring sample and seed. Otherwise it samples engine.review_items() with review::sample(sample, seed), and in ctx.json mode prints the items as pretty JSON to stdout (out is ignored). Otherwise it builds a checklist whose header gives the sampled count, total count, and seed, then writes it to out (printing 'Wrote N records to PATH') or prints it to stdout.
+Scores a marked checklist file when `score` is given, otherwise samples learned records and prints or writes a review checklist (or JSON when ctx.json is set). Returns ExitCode::SUCCESS, or an error if reading or writing fails.
+
+## Behaviour
+
+- score = Some(file) -> reads the file and emits review::score output via render_score; sample, seed and out are ignored
+- json mode -> prints all sampled items as pretty JSON to stdout; out is not written
+- out = Some(path) -> writes the checklist to that file and prints "Wrote N records to path"; out = None -> prints the checklist to stdout
+
+## Terms
+
+record review, gate 2, checklist, sampling, random sample, seed, score file, marked records
 
 ## Connections
 

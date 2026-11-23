@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/mod.rs#indexer::IndexReport::changed
 anchors:
 - sym:crates/myrn-engine/src/indexer/mod.rs#indexer::IndexReport::changed@1e4f6fb02dad8e1b
+map_version: '2'
 ---
 # IndexReport::changed
 
-Returns true if any file was parsed or removed, or any commits were indexed. Note-only or metadata-only refreshes return false.
+Returns true when this refresh parsed files, removed files, or indexed commits.
+
+## Behaviour
+
+- parsed, removed and commits all 0 -> false
+- only mtime or size updates from touched files -> false
+- errors, notes or symbol count alone -> not counted
+
+## Terms
+
+dirty, modified, has updates, any change, index changed, needs save
 
 ## Connections
 

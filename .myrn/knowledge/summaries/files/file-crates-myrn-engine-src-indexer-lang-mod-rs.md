@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/indexer/lang/mod.rs
 
-Defines the set of supported languages (Rust, Python, JavaScript, TypeScript, TSX) and the rules the indexer uses to map file paths to languages, tree-sitter grammars, resolution families, qualified-name separators, and module prefixes. It also holds the Rust and Python module-path helpers and a Python test-file detector. Path logic is pure string handling with no filesystem access.
+Defines the five supported languages (Rust, Python, JavaScript, TypeScript, Tsx) with file-extension detection, tree-sitter grammar lookup, qualified-name separators, and per-family rules that turn a file path into module segments or a test-file flag. The rule helpers are rust_module, python_module, module_prefix and is_python_test_file.
 
 ## Connections
 

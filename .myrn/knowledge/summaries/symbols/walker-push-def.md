@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::push_def
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::push_def@dee20674c668d4d0
+map_version: '2'
 ---
 # Walker::push_def
 
-Creates a Def with a unique qname (appends '#N' for duplicates), computes signature, doc, and body hash, and returns its index in out.defs.
+Appends a Def for a node, building its qualified name, signature, doc, body hash and line span, and returns its index.
+
+## Behaviour
+
+- Rust impl Wrapper { fn fmt } gives qname Wrapper::fmt, using the language separator
+- A second Wrapper::fmt in the same file gets Wrapper::fmt#2
+- The qname is the file module prefix, then enclosing scope names, then the def name
+
+## Terms
+
+add definition, qualified name, dedupe, def record, line span
 
 ## Connections
 

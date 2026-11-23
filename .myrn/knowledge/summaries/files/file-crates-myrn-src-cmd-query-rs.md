@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/src/cmd/query.rs
 
-CLI subcommand handlers for the code-graph queries explain, impact, history, context, and brief, each returning the same answer the MCP tools give. Each handler gets an engine from Ctx, runs one query, and passes the result to ctx.emit with a closure that produces the plain-text rendering.
+Command handlers for the query subcommands (explain, impact, history, context, brief) that expose the same engine answers as the MCP tools, each choosing text or structured output via ctx.emit. Each handler builds the engine from Ctx, runs one engine query, and emits the result.
 
 ## Connections
 

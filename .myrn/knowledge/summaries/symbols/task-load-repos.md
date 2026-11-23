@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/task.rs#task::load_repos
 anchors:
 - sym:bench/src/task.rs#task::load_repos@33ced75e8b156aff
+map_version: '2'
 ---
 # task::load_repos
 
-Reads every .toml file directly in dir (not recursive) into a BTreeMap keyed by repo name. A duplicate name silently overwrites the earlier entry.
+Reads every .toml file directly inside dir (not recursive), parses each as a Repo, and returns a map keyed by repo name. Files are processed in sorted path order.
+
+## Behaviour
+
+- Two files with the same name field: the later file in sort order silently replaces the earlier one, with no error.
+- An empty directory returns an empty map.
+- Files without a .toml extension are ignored.
+
+## Terms
+
+repo loader, repos directory, toml files, repo map, repository list, name key
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/graph.rs#graph::insert_edge
 anchors:
 - sym:crates/myrn-store/src/graph.rs#graph::insert_edge@06e84d62e80bcd52
+map_version: '2'
 ---
 # graph::insert_edge
 
-INSERT OR IGNORE into edges, so a duplicate (src, rel, dst) is a silent no-op and the status of the first insert is kept. Does not check that the endpoints exist.
+Inserts an edge with INSERT OR IGNORE, so a conflicting insert is skipped without error.
+
+## Behaviour
+
+- new edge -> stored with the given status
+- conflicting edge -> skipped and the existing row's status is kept
+- dst that is not a node -> stored anyway; neighbors later omits it
+
+## Terms
+
+add edge, link, create relation, insert relation, dangling edge, edge write
 
 ## Connections
 

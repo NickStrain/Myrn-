@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/notes.rs#indexed_repo
 anchors:
 - sym:crates/myrn-engine/tests/notes.rs#indexed_repo@f65d2a799b71a7ad
+map_version: '2'
 ---
 # indexed_repo
 
-Builds the repo, copies the fixtures with the first 6 characters of the unique_everseen body hash as BODY_HASH, runs refresh, asserts 5 notes were indexed and none failed, and returns the Repo.
+Creates a fresh repo, copies the note fixtures in using a 6-character body hash prefix, refreshes the engine, and asserts that 5 notes were found and indexed.
+
+## Behaviour
+
+- no args -> Repo with the fixture notes indexed
+- hash is the first 6 characters of the unique_everseen body hash
+- report counts other than 5 found and 5 indexed -> assertion panic
+
+## Terms
+
+seeded repo, indexed fixture, notes indexed, ready repo, preloaded index
 
 ## Connections
 

@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-mcp/src/tools/recall.rs
 
-Defines the `recall` MCP tool, which takes an error message or failing test output and returns matching past bug records with root cause, responsible code, and fix. It exposes the tool's JSON spec (name, description, input schema with required `error` and optional `budget`) and the handler that runs the lookup and logs the injection.
+MCP tool handler for 'recall', which looks up known past bugs matching an error message or failing test output. It holds the tool's JSON spec (spec) and its call handler (call), which delegates to Engine::recall_text and logs matched ids.
 
 ## Connections
 

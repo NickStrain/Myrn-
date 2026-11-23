@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/query.rs#cmd::query::brief
 anchors:
 - sym:crates/myrn/src/cmd/query.rs#cmd::query::brief@9faef4a03b91e777
+map_version: '2'
 ---
 # query::brief
 
-Calls engine.brief(budget) with an optional token budget and emits the result. Text output is the brief text followed by its token count.
+Builds a codebase brief under an optional budget and emits its text with its token count.
+
+## Behaviour
+
+- budget: None -> engine.brief(None), default size
+- budget: Some(n) -> engine.brief(Some(n)), limited to n tokens by the engine
+- Output is p.text followed by '[N tokens]'
+
+## Terms
+
+summary, overview, codebase summary, token budget, digest, project brief
 
 ## Connections
 

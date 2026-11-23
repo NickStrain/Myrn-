@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/indexer/body_hash.rs
 
-Computes a content hash of a tree-sitter syntax node that ignores whitespace and comments, so reformatting, comment edits, and CRLF/LF differences leave the hash unchanged. It holds the hash function and a single unit test that checks those invariants and that a real code change alters the hash.
+Computes a body hash for a tree-sitter node that ignores whitespace and comments, so formatting, comment and line-ending changes keep the same hash while code changes alter it. Its test module checks those rules using a parse helper, hash_of.
 
 ## Connections
 

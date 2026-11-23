@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::resolve_bare
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::resolve_bare@6eeaba0f4e37c363
+map_version: '2'
 ---
 # Resolver::resolve_bare
 
-Resolves a bare call by trying, in order: the imported binding (including re-exports and JS default imports), a non-method callable in the same file, wildcard imports, and finally a unique non-common free function in the same language family that the caller can reach. Only the JS default-import match and the final unique-name match are Inferred.
+Resolves an unqualified call name: first through imports, then same-file callables, then wildcard imports, then a unique same-family function that is reachable and not a common name.
+
+## Behaviour
+
+- name imported from an external module -> empty
+- local non-method function with that name in the file -> Resolved, nearest parent chosen by common prefix
+- unique non-common function elsewhere that is reachable -> Inferred
+
+## Terms
+
+bare call, unqualified call, local call, wildcard import, inferred call, common name
 
 ## Connections
 

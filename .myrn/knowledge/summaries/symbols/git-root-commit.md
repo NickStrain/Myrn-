@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/git.rs#indexer::git::root_commit
 anchors:
 - sym:crates/myrn-engine/src/indexer/git.rs#indexer::git::root_commit@aa3337044a2b22e0
+map_version: '2'
 ---
 # git::root_commit
 
-Returns the SHA of the first commit in a reverse topological walk from HEAD, or None if HEAD is unreadable or the repo has no commits. With multiple root commits, the result is whichever one the walk yields first.
+Returns the full SHA of the earliest commit reachable from HEAD, used to identify the project.
+
+## Behaviour
+
+- repo with history -> 40-char hex SHA of the first commit in reverse topological order
+- unborn HEAD (no commits yet) or any libgit2 error -> None
+- multiple root commits in merged history -> returns only one of them
+
+## Terms
+
+initial commit, first commit, project identity, genesis commit, root sha, repository origin
 
 ## Connections
 

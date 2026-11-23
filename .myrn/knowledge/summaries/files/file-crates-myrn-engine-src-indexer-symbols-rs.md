@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/indexer/symbols.rs
 
-Cross-file resolver that turns stored raw references and import rows into calls, imports and tests edges, marking each resolved (scope or import based) or inferred (unique name match) and dropping ambiguous ones. Its main parts are the Sym and RawRef inputs, the Resolver with per-language import handling (Rust, Python, JS) and lookup and resolve routines, the resolve_all entry point that rebuilds edges in the database, and unit tests.
+Cross-file resolver that turns raw references and imports stored in SQLite into calls, imports and tests edges, with Rust, Python and JavaScript name rules. Resolver holds the lookup tables and per-file bindings, and resolve_all rebuilds those edges after each refresh.
 
 ## Connections
 

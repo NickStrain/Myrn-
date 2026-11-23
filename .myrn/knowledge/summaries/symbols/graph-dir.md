@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/graph.rs#graph::Dir
 anchors:
 - sym:crates/myrn-store/src/graph.rs#graph::Dir@a3bece0928c8bd9f
+map_version: '2'
 ---
 # graph::Dir
 
-Traversal direction: Out follows edges where the node is src to dst, and In follows edges where the node is dst back to src.
+Selects edge direction for traversal: Out follows src to dst, In follows dst to src.
+
+## Behaviour
+
+- Out -> edges where the node is src
+- In -> edges where the node is dst
+- used only by neighbors
+
+## Terms
+
+direction, outgoing, incoming, edge direction, traversal direction
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::module_prefix
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::module_prefix@defe441410c574b0
+map_version: '2'
 ---
 # lang::module_prefix
 
-Returns the module-path segments that prefix qualified names in a file, dispatching on the language family. Rust uses rust_module (crate directory discarded), Python uses python_module, and Js always returns an empty vector.
+Selects the module-path rule for the file's language family: Rust module segments, Python module segments, or an empty list for JavaScript-family files.
+
+## Behaviour
+
+- Rust, src/auth/session.rs -> [auth, session]
+- Python, pkg/a.py -> [pkg, a]
+- JavaScript or TypeScript, any path -> []
+
+## Terms
+
+name prefix, qualified name prefix, module prefix, namespace prefix, scope prefix
 
 ## Connections
 

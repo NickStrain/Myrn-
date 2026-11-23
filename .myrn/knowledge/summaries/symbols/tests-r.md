@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::tests::r
 anchors:
 - sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::tests::r@e0211f402bb78a6a
+map_version: '2'
 ---
 # tests::r
 
-Test helper that returns `redact(s)` as an owned String.
+Test helper that runs redact on a &str and returns an owned String.
+
+## Behaviour
+
+- r('x') -> String equal to redact('x')
+- Text with no secrets comes back unchanged
+
+## Terms
+
+test helper, redact wrapper, owned result
 
 ## Connections
 

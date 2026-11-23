@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/records.rs#has_edge
 anchors:
 - sym:crates/myrn-engine/tests/records.rs#has_edge@7238e2732f048541
+map_version: '2'
 ---
 # has_edge
 
-Returns true if the edges table has a row matching the given src, rel, and dst.
+Returns whether the edges table holds a row with exactly the given src, rel and dst. Any query error is reported as absence.
+
+## Behaviour
+
+- matching src, rel and dst -> true
+- no matching row -> false
+- database error -> false, not a panic
+
+## Terms
+
+graph link, relation present, edge existence, triple lookup, connection check, relationship
 
 ## Connections
 

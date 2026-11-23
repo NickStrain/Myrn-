@@ -10,7 +10,7 @@ anchors:
 ---
 # bench/src/metrics.rs
 
-Parses one headless Claude Code stream-json transcript into a Session of token counts, tool calls, pre-edit exploration, shell-edit detection, and the final answer, and holds the small statistics (mean, ci95, median) the benchmark report uses. Its main parts are the Tokens and Session structs, parse(), the shell-write classifier, and the stats helpers.
+Computes metrics for one headless Claude Code stream-json session: token totals, tool and exploration counts, shell-edit detection, the split-off Stop-hook recording phase, and the final answer. It also has the mean, 95% confidence interval and median helpers the report uses.
 
 ## Connections
 

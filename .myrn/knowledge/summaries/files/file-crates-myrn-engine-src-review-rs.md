@@ -6,11 +6,11 @@ title: crates/myrn-engine/src/review.rs
 source: myrn summarize
 about: file:crates/myrn-engine/src/review.rs
 anchors:
-- file:crates/myrn-engine/src/review.rs@b4ae3efae97a9792
+- file:crates/myrn-engine/src/review.rs@71dae9aa03961467
 ---
 # crates/myrn-engine/src/review.rs
 
-Gate 2 hand review of learned records. It exports each note with its evidence and linked code excerpts, samples them into a Markdown checklist that a person marks correct, vague, or wrong, and parses those marks back into precision figures. Main parts: Engine::review_items (export), Engine::excerpt (code reader), sample, checklist (renderer), and score (mark parser).
+Gate 2 hand review of learned records: exports notes with their evidence and linked code excerpts, samples them into a Markdown checklist that a person marks correct, vague or wrong, and reads the marks back into precision figures. Main parts are the export (Engine::review_items, Engine::excerpt), sample, checklist, score, and the tests module.
 
 ## Connections
 

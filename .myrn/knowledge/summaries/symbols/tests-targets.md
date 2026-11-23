@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::tests::targets
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::tests::targets@2be50c1e0a3a5f70
+map_version: '2'
 ---
 # tests::targets
 
-Test helper that resolves one RawRef from a source Sym and returns (qname, status) pairs.
+Test helper that resolves a raw reference from a source symbol and returns target qualified names with their statuses.
+
+## Behaviour
+
+- source symbol not indexed -> panics on unwrap
+- reference with no target -> empty vec
+- resolved targets -> (qname, status) pairs
+
+## Terms
+
+test helper, resolved targets, assertion helper, target names, fixture resolution
 
 ## Connections
 

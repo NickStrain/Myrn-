@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/metrics.rs#metrics::parse
 anchors:
 - sym:bench/src/metrics.rs#metrics::parse@b11045000264239c
+map_version: '2'
 ---
 # metrics::parse
 
-Parses newline-delimited stream-json into a Session; skips unparseable lines, makes absolute paths root-relative, counts exploration before the first edit to a path in `touches` (or any edit if `touches` is empty), and after a Stop-hook record request switches to counting only the recording phase. Gotcha: usage is de-duplicated per message id by taking the max, and the answer is the last text before the record request.
+Reads a stream-json transcript line by line and fills a Session; root makes absolute paths repo-relative and touches names the files where the correct edit lands.
+
+## Behaviour
+
+- Lines that are not valid JSON are skipped silently
+- Empty touches -> the first edit of any file counts as the correct edit; otherwise an edit counts if its path equals a touch or a Bash command contains the touch string
+- After a user Stop-hook message that starts 'Stop hook feedback:' and contains 'record what this session learned', later assistant usage goes to record_tokens (max per message id) and the answer stops updating; the final result event overwrites tokens with its usage
+
+## Terms
+
+transcript parsing, stream-json, exploration before edit, session metrics, stop hook recording, answer extraction, token accounting
 
 ## Connections
 

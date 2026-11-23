@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#set
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#set@510bbe1811d30b41
+map_version: '2'
 ---
 # set
 
-Builds a BTreeSet<String> from a slice of string literals, for comparison against ids output.
+Converts a slice of string slices into a sorted BTreeSet of owned Strings.
+
+## Behaviour
+
+- [a, a, b] -> {a, b}, duplicates collapsed
+- [] -> empty set
+- output is sorted, so order in the input does not matter
+
+## Terms
+
+string set, sorted set, dedupe, expected ids
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/node.rs#node::NodeType
 anchors:
 - sym:crates/myrn-model/src/node.rs#node::NodeType@5424b6eaa310e49f
+map_version: '2'
 ---
 # node::NodeType
 
-Twelve-variant enum of node kinds; File, Symbol, Module, Commit, and Test are derived, while Feature, Decision, Fact, Bug, RootCause, Workflow, and Episode are earned. Serialized as snake_case.
+Enum of the 12 node kinds. The first five (File, Symbol, Module, Commit, Test) are derived; the last seven (Feature, Decision, Fact, Bug, RootCause, Workflow, Episode) are earned.
+
+## Behaviour
+
+- Variants are listed in ALL in declaration order
+- Serializes as snake_case, so RootCause becomes "root_cause"
+- Derives Copy, Eq, Hash, Serialize and Deserialize
+
+## Terms
+
+node kind, category, entity type, derived node, earned node
 
 ## Connections
 

@@ -6,11 +6,11 @@ title: crates/myrn-engine/tests/notes.rs
 source: myrn summarize
 about: file:crates/myrn-engine/tests/notes.rs
 anchors:
-- file:crates/myrn-engine/tests/notes.rs@ada26dd55d5ebccc
+- file:crates/myrn-engine/tests/notes.rs@cc9b80a440021f04
 ---
 # crates/myrn-engine/tests/notes.rs
 
-Integration tests for Step 15 markdown note indexing. Builds a temp git repo from the PY sample files, copies the notes fixtures into it, and checks that notes become nodes, edges, anchors and summaries, that hand edits and deletions re-index, that malformed or dangling notes are flagged, that rebuild reproduces the index, and that write_note writes files and handles shared versus private duplicates.
+Integration tests for note indexing: they seed a temporary git repo, copy the markdown note fixtures into it, refresh the engine, and check nodes, edges, anchors, summaries, flagged issues, re-indexing, rebuild, and write_note. Helpers at the top build the repo, copy fixtures with placeholder substitution, and read graph state.
 
 ## Connections
 

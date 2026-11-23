@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/mod.rs#capture::relative
 anchors:
 - sym:crates/myrn-engine/src/capture/mod.rs#capture::relative@cddde93c6519bf18
+map_version: '2'
 ---
 # capture::relative
 
-Returns the repo-relative forward-slash path for a reported path, resolving relative paths against cwd and normalizing '.' and '..' lexically. Returns None for paths outside root, for the repo root itself, and for anything under .git; if the direct comparison fails, it retries with canonicalized root and path (for example through symlinks).
+Turns a path into a repo-relative, forward-slash string, joining relative paths onto cwd and falling back to canonicalized paths for symlinks. Returns None for paths outside the repo, the repo root itself, and anything under .git.
+
+## Behaviour
+
+- root /r, cwd /r, path "/r/src/a.rs" -> "src/a.rs"
+- cwd /r/src, path "../lib.rs" -> "lib.rs"
+- "/etc/passwd", ".git/config" or the repo root itself -> None
+
+## Terms
+
+repo-relative path, path resolution, outside repository, git directory, symlink canonicalize, working directory join, dot-dot path
 
 ## Connections
 

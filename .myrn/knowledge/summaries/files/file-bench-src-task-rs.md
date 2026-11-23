@@ -10,11 +10,11 @@ anchors:
 ---
 # bench/src/task.rs
 
-Loads benchmark repo definitions from bench/repos/*.toml and task definitions from bench/tasks/<repo>/<kind>/*.yaml into typed structs, validates tasks by kind, and includes a test that checks the shipped task set. Main parts are Repo, Kind, Task, Patch, Check, and the loaders.
+Defines the serde schema for benchmark repositories (TOML files in bench/repos) and benchmark tasks (YAML files under bench/tasks), validates task consistency, and provides the loaders that read both directories.
 
 ## Connections
 
 - **Location:** `bench/src/task.rs`
 - **In:** [[dir-bench-src]]
 - **Defines:** [[task-repo]], [[task-kind]], [[kind-as-str]], [[task-task]], [[task-default-timeout]], [[task-patch]], [[task-check]], [[task-default-check-timeout]], [[task-validate]], [[task-load-repos]], [[task-load-tasks]], [[task-files-with-ext]], [[task-toml-from]]
-- **Imported by:** [[file-bench-src-main-rs]], [[file-bench-src-report-rs]], [[file-bench-src-runner-rs]]
+- **Imported by:** [[file-bench-src-main-rs]], [[file-bench-src-report-rs]], [[file-bench-src-retrieval-rs]], [[file-bench-src-runner-rs]]

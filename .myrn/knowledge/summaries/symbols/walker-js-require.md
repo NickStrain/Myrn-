@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::js_require
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::js_require@b14752bd514f2bb7
+map_version: '2'
 ---
 # Walker::js_require
 
-Handles `const x = require(...)` (as '#*') and `const { a, b } = require(...)` (one import per member) when the argument is a string literal.
+Records CommonJS require bindings from a variable declarator: a plain name binds the whole module, and an object pattern binds each member.
+
+## Behaviour
+
+- const legacy = require('./legacy') gives spec './legacy#*' alias 'legacy'
+- const { a, b: c } = require('./m') gives './m#a' alias 'a' and './m#b' alias 'c'
+- const x = fetch('u') records nothing because the callee is not require
+
+## Terms
+
+commonjs, require call, destructured require, cjs import, require binding
 
 ## Connections
 

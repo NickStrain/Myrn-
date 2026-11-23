@@ -10,7 +10,7 @@ anchors:
 ---
 # tests/fixtures/repos/gate0/src/store.rs
 
-Defines an in-memory token store: a TokenStore struct wrapping a Vec<String> of issued tokens, with constructor, lookup, and insert methods, plus a standalone now() function that returns a fixed value.
+Defines an in-memory store of issued tokens (a Vec of strings) with methods to create it, look a token up, and add one, plus a standalone `now()` function that returns a fixed value of 42.
 
 ## Connections
 

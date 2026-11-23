@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/src/cmd/rebuild.rs
 
-Implements the `myrn rebuild` subcommand, which recreates the engine's database from the source code and notes. Its single function opens the engine at the current directory, runs the rebuild, and prints a summary of the result.
+Implements the myrn rebuild subcommand. It opens the engine for the current directory, rebuilds the database from the source code and note files (notes are only read), and emits a one-line summary of the counts and elapsed time.
 
 ## Connections
 

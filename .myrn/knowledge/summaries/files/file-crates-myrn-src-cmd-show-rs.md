@@ -6,11 +6,11 @@ title: crates/myrn/src/cmd/show.rs
 source: myrn summarize
 about: file:crates/myrn/src/cmd/show.rs
 anchors:
-- file:crates/myrn/src/cmd/show.rs@7917e50ec01e9e66
+- file:crates/myrn/src/cmd/show.rs@1975230ed1dbb9d2
 ---
 # crates/myrn/src/cmd/show.rs
 
-Implements the `myrn show <id>` subcommand: looks up a single graph node by id via the engine and renders its fields (id, type, kind, name, location, signature, summary, doc, body hash, status, extra) plus its incoming and outgoing relations, as text or structured output depending on the context's emit mode.
+Implements the `myrn show <id>` subcommand, which looks up one graph node and renders its non-empty fields, earned-origin file/source/evidence details or raw extra data, and its relations as text. Its only symbol is `run`.
 
 ## Connections
 

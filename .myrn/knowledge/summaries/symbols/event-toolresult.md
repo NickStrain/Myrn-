@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/event.rs#event::ToolResult
 anchors:
 - sym:crates/myrn-model/src/event.rs#event::ToolResult@17b2d71cba1bb6ca
+map_version: '2'
 ---
 # event::ToolResult
 
-Record of one tool call: tool name, outcome, files edited or read (absolute or agent-reported paths), optional shell command for shell tools, and optional error text for failures.
+Payload for one tool call's result: tool name, outcome, touched file paths, and optional shell command or error text.
+
+## Behaviour
+
+- files has no serde default, so it must be present in JSON; an empty array is allowed
+- command and error are optional and become None when missing
+- files holds absolute or agent-reported paths exactly as given, with no normalization
+
+## Terms
+
+tool call, tool name, touched files, edited paths, shell command, error text
 
 ## Connections
 

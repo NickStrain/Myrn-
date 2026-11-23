@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::from_path
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::from_path@224c42522e409212
+map_version: '2'
 ---
 # Lang::from_path
 
-Takes a file path string and returns the Lang for its extension (rs, py/pyi, js/mjs/cjs/jsx, ts/mts/cts, tsx), or None for unknown extensions, no extension, or .min.js and .d.ts files. Only the last path segment is inspected; no I/O.
+Maps a file path to a Lang using the last extension of its file name. It returns None for unsupported extensions and for .min.js and .d.ts files, which are excluded before the extension check.
+
+## Behaviour
+
+- a/b.tsx -> Some(Tsx)
+- x.min.js or y.d.ts -> None
+- README.md, or Makefile with no dot -> None
+
+## Terms
+
+extension, file extension, suffix, filename, path to language, language detection, file type
 
 ## Connections
 

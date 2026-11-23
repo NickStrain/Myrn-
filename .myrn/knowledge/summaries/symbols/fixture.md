@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#fixture
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#fixture@a470593ab824d686
+map_version: '2'
 ---
 # fixture
 
-Returns the PathBuf to tests/fixtures/repos/gate0, resolved from CARGO_MANIFEST_DIR at compile time. This is the read-only source tree that setup copies from.
+Returns the path to the gate0 fixture repo, resolved from the crate manifest dir up two levels.
+
+## Behaviour
+
+- no args -> PathBuf ending in tests/fixtures/repos/gate0
+- path is built at call time from CARGO_MANIFEST_DIR, so it depends on the crate location
+
+## Terms
+
+fixture path, test repo location, gate0 repo
 
 ## Connections
 

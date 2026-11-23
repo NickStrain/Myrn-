@@ -458,7 +458,7 @@ fn run_inner(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn setup_myrn(
+pub fn setup_myrn(
     myrn: &Path,
     work: &Path,
     home: &Path,

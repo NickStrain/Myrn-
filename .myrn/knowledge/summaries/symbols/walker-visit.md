@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::visit
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::visit@27476234a0414896
+map_version: '2'
 ---
 # Walker::visit
 
-Core recursive dispatch: records locals inside a def, classifies the node, and for defs saves and restores the locals map and enclosing index around the children; recursion stops past depth 512.
+Visits one node depth-first: notes locals, classifies the node, and acts on the result by recording a def, scope or reference, skipping, or descending.
+
+## Behaviour
+
+- Depth above 512 returns immediately, silently dropping that subtree
+- Def: pushes its name as a scope, sets itself as enclosing, visits children, then restores locals, enclosing and scope
+- Ref: records the reference and still descends into the children
+
+## Terms
+
+traversal, recursive walk, node dispatch, tree visit, depth limit, descend
 
 ## Connections
 

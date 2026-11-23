@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/records.rs#write
 anchors:
 - sym:crates/myrn-engine/tests/records.rs#write@bf0595a78a1deb5b
+map_version: '2'
 ---
 # write
 
-Writes each (relative path, content) pair under a root directory, creating parent directories first and panicking on any IO error.
+Writes each (relative path, contents) pair under root, creating parent directories first. Overwrites any existing file at that path.
+
+## Behaviour
+
+- [("pkg/x.py", "...")] -> file written at root/pkg/x.py, parents created
+- existing file at the path -> contents replaced
+- IO failure -> panic via unwrap
+
+## Terms
+
+write files, create directories, fixture files, overwrite file, nested paths, test scaffolding
 
 ## Connections
 

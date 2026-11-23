@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/api.rs#api::Lookup
 anchors:
 - sym:crates/myrn-engine/src/api.rs#api::Lookup@4261cf12fd985f81
+map_version: '2'
 ---
 # api::Lookup
 
-Result of resolving a name: Found(T), Ambiguous with candidate links, or NotFound with the query; serialized with a result tag.
+Outcome of resolving a name: one Found value, Ambiguous with candidate links, or NotFound with the query. Serialised with a result tag.
+
+## Behaviour
+
+- Ambiguous is produced by pick when several matches do not clearly single out one
+- Serialised result values are found, ambiguous and not_found
+
+## Terms
+
+match result, name resolution, ambiguous match, candidates, not found
 
 ## Connections
 

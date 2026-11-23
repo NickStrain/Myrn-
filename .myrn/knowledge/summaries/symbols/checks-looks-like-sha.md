@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::looks_like_sha
 anchors:
 - sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::looks_like_sha@3794a121fa111407
+map_version: '2'
 ---
 # checks::looks_like_sha
 
-Returns true when the text is 7 to 40 ASCII hex characters.
+Reports whether a string could be a git commit hash prefix.
+
+## Behaviour
+
+- "abc1234" -> true (7 hex chars)
+- "abc123" -> false (under 7 chars)
+- a non-hex character anywhere -> false; uppercase hex is accepted
+
+## Terms
+
+commit hash, sha, hex digits, short sha, hash prefix
 
 ## Connections
 

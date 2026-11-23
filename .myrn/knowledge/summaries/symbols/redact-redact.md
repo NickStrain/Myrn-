@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::redact
 anchors:
 - sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::redact@e835821d9e0f7c7b
+map_version: '2'
 ---
 # redact::redact
 
-Takes text and returns it with secrets replaced, as a Cow that borrows the input when nothing matches. Runs the stages in fixed order (tokens, URL credentials, auth headers, assignments and flags, then entropy), so later stages see earlier replacements, and skips values already marked as redacted.
+Returns the text with every detected secret replaced by a marker. It borrows the input when nothing matches and applies the passes in a fixed order: tokens, URL passwords, auth headers, assignments and flags, then entropy.
+
+## Behaviour
+
+- Text with no secrets -> Cow::Borrowed, with no allocation
+- 'AKIAIOSFODNN7EXAMPLE' -> '[REDACTED:aws-access-key]'
+- 'https://bob:pw@host' -> 'https://bob:[REDACTED:password]@host', keeping the user name
+
+## Terms
+
+scrub secrets, sanitize output, mask credentials, secret detection, pre-write filter
 
 ## Connections
 

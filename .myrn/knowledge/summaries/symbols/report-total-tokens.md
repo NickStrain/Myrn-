@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:bench/src/report.rs#report::total_tokens
 anchors:
 - sym:bench/src/report.rs#report::total_tokens@3ef810e26ad511dd
+map_version: '2'
 ---
 # report::total_tokens
 
-Token measure for total session cost, using session.tokens.total() and including the recording phase.
+Returns the per-run total token count for the whole session, recording phase included, from session.tokens.total().
+
+## Behaviour
+
+- Returns session.tokens.total() as f64
+- Used for the total tokens row and the total measure in paired comparisons
+
+## Terms
+
+session cost, whole session, total tokens, recording included
 
 ## Connections
 

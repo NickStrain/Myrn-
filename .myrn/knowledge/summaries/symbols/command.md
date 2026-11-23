@@ -6,14 +6,25 @@ title: Command
 source: myrn summarize
 about: sym:crates/myrn/src/main.rs#Command
 anchors:
-- sym:crates/myrn/src/main.rs#Command@e638514b1b00b0f1
+- sym:crates/myrn/src/main.rs#Command@f9d83b5ba611137a
+map_version: '2'
 ---
 # Command
 
-Enum of every top-level subcommand with its arguments; doc comments become help text. Hook is hidden from help and reads the agent hook payload from stdin, and Debug nests DebugCommand.
+Enum of every `myrn` subcommand with its arguments and flags, each variant's doc comment serving as its help text.
+
+## Behaviour
+
+- `myrn log -n 5 --type bug` -> limit 5, ntype Some("bug"), other fields at defaults
+- `myrn context fix the bug` -> task is the word list (main joins it with spaces); `--budget` optional
+- `Hook` and `EmbedHelper` are hidden from help; `Gc` defaults `older_than` to 30 days
+
+## Terms
+
+subcommands, cli verbs, command list, flags, arguments, help text
 
 ## Connections
 
-- **Location:** `crates/myrn/src/main.rs:32-129`
+- **Location:** `crates/myrn/src/main.rs:32-206`
 - **Signature:** `enum Command`
 - **In:** [[file-crates-myrn-src-main-rs]]

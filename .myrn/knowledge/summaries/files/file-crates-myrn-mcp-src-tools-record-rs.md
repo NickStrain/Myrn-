@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-mcp/src/tools/record.rs
 
-MCP tool handler for the `record` tool: `spec()` builds the JSON tool schema (item types, evidence, relations, and a batch `items` array), and `call()` forwards arguments to the engine and renders one or several record outcomes.
+Defines the MCP `record` tool: spec() returns its JSON tool definition with the input schema, and call() passes arguments to the engine and formats one or more per-item outcomes as text.
 
 ## Connections
 

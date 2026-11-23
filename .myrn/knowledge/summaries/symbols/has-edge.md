@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/notes.rs#has_edge
 anchors:
 - sym:crates/myrn-engine/tests/notes.rs#has_edge@7238e2732f048541
+map_version: '2'
 ---
 # has_edge
 
-Returns true if an edges row exists with the exact src, rel and dst values; uses query_row, so any error (including no row) yields false.
+Returns true when an edge row exists with the exact source id, relation name and destination id.
+
+## Behaviour
+
+- ('bug-7f3a91', 'related', 'fact-c0ffee') with that edge present -> true
+- matching is exact and case-sensitive, with no wildcards
+- absent edge or any database error -> false, so errors are hidden
+
+## Terms
+
+edge exists, relation check, edge lookup, link present, typed edge
 
 ## Connections
 

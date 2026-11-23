@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/tools/record.rs#tools::record::call
 anchors:
 - sym:crates/myrn-mcp/src/tools/record.rs#tools::record::call@25d5e23ca898c70f
+map_version: '2'
 ---
 # record::call
 
-Passes `args` to `engine.record_any_json` and returns the rendered outcome for a single item. For multiple items it returns "N of M items stored." followed by each item's rendering, numbered from 1. Errors from the engine are propagated with `?`.
+Stores the record arguments through the engine and returns either the single outcome's text or a count line followed by each item's outcome.
+
+## Behaviour
+
+- one outcome -> that outcome's render() text alone, with no count line
+- 3 outcomes, 2 accepted -> "2 of 3 items stored." then a blank line and "Item 1: ..." for each item
+- engine error from record_any_json -> propagated via ?, no text returned
+
+## Terms
+
+store records, batch result, record outcome, stored count, item summary, multi-item response
 
 ## Connections
 

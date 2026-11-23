@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/capture/mod.rs
 
-Session capture: turns normalized agent events into redacted episode log entries (the module doc says capture is off until consent). It holds the path rules (repo-relative only, no .git, gitignore filtering), text cleaning for prompts, commands and errors, and the unit tests for them.
+Session capture for the episode log: turns normalized events into redacted, repo-relative log entries, and drops paths outside the repo or matched by `.myrn/ignore`. Main parts are `to_entry` (event to entry), the text cleaners `clean` and `hide_ignored`, the path helpers `is_ignored`, `relative` and `normalize`, and unit tests. Submodules are consent, episode, outcome and redact.
 
 ## Connections
 

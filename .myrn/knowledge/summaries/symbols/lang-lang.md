@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang@5823b7fbec518f45
+map_version: '2'
 ---
 # lang::Lang
 
-Enum of the five supported language variants. Lang::ALL lists all of them in declaration order and is the source for parse_name.
+Enum of the five supported languages. It is Copy and hashable, and ALL lists the variants in declaration order.
+
+## Behaviour
+
+- Lang::ALL -> [Rust, Python, JavaScript, TypeScript, Tsx]
+- JavaScript, TypeScript and Tsx are separate variants with separate grammars
+
+## Terms
+
+language, supported language, file language, language kind, language variant
 
 ## Connections
 

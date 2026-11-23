@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/query.rs#cmd::query::context
 anchors:
 - sym:crates/myrn/src/cmd/query.rs#cmd::query::context@cdeb13738b43c85d
+map_version: '2'
 ---
 # query::context
 
-Calls engine.context(task, budget) with an optional token budget and emits the result. If the returned text is empty, the text output says no relevant code-graph context was found; otherwise it prints the text followed by the token count and item count.
+Builds a context pack for a task string and emits its text with a token and item count, or a fixed message when nothing relevant is found.
+
+## Behaviour
+
+- task: &str, budget: None -> engine.context(task, None), uses the engine's default budget
+- p.text empty -> prints fixed message 'Nothing in the code graph is clearly relevant; an agent would get no injected context.'
+- p.text non-empty -> prints text, then '[N tokens, M items]' with p.tokens and p.items.len()
+
+## Terms
+
+injected context, prompt context, relevant code, token budget, task context, agent context
 
 ## Connections
 

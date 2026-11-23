@@ -6,14 +6,25 @@ title: cards::Known
 source: myrn summarize
 about: sym:crates/myrn-engine/src/pack/cards.rs#pack::cards::Known
 anchors:
-- sym:crates/myrn-engine/src/pack/cards.rs#pack::cards::Known@7289b78915d59be2
+- sym:crates/myrn-engine/src/pack/cards.rs#pack::cards::Known@b69659a7a29b796a
+map_version: '2'
 ---
 # cards::Known
 
-Learned record attached to a symbol (facts, decisions, root causes, bugs), with id, status, and title. The ntype field serializes as `type`.
+A learned record attached to a symbol card, with id, type, status, title and a from field saying whether it is shared or private, who wrote it and when. The ntype field is serialised as "type".
+
+## Behaviour
+
+- ntype serialises to the JSON key "type"
+- from is free text from the source record, shown in parentheses by line()
+- status is a plain string, not an enum
+
+## Terms
+
+learned record, memory entry, decision, root cause, bug note
 
 ## Connections
 
-- **Location:** `crates/myrn-engine/src/pack/cards.rs:50-56`
+- **Location:** `crates/myrn-engine/src/pack/cards.rs:50-58`
 - **Signature:** `pub struct Known`
 - **In:** [[file-crates-myrn-engine-src-pack-cards-rs]]

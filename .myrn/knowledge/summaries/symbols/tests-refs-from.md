@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::tests::refs_from
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::tests::refs_from@746f987573f90cd1
+map_version: '2'
 ---
 # tests::refs_from
 
-Test helper: collects (kind, name, qualifier) for refs whose `from` is the def with the given qname.
+Test helper that returns (kind, name, qualifier) for every Ref whose caller is the named Def.
+
+## Behaviour
+
+- Refs inside a nested def belong to that nested def, not the outer one
+- An unknown qname panics through unwrap on the position lookup
+- Returns cloned values in the order they were recorded
+
+## Terms
+
+refs from def, callers, call list, test assertion helper, outgoing calls
 
 ## Connections
 

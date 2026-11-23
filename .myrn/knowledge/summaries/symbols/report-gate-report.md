@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/report.rs#report::gate
 anchors:
 - sym:bench/src/report.rs#report::gate@7208c0e44b69bf6e
+map_version: '2'
 ---
 # report::gate
 
-Gate 1 verdict: compares Condition::With (inject on) against Condition::Without on task tokens.
+Gate 1 check: compares myrn with injection on (b) against no myrn (a) using compare.
+
+## Behaviour
+
+- Equivalent to compare(runs, Without, With)
+- No complete pairs -> Verdict NoData
+- A negative token change means injection used fewer tokens
+
+## Terms
+
+gate one, injection check, inject on, myrn gate, default decision
 
 ## Connections
 

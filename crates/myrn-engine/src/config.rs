@@ -104,7 +104,7 @@ impl Default for SummarizeConfig {
             ]
             .map(String::from)
             .to_vec(),
-            jobs: 4,
+            jobs: 16,
         }
     }
 }

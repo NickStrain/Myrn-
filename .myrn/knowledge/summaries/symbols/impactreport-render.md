@@ -7,14 +7,25 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/pack/cards.rs#pack::cards::ImpactReport::render
 anchors:
 - sym:crates/myrn-engine/src/pack/cards.rs#pack::cards::ImpactReport::render@bf2903b92cb8b1ac
+map_version: '2'
 ---
 # ImpactReport::render
 
-Renders the impact report: header with target name and location, a member count note, direct callers, indirect callers labeled with hop count, importers, and a combined tests list where indirect entries show 'via N hops'. The summary line gives counts and appends '(walk truncated)' when truncated is set.
+Produces the blast-radius text for a target: header, member count, direct and indirect callers with hop counts, importers, tests with hop tags, and a summary line with counts and a truncation note. The tests list always appears, showing none found when empty.
+
+## Behaviour
+
+- indirect callers print as "name [N hops]"; indirect tests print as "name [via N hops]"
+- summary counts direct callers, indirect callers, combined tests and files_affected as given
+- truncated true -> summary ends with "(walk truncated)"
+
+## Terms
+
+impact text, blast radius report, change impact view, hop count, affected summary
 
 ## Connections
 
-- **Location:** `crates/myrn-engine/src/pack/cards.rs:281-333`
+- **Location:** `crates/myrn-engine/src/pack/cards.rs:288-340`
 - **Signature:** `pub fn render(&self, limit: usize) -> String`
 - **In:** [[file-crates-myrn-engine-src-pack-cards-rs]]
 - **Calls:** [[cards-row]], [[cards-list]]

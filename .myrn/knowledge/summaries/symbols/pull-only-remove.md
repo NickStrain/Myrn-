@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/pull_only.rs#pull_only::remove
 anchors:
 - sym:crates/myrn-adapters/src/pull_only.rs#pull_only::remove@e899c337db615901
+map_version: '2'
 ---
 # pull_only::remove
 
-Returns false if the file is missing or has no START marker. Otherwise it strips the block and either deletes the file (when delete_if_empty is set and the remaining text is blank) or rewrites it, returning true. If START exists but END does not, strip returns the text unchanged, so the file is rewritten identically and true is still returned.
+Removes the marker block from the file and writes the rest back. It can delete the file when myrn created it and nothing else is left. It returns true when it writes or deletes, and false when there is nothing to do.
+
+## Behaviour
+
+- missing file or no START marker -> false, file untouched
+- delete_if_empty true and remaining text is blank -> file deleted, returns true
+- START present but END missing -> text written back unchanged, still returns true
+
+## Terms
+
+uninstall, delete block, clean up, delete file if empty, remove marker, revert
 
 ## Connections
 

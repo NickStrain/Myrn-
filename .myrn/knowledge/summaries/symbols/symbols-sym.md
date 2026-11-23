@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Sym
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Sym@0a1ef391e729200d
+map_version: '2'
 ---
 # symbols::Sym
 
-The resolver's view of one symbol or test row (id, qname, name, kind, path, lang, is_test); qname may carry a `#n` collision suffix that base_qname strips.
+Holds one symbol or test node as the resolver sees it: id, qualified name, short name, kind, file path, language and is_test flag.
+
+## Behaviour
+
+- qname may end in a '#n' collision suffix; base_qname strips it
+- is_test is true only for test nodes; callable() rejects them
+
+## Terms
+
+symbol record, node row, test flag, collision suffix, qualified name
 
 ## Connections
 

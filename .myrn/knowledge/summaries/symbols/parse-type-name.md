@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::type_name
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::type_name@96a5ef56236be2e5
+map_version: '2'
 ---
 # parse::type_name
 
-Parses a type annotation to a bare nominal name, dropping &, mut, dyn, generics, and module paths; returns None for lowercase names, unions, and common wrappers like Option, Vec, Box, Rc, Arc, and Dict.
+Reduces a type annotation to its bare nominal name, or None when it is not a plain capitalised name.
+
+## Behaviour
+
+- &mut Engine gives Some('Engine'); ': Foo' gives Some('Foo'); crate::a::Db gives Some('Db')
+- Vec<T>, Option<T> and Self give None; string gives None because it is lowercase
+- Foo | Bar gives None because the name contains non-alphanumeric characters; Foo[] gives Some('Foo')
+
+## Terms
+
+type annotation, nominal type, bare type, type normalisation, capitalised type, type hint
 
 ## Connections
 

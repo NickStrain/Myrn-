@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/distill/checks.rs
 
-Validates records written by an agent: checks the record type and relation against closed vocabularies, parses test commands from shell lines, and resolves each reference (note id, commit sha, symbol, test, file) against the code graph and notes, returning either a resolved Ref or a message the agent can act on. The Engine methods at the bottom do the resolution and evidence checking.
+Validates record fields against the closed record-type and relation vocabularies, and resolves the references a record cites (about, located_in, evidence, relation targets) to code-graph nodes, commits or notes. Each failure comes back as a sentence the agent can act on.
 
 ## Connections
 

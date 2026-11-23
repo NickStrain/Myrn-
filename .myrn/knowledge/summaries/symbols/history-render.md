@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/tools/history.rs#tools::history::render
 anchors:
 - sym:crates/myrn-mcp/src/tools/history.rs#tools::history::render@606b639022a43138
+map_version: '2'
 ---
 # history::render
 
-Formats entries one per line as `<7-char sha> <YYYY-MM-DD> <summary>[ [change]] (<author>)`, with the date derived from `time` in seconds (floor-divided by 86400). Returns `No indexed commits touch this.` followed by a newline when the list is empty, and preserves the input order.
+Formats each commit as one line: 7-character short SHA, date, summary, optional bracketed change tag, then author in parentheses.
+
+## Behaviour
+
+- empty entries -> the line 'No indexed commits touch this.' with a trailing newline
+- change Some(c) -> ' [c]' appended after the summary; None -> nothing added
+- SHA shorter than 7 bytes -> the whole SHA is used; time is floored to whole days (div_euclid 86400) before date conversion
+
+## Terms
+
+format commits, log output, commit line, text output, short SHA, commit listing
 
 ## Connections
 

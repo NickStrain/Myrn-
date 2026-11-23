@@ -6,11 +6,11 @@ title: crates/myrn-store/src/db.rs
 source: myrn summarize
 about: file:crates/myrn-store/src/db.rs
 anchors:
-- file:crates/myrn-store/src/db.rs@4d76372cccc3a7a3
+- file:crates/myrn-store/src/db.rs@ddc48660e4a11830
 ---
 # crates/myrn-store/src/db.rs
 
-Opens the memory.db SQLite database and brings its schema up to date. It embeds three migration SQL files, defines SCHEMA_VERSION as their count, and provides the Db wrapper with open helpers, schema version and migration logic, a key-value meta table accessor, and a quick integrity check.
+Opens the memory.db SQLite file, or an in-memory database for tests, sets connection pragmas, and applies numbered schema migrations tracked by PRAGMA user_version. It also provides key-value storage in the meta table and a quick_check integrity test; the Db.conn field is public and exposes the raw rusqlite Connection.
 
 ## Connections
 

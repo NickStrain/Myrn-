@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::rust_path
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::rust_path@d550d2b9a3b43452
+map_version: '2'
 ---
 # Resolver::rust_path
 
-Resolves a Rust segment list anchored at crate, self, super, a known crate name, or the current module scope to (module file, full qname). Unanchored paths try the scope and then the crate root, and a match is accepted only if the symbol exists in that crate.
+Resolves a Rust path's segments against the current file and scope to the module file that defines it and the full qualified name.
+
+## Behaviour
+
+- 'crate::store::X' -> the store module file and 'store::X' in the same crate
+- 'super::f' with scope 'a::b' -> 'a::f'
+- unknown first segment -> tries the current module, then the crate root, requiring a lookup hit in the crate
+
+## Terms
+
+module path, use path, scope resolution, crate root, super and self, path segments
 
 ## Connections
 

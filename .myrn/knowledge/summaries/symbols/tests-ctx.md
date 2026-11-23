@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::tests::ctx
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::tests::ctx@a1a83742755497b9
+map_version: '2'
 ---
 # tests::ctx
 
-Test helper that builds an InstallCtx at the given root with binary /opt/myrn/bin/myrn and run_agent_cli false, so tests never invoke the real claude CLI.
+Test helper that builds an InstallCtx for a given repo root with a fixed fake binary path and run_agent_cli set to false.
+
+## Behaviour
+
+- root directory -> binary /opt/myrn/bin/myrn, and no claude CLI calls
+- Keeps the tests from touching the real claude configuration
+
+## Terms
+
+test fixture, test context, fake binary, test setup
 
 ## Connections
 

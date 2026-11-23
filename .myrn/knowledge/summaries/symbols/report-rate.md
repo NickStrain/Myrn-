@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/report.rs#report::rate
 anchors:
 - sym:bench/src/report.rs#report::rate@68edd1eb472fcf54
+map_version: '2'
 ---
 # report::rate
 
-Fraction of runs with success set to true, or None for an empty slice.
+Returns the fraction of runs in the slice whose success flag is true, or None for an empty slice.
+
+## Behaviour
+
+- [] -> None
+- two runs, one successful -> Some(0.5)
+- Does not filter errored runs, so callers pass valid runs only
+
+## Terms
+
+success rate, pass fraction, task success, success share
 
 ## Connections
 

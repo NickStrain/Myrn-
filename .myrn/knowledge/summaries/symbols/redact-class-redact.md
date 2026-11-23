@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::class
 anchors:
 - sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::class@7c60459fc16e9ba4
+map_version: '2'
 ---
 # redact::class
 
-Maps a char to its Class using ASCII checks; anything that is not ASCII letter or digit becomes Other.
+Maps a char to its Class. Only ASCII letters and digits get their own class.
+
+## Behaviour
+
+- 'q' -> Lower, 'Q' -> Upper, '7' -> Digit
+- '_', '-', '/' -> Other
+- Non-ASCII letters such as 'é' -> Other
+
+## Terms
+
+character classification, char kind, ascii bucket, case mapping
 
 ## Connections
 

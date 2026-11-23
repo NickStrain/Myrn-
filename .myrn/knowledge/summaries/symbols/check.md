@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#check
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#check@877b931b2d908097
+map_version: '2'
 ---
 # check
 
-Asserts exact set equality of the card's calls, called_by and tests against the Expect fields. Requires every call and caller link to have status 'resolved'. Then asserts impact direct_callers equals called_by, and the union of direct and indirect test ids equals all_tests. Any missing or extra edge fails the test with the symbol id in the message.
+Asserts that explain and impact for one symbol match an Expect exactly, and that every call and caller link has status resolved.
+
+## Behaviour
+
+- calls, callers, and tests from explain must equal the expected sets with no extras
+- any call or caller link with a status other than resolved, including None -> assertion failure
+- impact direct_callers must equal called_by, and direct plus indirect tests must equal all_tests
+
+## Terms
+
+assert answers, compare graph, exact match, resolution check, gate check
 
 ## Connections
 

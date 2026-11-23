@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/notes.rs#node
 anchors:
 - sym:crates/myrn-engine/tests/notes.rs#node@e5e1b20f2f7db26d
+map_version: '2'
 ---
 # node
 
-Looks up a graph node by id through graph::node on the engine's DB connection, returning None when absent; panics on DB error.
+Looks up a graph node by id in the engine's database and returns it if present.
+
+## Behaviour
+
+- existing id -> Some(graph::Node)
+- unknown id -> None
+- database error -> panics
+
+## Terms
+
+lookup node, find node, graph node, fetch node
 
 ## Connections
 

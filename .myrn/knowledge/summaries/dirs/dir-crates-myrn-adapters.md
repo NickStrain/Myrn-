@@ -6,11 +6,11 @@ title: crates/myrn-adapters/
 source: myrn summarize
 about: module:crates/myrn-adapters
 anchors:
-- module:crates/myrn-adapters@bee92d022f7945f3
+- module:crates/myrn-adapters@50e9272f984eea43
 ---
 # crates/myrn-adapters/
 
-Per-agent integration layer for myrn: adapter.rs defines the Adapter trait (detect, install, uninstall, inspect, payload translation, output formatting) plus shared JSON and hook-editing helpers, and lib.rs exposes the registry (all, by_name) over the claude_code and codex implementations. pull_only.rs manages the marked instruction block that tells agents to call the MCP `context` tool, and detect.rs locates installed agents and PATH binaries.
+Adapter layer for myrn, with one module per coding agent (Claude Code, Codex) plus shared code. adapter.rs defines the Adapter trait and shared types (InstallCtx, Mode, Change, Installed, Finding) with JSON and hook-list helpers; lib.rs re-exports them and provides the registry lookups all() and by_name(); detect.rs finds home directories and executables, and pull_only.rs manages the marked context block in instruction files.
 
 ## Connections
 

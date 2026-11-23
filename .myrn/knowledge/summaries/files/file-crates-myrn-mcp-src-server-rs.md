@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-mcp/src/server.rs
 
-JSON-RPC 2.0 server over stdio that reads one message per line, dispatches initialize, ping, tools/list and tools/call to the tools module, and writes protocol responses only to stdout.
+JSON-RPC 2.0 server over stdio, one message per line, with protocol output on stdout and diagnostics on stderr. Contains the stdin loop, batch and single-message dispatch, the initialize, ping, tools/list and tools/call handlers, and the error envelope builder.
 
 ## Connections
 

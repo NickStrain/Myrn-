@@ -6,11 +6,11 @@ title: tests/fixtures/repos/gate0/py/
 source: myrn summarize
 about: module:tests/fixtures/repos/gate0/py
 anchors:
-- module:tests/fixtures/repos/gate0/py@8100a8be7c2a3628
+- module:tests/fixtures/repos/gate0/py@7be45d39e25d4a65
 ---
 # tests/fixtures/repos/gate0/py/
 
-Fixture package for the gate0 Python test repo, used to exercise token refresh logic. app/session.py's Session(token, issued_at) reports freshness, and refresh(token_store, token) returns a new Session only when the store contains the token and the session is fresh; app/store.py's TokenStore is an unbounded in-memory list of issued tokens with append and membership checks, and now() is a stub returning a fixed value. tests/test_session.py::test_refresh_known_token seeds a TokenStore with "abc" and asserts refresh(store, "abc") is non-None.
+Fixture Python package and test for the gate0 test repo's session-token refresh path. app/ holds a session-token model (session.py), an in-memory token registry (store.py), and an empty __init__.py; session.refresh() looks a token up in a TokenStore and issues a new Session, with timestamps from now() in store.py. tests/ has one test, test_refresh_known_token, which seeds a TokenStore with "abc" and asserts refresh(store, "abc") returns non-None.
 
 ## Connections
 

@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::myrn_index_lang
 anchors:
 - sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::myrn_index_lang@93dbf5d1ccb3fb08
+map_version: '2'
 ---
 # seed::myrn_index_lang
 
-Returns true if the query's path extension maps to a language the indexer supports (via `indexer::lang::Lang::from_path`); used by `find` to decide whether a bare filename should be treated as a file lookup.
+Returns true when the indexer has a language for the file extension of the given text.
+
+## Behaviour
+
+- main.rs -> true when Rust is an indexed language
+- notes.txt -> false when no language matches the extension
+
+## Terms
+
+language extension, indexed file, file type, supported suffix
 
 ## Connections
 

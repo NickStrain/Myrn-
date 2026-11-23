@@ -6,14 +6,25 @@ title: config::Config
 source: myrn summarize
 about: sym:crates/myrn-engine/src/config.rs#config::Config
 anchors:
-- sym:crates/myrn-engine/src/config.rs#config::Config@1c0d6897654dfe2f
+- sym:crates/myrn-engine/src/config.rs#config::Config@d049313668f29be5
+map_version: '2'
 ---
 # config::Config
 
-Top-level project configuration with five sections (project, index, context, records, summarize), each falling back to its default when absent from the TOML.
+Root settings type with one field per project.toml section. Each section falls back to its Default when absent.
+
+## Behaviour
+
+- empty file -> every section takes its default
+- missing [ranking] table -> RankingConfig::default values
+- unknown keys are not rejected here (no deny_unknown_fields)
+
+## Terms
+
+project settings, configuration root, toml sections, project.toml, defaults
 
 ## Connections
 
-- **Location:** `crates/myrn-engine/src/config.rs:9-20`
+- **Location:** `crates/myrn-engine/src/config.rs:9-24`
 - **Signature:** `pub struct Config`
 - **In:** [[file-crates-myrn-engine-src-config-rs]]

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::check_type
 anchors:
 - sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::check_type@0d9fb2398cb3446f
+map_version: '2'
 ---
 # checks::check_type
 
-Returns a error message listing RECORD_TYPES if the kind is not in that closed set, otherwise None.
+Returns an error message if the record type is not in RECORD_TYPES, otherwise None.
+
+## Behaviour
+
+- "finding" when finding is listed -> None
+- "Finding" -> Some message, because the check is case-sensitive
+- message lists the allowed types and echoes the bad value
+
+## Terms
+
+record type, closed vocabulary, type validation, allowed types
 
 ## Connections
 

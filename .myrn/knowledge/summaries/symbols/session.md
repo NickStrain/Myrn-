@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/records.rs#session
 anchors:
 - sym:crates/myrn-engine/tests/records.rs#session@88a42a0034715153
+map_version: '2'
 ---
 # session
 
-Appends a four-entry episode under the given id (session_start, failing pytest run, file_edit of pkg/recipes.py with unique_everseen as its symbol, passing pytest run) to the episodes dir, then reindexes episodes.
+Appends four episode entries for the given session id (start, failing pytest run, file_edit of pkg/recipes.py on unique_everseen, passing pytest run) and then reindexes episodes.
+
+## Behaviour
+
+- id 's1' -> four entries appended to the s1 episode log, then reindex
+- first pytest run has test 'fail', second has test 'pass'
+- append error -> panic
+
+## Terms
+
+recorded session, episode log, test run, failing then passing, replay events, fixture episode
 
 ## Connections
 

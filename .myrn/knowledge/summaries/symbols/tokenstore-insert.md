@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/py/app/store.py#tests.fixtures.repos.gate0.py.app.store.TokenStore.insert
 anchors:
 - sym:tests/fixtures/repos/gate0/py/app/store.py#tests.fixtures.repos.gate0.py.app.store.TokenStore.insert@193e38c5ecdc6366
+map_version: '2'
 ---
 # TokenStore::insert
 
-Appends the given token to `self.tokens` without checking for duplicates; returns None and mutates store state.
+Appends the token to self.tokens. Does not check for duplicates and returns nothing.
+
+## Behaviour
+
+- insert('x') twice -> list contains 'x' twice
+- insert returns None
+- insert mutates the store in place; no copy is made
+
+## Terms
+
+add token, append, store token, record token, issue token, save token
 
 ## Connections
 

@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/record.rs#record::EdgeStatus::as_str
 anchors:
 - sym:crates/myrn-model/src/record.rs#record::EdgeStatus::as_str@55e20b68329695e9
+map_version: '2'
 ---
 # EdgeStatus::as_str
 
-Returns "resolved" or "inferred" for the variant using an exhaustive match.
+Returns the lowercase string name of an EdgeStatus variant as a static str.
+
+## Behaviour
+
+- EdgeStatus::Resolved -> 'resolved'
+- EdgeStatus::Inferred -> 'inferred'
+
+## Terms
+
+edge label, confidence string, provenance text, display name, serialized edge value
 
 ## Connections
 

@@ -6,11 +6,11 @@ title: crates/myrn-mcp/tests/
 source: myrn summarize
 about: module:crates/myrn-mcp/tests
 anchors:
-- module:crates/myrn-mcp/tests@01adff6f57d4f7ce
+- module:crates/myrn-mcp/tests@c59607e530603d81
 ---
 # crates/myrn-mcp/tests/
 
-Integration test directory for the myrn-mcp server. protocol.rs exercises the JSON-RPC surface in-process: initialize handshake, notifications, tools/list, tools/call, and error codes, with its tools answering from an indexed git fixture repo. Helpers `engine` and `call` build that fixture and drive `handle_line`.
+Integration tests for the myrn-mcp server's JSON-RPC layer, run against a temporary git repo containing a small Rust source file. protocol.rs covers the initialize handshake, the tools/list names, tool calls answered from the graph, and the JSON-RPC error codes -32602, -32601 and -32700; the engine and call helpers at the top of the file set up the server and send requests.
 
 ## Connections
 

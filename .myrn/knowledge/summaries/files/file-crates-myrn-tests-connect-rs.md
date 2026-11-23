@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/tests/connect.rs
 
-Integration test driving the real `myrn` binary end to end as an agent would: init, `connect --agent` consent gating, Claude/Codex hooks (SessionStart, UserPromptSubmit, PostToolUse, Stop) with injection and per-session dedupe, `doctor` drift detection, `--pull-only` Codex setup, `disconnect`, and the episode log with secret redaction, ignore paths, and `show episode:` graph checks. Helpers `setup`, `Env`, `hook`, `settings`, and `text` build a temp git repo and run the binary with MYRN_HOME pointed at a temp dir.
+Integration test that drives the real myrn binary end to end: init, connect with consent, hook payloads on stdin, doctor, pull-only Codex setup, and disconnect. Its two tests share the helpers below, which build a temp git repo and run myrn against it.
 
 ## Connections
 

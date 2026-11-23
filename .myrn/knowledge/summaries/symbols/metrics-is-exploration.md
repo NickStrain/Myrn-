@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/metrics.rs#metrics::is_exploration
 anchors:
 - sym:bench/src/metrics.rs#metrics::is_exploration@706bd8a077952502
+map_version: '2'
 ---
 # metrics::is_exploration
 
-Returns true for read/search tools, myrn MCP tools, and Bash commands where a segment is a look-only command (cat, grep, git log, etc.) and not a write segment.
+Decides whether one tool call only reads or searches, counting Read, Grep, Glob, LS, NotebookRead, myrn tools, and Bash commands whose segments are read-only look commands.
+
+## Behaviour
+
+- Edit or Write -> false
+- Bash 'sed -i ...' -> false, since the segment is a write
+- Bash 'grep x && sed -i ...' -> true, because the grep segment counts as a look
+
+## Terms
+
+reconnaissance, read-only tool, search call, look command, navigation
 
 ## Connections
 

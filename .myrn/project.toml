@@ -29,4 +29,4 @@ failure_budget = 500
 [summarize]
 # Model command for `myrn summarize` (prompt on stdin, answer on stdout).
 command = ["claude", "-p", "--model", "haiku", "--tools", "", "--no-session-persistence", "--output-format", "json"]
-jobs = 4
+jobs = 16

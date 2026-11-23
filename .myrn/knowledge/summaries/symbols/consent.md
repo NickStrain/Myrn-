@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/records.rs#consent
 anchors:
 - sym:crates/myrn-engine/tests/records.rs#consent@70c8e0cdb3f4f988
+map_version: '2'
 ---
 # consent
 
-Sets capture_consent to true and registers a 'claude' agent in hooks mode in the engine state, then saves it so events are captured.
+Turns on capture consent in the engine state and registers a 'claude' agent in hooks mode with no written or created files, then saves the state.
+
+## Behaviour
+
+- any engine -> state with capture_consent true and claude in hooks mode
+- existing claude entry -> replaced, since HashMap insert overwrites
+- save failure -> panic
+
+## Terms
+
+opt in, enable capture, hooks mode, agent connection, grant permission, state setup
 
 ## Connections
 

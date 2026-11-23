@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/adapter.rs#adapter::write_json
 anchors:
 - sym:crates/myrn-adapters/src/adapter.rs#adapter::write_json@d09d8394040f25b8
+map_version: '2'
 ---
 # adapter::write_json
 
-Writes a value as pretty-printed JSON with a trailing newline, creating parent directories first and overwriting any existing file.
+Writes a JSON value as pretty-printed text with a trailing newline, creating parent directories first.
+
+## Behaviour
+
+- Missing parent directories -> created, then file written
+- Existing file -> overwritten entirely
+- Output always ends with a newline
+
+## Terms
+
+save json, pretty print, create directories, persist config
 
 ## Connections
 

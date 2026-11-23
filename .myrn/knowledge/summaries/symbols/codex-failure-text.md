@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::failure_text
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::failure_text@8d69217a77df3421
+map_version: '2'
 ---
 # codex::failure_text
 
-Returns an error message when a tool response indicates failure, and None otherwise. A nonzero exit_code or exitCode yields 'Exit code N' followed by stderr or output, a non-null error is returned as text, and success false returns the whole response. Codex documents no failure event, so this inference is the only failure signal.
+Returns error text for a tool response when it reports failure, otherwise None. It checks exit_code or exitCode first, then error, then success == false.
+
+## Behaviour
+
+- exit_code 101 with stderr 'boom' -> 'Exit code 101' then 'boom'
+- exit_code 0 -> None, and error is not checked
+- error null -> not a failure; success false -> the whole response as JSON text
+
+## Terms
+
+tool failure, non-zero exit, error message, command failed
 
 ## Connections
 

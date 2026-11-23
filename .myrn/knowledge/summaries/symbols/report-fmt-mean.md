@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/report.rs#report::fmt_mean
 anchors:
 - sym:bench/src/report.rs#report::fmt_mean@391053e10b8182bd
+map_version: '2'
 ---
 # report::fmt_mean
 
-Formats the mean ± 95% CI to the requested decimal digits, omitting the ± part when no CI exists and rendering '–' for empty input.
+Formats the mean and 95% interval of a slice as 'mean ± interval' with a fixed number of decimal places.
+
+## Behaviour
+
+- [] -> the en dash placeholder
+- No interval available -> mean alone, without the ± part
+- digits sets the decimal places for both mean and interval
+
+## Terms
+
+mean with interval, decimal places, en dash placeholder, stat cell, formatted statistic
 
 ## Connections
 

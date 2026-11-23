@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/server.rs#server::handle
 anchors:
 - sym:crates/myrn-mcp/src/server.rs#server::handle@8af4d0f49aa47f82
+map_version: '2'
 ---
 # server::handle
 
-Routes a single message by method and returns None for notifications (messages without an id); initialize echoes the client's protocolVersion if it is supported and otherwise falls back to 2025-06-18, tool execution failures come back as successful results with isError true, an unknown tool name yields error -32602, and an unknown method yields error -32601.
+Routes one JSON-RPC message by method name (initialize, ping, tools/list, tools/call) and returns None when the message has no id.
+
+## Behaviour
+
+- no id field -> None, no response; id null is still a request and gets a response
+- initialize with a missing or unsupported protocolVersion -> answers 2025-06-18; a supported version is echoed back
+- tools/call tool error -> success result with isError true; unknown tool -> -32602; unknown method -> -32601
+
+## Terms
+
+dispatch, method router, notification, protocol version negotiation, handshake, tool call, tools list, unknown method
 
 ## Connections
 

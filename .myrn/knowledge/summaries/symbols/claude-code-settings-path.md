@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::settings_path
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::settings_path@e60c6e927427fc69
+map_version: '2'
 ---
 # claude_code::settings_path
 
-Returns root/.claude/settings.local.json, the per-developer file where hooks are written and which is not committed.
+Returns the path .claude/settings.local.json under the repo root. The file is per developer and not committed.
+
+## Behaviour
+
+- /repo -> /repo/.claude/settings.local.json
+- Does not check that the file or directory exists
+
+## Terms
+
+settings file, local settings, hook config path
 
 ## Connections
 

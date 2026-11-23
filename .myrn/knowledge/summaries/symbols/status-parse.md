@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/record.rs#record::Status::parse
 anchors:
 - sym:crates/myrn-model/src/record.rs#record::Status::parse@690f2edc3e5a1529
+map_version: '2'
 ---
 # Status::parse
 
-Looks up a string by linear search over the ALL constant and returns None for unknown input. Matching is case-sensitive, and a new variant that is not added to ALL will never parse, even though as_str handles it.
+Looks up a Status by its exact string name, returning None if no variant matches.
+
+## Behaviour
+
+- 'verified' -> Some(Verified)
+- 'Verified' or 'VERIFIED' -> None, since matching is case-sensitive
+- '' or any unlisted string -> None
+
+## Terms
+
+string to status, from string, lookup by name, exact match, case-sensitive lookup, invalid status
 
 ## Connections
 

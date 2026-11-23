@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/py/app/store.py#tests.fixtures.repos.gate0.py.app.store.TokenStore.__init__
 anchors:
 - sym:tests/fixtures/repos/gate0/py/app/store.py#tests.fixtures.repos.gate0.py.app.store.TokenStore.__init__@08b821d5c881bf6c
+map_version: '2'
 ---
 # TokenStore::__init__
 
-Creates an empty instance list `self.tokens`; takes no arguments and has no side effects beyond initializing that attribute.
+Creates the store with an empty list at self.tokens.
+
+## Behaviour
+
+- TokenStore() -> self.tokens is []
+- each instance gets its own new list, not shared state
+
+## Terms
+
+constructor, initialise, empty list, setup
 
 ## Connections
 

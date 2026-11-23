@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/mod.rs#cmd::Ctx
 anchors:
 - sym:crates/myrn/src/cmd/mod.rs#cmd::Ctx@7eac61cc6ee6510e
+map_version: '2'
 ---
 # cmd::Ctx
 
-Per-invocation context holding an optional data_dir override for the engine and a json flag that switches every command between JSON and human-readable output.
+Carries the global options for one invocation: an optional data directory and the JSON output flag.
+
+## Behaviour
+
+- data_dir None -> passed through as None to Engine::open, so the engine picks its default location
+- json true -> Ctx::emit prints pretty JSON; json false -> prints the text closure output
+- Fields are plain pub data; no validation happens in this struct
+
+## Terms
+
+options, global flags, context, settings, data directory, output mode, json flag
 
 ## Connections
 

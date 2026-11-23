@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/src/auth/session.rs#auth::session::refresh
 anchors:
 - sym:tests/fixtures/repos/gate0/src/auth/session.rs#auth::session::refresh@00915c0f5235174d
+map_version: '2'
 ---
 # session::refresh
 
-Takes a &TokenStore and a &str token, returns None if store.lookup fails, otherwise builds a new Session from the found value and returns it as Some only if is_fresh is true. Since new sets issued to the current time, the is_fresh check should always pass right after construction, so the None branch is effectively unreachable with a monotonic clock. It does not modify the store.
+Looks up a token in the store and, if found and the new session is fresh, returns Some(Session). Otherwise returns None.
+
+## Behaviour
+
+- unknown token -> None, via the ? on store.lookup
+- known token -> new Session created with issued = now, so is_fresh is true and result is Some
+- the is_fresh check always passes on a newly built session, so the None branch after the lookup is effectively unreachable
+
+## Terms
+
+renew session, reissue token, token lookup, session renewal, re-authenticate
 
 ## Connections
 

@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/paths.rs#paths::Layout::ignore_path
 anchors:
 - sym:crates/myrn-store/src/paths.rs#paths::Layout::ignore_path@c0dc29e153a7ce1e
+map_version: '2'
 ---
 # Layout::ignore_path
 
-Returns repo_dir/ignore.
+Returns the path to the ignore file inside the repo's `.myrn` directory.
+
+## Behaviour
+
+- -> <repo>/.myrn/ignore
+- pure path join; the file need not exist
+
+## Terms
+
+ignore file, ignore list, exclusions, excluded paths
 
 ## Connections
 

@@ -6,11 +6,11 @@ title: bench/src/report.rs
 source: myrn summarize
 about: file:bench/src/report.rs
 anchors:
-- file:bench/src/report.rs@655e692c25ac0c5c
+- file:bench/src/report.rs@de9a84e1a6761e81
 ---
 # bench/src/report.rs
 
-Aggregates benchmark RunRecords, pairs runs of two conditions by (task, run number), and computes the Gate 1 verdict from paired token differences and an exact sign test. It also renders the Markdown report: gate result, paired comparison table, all-task metrics, myrn session stats, per-task table, failed runs, and a hardcoded Method section.
+Aggregates benchmark run records into paired comparisons: it pairs runs by task and attempt, computes mean token differences with 95% intervals and a sign test, assigns the Gate 1 verdict, and renders the Markdown report. Main parts are the statistics helpers, compare_by and gate, and render with its small formatting helpers.
 
 ## Connections
 

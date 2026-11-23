@@ -6,13 +6,13 @@ title: crates/myrn-store/src/notes/
 source: myrn summarize
 about: module:crates/myrn-store/src/notes
 anchors:
-- module:crates/myrn-store/src/notes@4bfb9224dd18ce54
+- module:crates/myrn-store/src/notes@d337b053fbe98fd3
 ---
 # crates/myrn-store/src/notes/
 
-Markdown knowledge-note store: one note per file, named by content-hash id and Obsidian-compatible, and the source of truth for earned knowledge. mod.rs holds the write function and id/collision tests and re-exports Anchor, Evidence, Link, Note and Parsed; frontmatter.rs parses and renders the YAML header (parse never fails, returning defaults plus problems), layout.rs maps the note types to folders and builds Windows-safe file names, and wikilink.rs extracts [[wikilink]] targets from bodies as generic `related` edges.
+Markdown note storage for the myrn-store crate: mod.rs keeps one .md file per record in a per-type folder, named by content hash, and those files are the source of truth that sync indexes. layout.rs maps note types to folders and builds Windows- and Linux-safe file names, frontmatter.rs parses and writes the typed YAML header, and wikilink.rs extracts [[links]] from bodies, while directives.rs strips directive-shaped text and claims.rs flags opposing statements when records are published or linked.
 
 ## Connections
 
 - **In:** [[dir-crates-myrn-store-src]]
-- **Files:** [[file-crates-myrn-store-src-notes-frontmatter-rs]], [[file-crates-myrn-store-src-notes-layout-rs]], [[file-crates-myrn-store-src-notes-mod-rs]], [[file-crates-myrn-store-src-notes-wikilink-rs]]
+- **Files:** [[file-crates-myrn-store-src-notes-claims-rs]], [[file-crates-myrn-store-src-notes-directives-rs]], [[file-crates-myrn-store-src-notes-frontmatter-rs]], [[file-crates-myrn-store-src-notes-layout-rs]], [[file-crates-myrn-store-src-notes-mod-rs]], [[file-crates-myrn-store-src-notes-wikilink-rs]]

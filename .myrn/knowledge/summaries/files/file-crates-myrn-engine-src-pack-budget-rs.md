@@ -10,11 +10,11 @@ anchors:
 ---
 # crates/myrn-engine/src/pack/budget.rs
 
-Approximate token counting and a token-limited text accumulator for pack building. tokens() estimates a string's token count, and Budget collects text into a public out String while enforcing a limit. The file also has a unit test for the limit behavior.
+Token budget helper for packs. tokens() estimates a string's size as its character count divided by four, rounded up, and Budget is a bounded text accumulator that rejects any push that would exceed its token limit. The file also has one unit test for the limit.
 
 ## Connections
 
 - **Location:** `crates/myrn-engine/src/pack/budget.rs`
 - **In:** [[dir-crates-myrn-engine-src-pack]]
 - **Defines:** [[budget-tokens]], [[budget-budget]], [[budget-new]], [[budget-remaining]], [[budget-used]], [[budget-push]]
-- **Imported by:** [[file-crates-myrn-engine-src-api-rs]], [[file-crates-myrn-engine-src-pack-mod-rs]], [[file-crates-myrn-engine-src-pack-render-rs]], [[file-crates-myrn-engine-src-retrieve-recall-rs]]
+- **Imported by:** [[file-crates-myrn-engine-src-api-rs]], [[file-crates-myrn-engine-src-pack-mod-rs]], [[file-crates-myrn-engine-src-pack-render-rs]], [[file-crates-myrn-engine-src-retrieve-recall-rs]], [[file-crates-myrn-engine-src-validity-anchors-rs]]

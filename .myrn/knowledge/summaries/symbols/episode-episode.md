@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/episode.rs#capture::episode::Episode
 anchors:
 - sym:crates/myrn-engine/src/capture/episode.rs#capture::episode::Episode@6757464b81fc4455
+map_version: '2'
 ---
 # episode::Episode
 
-Per-session record with task (first prompt), prompt count, files_read and files_edited sets, symbols_touched, commands and errors (capped), tests_passed and tests_failed counts, last_test, commits, and started/ended timestamps. Derives Serialize; persist stores the full JSON in the node's extra field.
+Holds the per-session episode record: task, counts, file, symbol, command, error, test and commit collections. persist serializes it as JSON into the node's extra field.
+
+## Behaviour
+
+- Default value has empty collections, zero counts, and None for ended, task and last_test
+- ended and last_test stay None until a session_end entry or a test-tagged tool entry is folded
+- files_read, files_edited and symbols_touched are BTreeSets, so they serialize in sorted order
+
+## Terms
+
+session record, run record, session state, per-session data, task log, episode data
 
 ## Connections
 

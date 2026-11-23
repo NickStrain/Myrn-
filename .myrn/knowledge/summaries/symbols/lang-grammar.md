@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::grammar
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::grammar@c2b24410df892ad3
+map_version: '2'
 ---
 # Lang::grammar
 
-Returns the tree-sitter Language for the variant. TypeScript and Tsx use different grammars from the tree_sitter_typescript crate.
+Returns the tree-sitter Language for the variant. TypeScript and Tsx use different TypeScript grammars.
+
+## Behaviour
+
+- TypeScript -> LANGUAGE_TYPESCRIPT grammar
+- Tsx -> LANGUAGE_TSX grammar, distinct from TypeScript
+- JavaScript -> tree_sitter_javascript grammar
+
+## Terms
+
+tree-sitter, parser, syntax grammar, parse tree, language parser
 
 ## Connections
 

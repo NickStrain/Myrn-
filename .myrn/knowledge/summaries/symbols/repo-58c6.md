@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/records.rs#repo
 anchors:
 - sym:crates/myrn-engine/tests/records.rs#repo@a8b6bd3fb8396fba
+map_version: '2'
 ---
 # repo
 
-Builds the fixture by writing PY into a temp dir, git-initializing it, committing everything as 'fix unhashable items', and calling Engine::init with a temp home directory.
+Creates a temp directory with the PY package, commits it to a new git repo as 'fix unhashable items', and initialises an Engine there with home under the temp dir. Returns the bundled Repo.
+
+## Behaviour
+
+- no input -> Repo whose single commit contains every PY file
+- Engine::init second return value is discarded
+- any git, IO or engine failure -> panic via unwrap
+
+## Terms
+
+fixture repo, test repo setup, initial commit, git init, engine init, temp repo
 
 ## Connections
 

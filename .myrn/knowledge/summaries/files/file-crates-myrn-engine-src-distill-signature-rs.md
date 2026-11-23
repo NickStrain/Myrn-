@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/distill/signature.rs
 
-Error signature normalization for the distill module: turns raw compiler, panic, traceback, or generic error output into a stable (kind, message) Signature by picking the naming line and scrubbing volatile tokens (paths, line numbers, addresses, timestamps, ids, long numbers), so the same failure produces an identical string across machines. Includes the Signature type with text, word-splitting, and similarity methods, a regex-caching helper, and unit tests.
+Turns raw error output from compilers, panics, tracebacks and test runners into a Signature (kind plus scrubbed message), so the same failure from another machine or day compares equal. Main parts: the Signature type with text, words and similarity helpers, normalize as the entry point, pick which finds the error line, scrub which strips volatile parts, and unit tests.
 
 ## Connections
 

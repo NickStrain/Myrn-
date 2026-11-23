@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/notes.rs#body_hash
 anchors:
 - sym:crates/myrn-engine/tests/notes.rs#body_hash@f314ffa96164ecd9
+map_version: '2'
 ---
 # body_hash
 
-Returns the body_hash of the node with the given id; panics if the node is missing or has no body_hash.
+Returns the body_hash stored on the node with the given id, and panics if the node or hash is missing.
+
+## Behaviour
+
+- node with a body hash -> that hash string
+- unknown id -> panics on unwrap
+- node without a body hash -> panics
+
+## Terms
+
+content hash, body digest, node hash, text fingerprint
 
 ## Connections
 

@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::Class
 anchors:
 - sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::Class@4cef20f197cdf2c7
+map_version: '2'
 ---
 # redact::Class
 
-Character category used by looks_random: Lower, Upper, Digit or Other, all ASCII-based.
+Enum for the character category used by looks_random to count class switches and digits. It is private to this module.
+
+## Behaviour
+
+- Variants are Lower, Upper, Digit and Other
+- Used only inside looks_random through class()
+
+## Terms
+
+character category, char bucket, case and digit kind, class switch
 
 ## Connections
 

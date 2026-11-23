@@ -6,11 +6,11 @@ title: tests/fixtures/repos/gate0/src/auth/
 source: myrn summarize
 about: module:tests/fixtures/repos/gate0/src/auth
 anchors:
-- module:tests/fixtures/repos/gate0/src/auth@1f9aa25b89f352ae
+- module:tests/fixtures/repos/gate0/src/auth@13f6dd7db2a81e37
 ---
 # tests/fixtures/repos/gate0/src/auth/
 
-Auth package root for tests/fixtures/repos/gate0/src/auth/. mod.rs only declares the `session` submodule; the session logic (a Session type holding a token string and issued timestamp, plus a refresh function that looks the token up in a TokenStore and returns a fresh Session) lives in session.rs or session/mod.rs, with a unit test covering the unknown-token case.
+Auth module directory for the gate0 fixture repo. mod.rs only declares the `session` submodule; the real logic is in session.rs (or session/mod.rs, not shown here), which defines the Session type (token plus issue timestamp), its constructor and freshness check, and refresh(), which looks up a token in a TokenStore and returns a fresh Session or None.
 
 ## Connections
 

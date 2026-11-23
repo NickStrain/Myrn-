@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::Engine::recorded_test_run
 anchors:
 - sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::Engine::recorded_test_run@1bec1f3fbfa5fecd
+map_version: '2'
 ---
 # Engine::recorded_test_run
 
-Takes a command, reduces it to its test step, and scans the 20 most recent episode files for a test-flagged entry whose command shares that step in either direction. It returns the recorded step text, or None if no session ran a matching test.
+Finds a test command in the 20 most recent sessions that matches the cited command and returns the recorded test step.
+
+## Behaviour
+
+- cited command with no test step -> None without reading sessions
+- a recorded test step that contains the cited step, or is contained in it -> that recorded step is returned
+- no recorded session has a matching test command -> None
+
+## Terms
+
+recorded session, episode, test command match, session log, test_run evidence
 
 ## Connections
 

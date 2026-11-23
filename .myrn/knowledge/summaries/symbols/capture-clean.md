@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/mod.rs#capture::clean
 anchors:
 - sym:crates/myrn-engine/src/capture/mod.rs#capture::clean@e88d942ead3ac156
+map_version: '2'
 ---
 # capture::clean
 
-Applies hide_ignored, then redact::redact, then episode::clip with the given max, in that order, to prompts, commands and errors.
+Hides ignored paths, redacts secrets, then clips the text to `max` characters via episode::clip. Used with limits of 4000 for prompts, 1000 for commands and 2000 for errors.
+
+## Behaviour
+
+- "cat secrets/prod.env" with secrets/ ignored -> "cat [ignored path]" before redaction and clipping
+- "GITHUB_TOKEN=abc123xyz gh pr list" -> "GITHUB_TOKEN=[REDACTED:secret] gh pr list"
+- text longer than max -> clipped by episode::clip; the unit is not shown in this file
+
+## Terms
+
+sanitize, scrub text, mask secrets, truncate, length limit, private text, redacted line
 
 ## Connections
 

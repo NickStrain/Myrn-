@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/event.rs#event::ToolOutcome
 anchors:
 - sym:crates/myrn-model/src/event.rs#event::ToolOutcome@db8e7a8cb9a348af
+map_version: '2'
 ---
 # event::ToolOutcome
 
-Copy enum with variants Failure, FileEdit, and Other, serialized in snake_case.
+Classifies a tool result as Failure, FileEdit, or Other. It is Copy and Eq, so values compare directly without cloning.
+
+## Behaviour
+
+- "failure" -> Failure; "file_edit" -> FileEdit; "other" -> Other
+- Any other string fails deserialization
+- The variant names are serialized in snake_case
+
+## Terms
+
+outcome, tool failure, file edit, tool status, success, error classification
 
 ## Connections
 

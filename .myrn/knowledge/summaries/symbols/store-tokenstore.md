@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/py/app/store.py#tests.fixtures.repos.gate0.py.app.store.TokenStore
 anchors:
 - sym:tests/fixtures/repos/gate0/py/app/store.py#tests.fixtures.repos.gate0.py.app.store.TokenStore@41decb11e95ca224
+map_version: '2'
 ---
 # store::TokenStore
 
-Stateful in-memory store of tokens backed by a plain Python list, with no persistence, locking, or deduplication on insert.
+In-memory store that holds issued tokens in a Python list, supporting membership lookup and append.
+
+## Behaviour
+
+- TokenStore() -> empty store, tokens == []
+- insert(t) then lookup(t) -> returns t
+- lookup(t) on a token never inserted -> None
+
+## Terms
+
+token store, token registry, issued tokens, in-memory storage, token list
 
 ## Connections
 

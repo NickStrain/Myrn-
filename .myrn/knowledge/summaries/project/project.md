@@ -6,12 +6,12 @@ title: Project
 source: myrn summarize
 about: module:.
 anchors:
-- module:.@7cce9b0355ddda1d
+- module:.@e7c2f88d2533c4db
 ---
 # Project
 
-Myrn is a local, persistent project-memory tool for AI coding agents: it indexes a codebase into a graph of symbols, calls, imports, tests and Git history (parsed with Tree-sitter for Rust, Python, JavaScript and TypeScript) so an agent can fetch task-sized context instead of re-reading files. The Rust workspace under crates/ separates concerns: myrn-model holds pure domain types, myrn-store persists to SQLite plus Markdown notes and JSONL episode logs, myrn-engine exposes the Engine API in api.rs, and the myrn CLI and myrn-mcp stdio JSON-RPC server both call into it. myrn-adapters wires per-agent hooks and config for Claude Code and Codex, and myrn-embed is an optional long-lived embedding helper. The bench/ directory builds the myrn-bench binary, which runs Claude Code headless on pinned repo clones with and without myrn and reports paired results with a Gate 1 sign-test verdict, while tests/fixtures/ holds a multi-language token-refresh fixture repo used for testing.
+Myrn is a local Rust tool that gives AI coding agents persistent project memory. It parses a codebase with Tree-sitter into a graph of symbols, calls, imports, tests and Git history, stores it in one SQLite file, and returns task-sized context within a token budget. The crates/ workspace splits this into myrn-model (pure domain types), myrn-store (storage), myrn-engine (the core, which adapters, the MCP server and the CLI reach only through its api.rs), myrn-adapters for agent integrations, myrn-embed for optional embeddings, myrn-mcp for the JSON-RPC server, and the myrn binary, whose subcommands dispatch to the engine. dist/ packages each release for Homebrew, Scoop, winget and npm, where the npm wrapper downloads and checksum-verifies the native binary at postinstall. bench/ is a Rust CLI (myrn-bench) that measures whether myrn helps Claude Code across A/B conditions and checks retrieval quality, and tests/fixtures holds sample repositories for exercising the code map.
 
 ## Connections
 
-- **Directories:** [[dir-bench]], [[dir-crates]], [[dir-tests]]
+- **Directories:** [[dir-bench]], [[dir-crates]], [[dir-dist]], [[dir-tests]]

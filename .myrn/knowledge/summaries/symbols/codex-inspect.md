@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::Codex::inspect
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::Codex::inspect@ab7818de7da2f20f
+map_version: '2'
 ---
 # Codex::inspect
 
-Read-only check that returns ok or not-ok findings. In Hooks mode it reports one finding per event, checking that hooks.json has a matching command. In PullOnly mode it checks for the AGENTS.md block. It always checks that config.toml's mcp_servers.myrn command equals the binary path.
+Returns a Finding for each check: each EVENTS hook in Hooks mode, or the AGENTS.md block in PullOnly mode. It also checks that the MCP command in config.toml matches the current binary.
+
+## Behaviour
+
+- hook entry absent -> ok false, 'missing'
+- hook command differs from command_line for this binary -> ok false, 'out of date'
+- MCP command equals the binary path string -> ok true; unparseable TOML -> MCP reported missing
+
+## Terms
+
+health check, verify install, doctor, drift check, status
 
 ## Connections
 

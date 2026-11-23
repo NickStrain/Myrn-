@@ -81,15 +81,32 @@ pub fn is_stub(path: &str) -> bool {
 /// Remove stub declarations whose implementation is also in the list, so one
 /// function never shows up twice.
 pub fn drop_shadowed_stubs(nodes: &mut Vec<Node>) {
-    let real: HashSet<String> = nodes
+    // Overloads in a stub get a `#n` suffix (`windowed#2`): still the same function.
+    let real: HashSet<&str> = nodes
         .iter()
         .filter(|n| !n.path.as_deref().is_some_and(is_stub))
-        .filter_map(|n| n.qname.clone())
+        .filter_map(|n| n.qname.as_deref().map(without_suffix))
         .collect();
-    nodes.retain(|n| {
-        !(n.path.as_deref().is_some_and(is_stub)
-            && n.qname.as_ref().is_some_and(|q| real.contains(q)))
+    let shadowed: Vec<bool> = nodes
+        .iter()
+        .map(|n| {
+            n.path.as_deref().is_some_and(is_stub)
+                && n.qname.as_deref().is_some_and(|q| real.contains(without_suffix(q)))
+        })
+        .collect();
+    let mut i = 0;
+    nodes.retain(|_| {
+        i += 1;
+        !shadowed[i - 1]
     });
+}
+
+/// A qualified name without its `#n` collision suffix.
+fn without_suffix(q: &str) -> &str {
+    match q.rfind('#') {
+        Some(i) if i + 1 < q.len() && q[i + 1..].chars().all(|c| c.is_ascii_digit()) => &q[..i],
+        _ => q,
+    }
 }
 
 fn myrn_index_lang(q: &str) -> bool {
@@ -130,19 +147,37 @@ const STOPWORDS: &[&str] = &[
     "then", "than", "also", "just", "some", "more", "need", "needs", "want", "please", "code",
     "file", "files", "function", "method", "does", "doesn", "don", "isn", "work", "works",
     "working", "change", "update", "instead", "about", "after", "before", "only", "each", "other",
+    // Bug-report boilerplate: "Find the cause and fix it. Make sure the tests still pass."
+    "find", "cause", "sure", "still", "pass", "passes", "whose", "contain", "contains", "one",
 ];
 
-/// Words worth searching for in a task description.
+/// Words worth searching for in a task description. Inside code literals
+/// (`` `*.gz` ``, `archive.tar.gz`) two-letter words count too: there they are
+/// extensions and names, the most specific words a report has.
 pub fn task_words(task: &str) -> Vec<String> {
     let mut seen = HashSet::new();
+    let literal: HashSet<String> = backticked_spans(task)
+        .into_iter()
+        .chain(code_tokens(task))
+        .flat_map(|t| fts::split_identifier(&t))
+        .collect();
     fts::split_identifier(task)
         .into_iter()
         .filter(|w| {
-            w.len() >= 3
+            (w.len() >= 3 || (w.len() == 2 && literal.contains(w)))
                 && !STOPWORDS.contains(&w.as_str())
                 && !w.chars().all(|c| c.is_ascii_digit())
         })
         .filter(|w| seen.insert(w.clone()))
+        .collect()
+}
+
+/// The text inside each pair of backticks.
+fn backticked_spans(task: &str) -> Vec<String> {
+    task.split('`')
+        .skip(1)
+        .step_by(2)
+        .map(str::to_string)
         .collect()
 }
 
@@ -222,12 +257,27 @@ pub fn seeds(db: &Db, task: &str) -> Result<Vec<Seed>> {
             .map(|(id, _bm25)| id)
             .collect();
         // Code whose summary says what the task is about, even when its name does not.
-        for id in fts::query_summaries(&db.conn, &words, 30)? {
-            if !ids.contains(&id) {
-                ids.push(id);
+        let by_summary = fts::query_summaries(&db.conn, &words, 30)?;
+        for id in &by_summary {
+            if !ids.contains(id) {
+                ids.push(id.clone());
             }
         }
         let want = words.len().min(4) as f64;
+        let bug = asks_about_bug(task);
+        // For a bug report, the order of the summary search counts: it weighs
+        // rare words (an extension, a literal value) above common ones, which
+        // is what tells the place of a bug apart from everything near it.
+        let summary_rank = |id: &str| -> f64 {
+            if !bug {
+                return 0.0;
+            }
+            by_summary
+                .iter()
+                .take(SUMMARY_RANKED)
+                .position(|s| s == id)
+                .map_or(0.0, |i| SUMMARY_RANK_BONUS / (1.0 + i as f64 / 2.0))
+        };
         for id in ids {
             let Some(n) = graph::node(&db.conn, &id)? else {
                 continue;
@@ -243,15 +293,23 @@ pub fn seeds(db: &Db, task: &str) -> Result<Vec<Seed>> {
                 n.doc.as_deref().unwrap_or("").to_lowercase(),
                 n.summary.as_deref().unwrap_or("").to_lowercase()
             );
+            let details = fts::summary_details(&db.conn, &id)?;
             let have: HashSet<&str> = text.split(|c: char| !c.is_alphanumeric()).collect();
-            let matched = words
+            let more: HashSet<&str> = details.split(|c: char| !c.is_alphanumeric()).collect();
+            let hit = |set: &HashSet<&str>, w: &str| set.iter().any(|h| h.starts_with(w));
+            let named = words.iter().filter(|w| hit(&have, w)).count();
+            // Words only the note's behaviour and terms carry: how a person
+            // describes what the code does, which a bug report repeats.
+            let described = words
                 .iter()
-                .filter(|w| have.iter().any(|h| h.starts_with(w.as_str())))
-                .count() as f64;
+                .filter(|w| !hit(&have, w) && hit(&more, w))
+                .count();
+            let matched = (named + described) as f64;
             let relevance = (matched / want).min(1.0);
             if relevance < 0.5 && !(words.len() == 1 && matched >= 1.0) {
                 continue;
             }
+            let bonus = summary_rank(&id);
             let why = if n.ntype == "commit" {
                 "matching commit"
             } else {
@@ -259,7 +317,7 @@ pub fn seeds(db: &Db, task: &str) -> Result<Vec<Seed>> {
             };
             out.push(Seed {
                 id,
-                score: 6.0 * relevance,
+                score: 6.0 * relevance + bonus,
                 why,
             });
         }
@@ -267,9 +325,119 @@ pub fn seeds(db: &Db, task: &str) -> Result<Vec<Seed>> {
     Ok(out)
 }
 
+/// Extra seed score for the best summary-search hits of a bug report: the
+/// first gets all of it, the next ones less.
+const SUMMARY_RANK_BONUS: f64 = 4.0;
+/// Summary hits that get the bonus.
+const SUMMARY_RANKED: usize = 8;
+
+/// A report of something behaving wrongly, as opposed to a question or a
+/// request for new code.
+pub fn asks_about_bug(task: &str) -> bool {
+    let t = task.to_lowercase();
+    [
+        "instead of",
+        "but not",
+        "doesn't",
+        "does not",
+        "don't",
+        "do not",
+        "isn't",
+        "is not",
+        "fails",
+        "failing",
+        "broken",
+        "wrong",
+        "incorrect",
+        "bug",
+        "regression",
+        "crash",
+        "panic",
+        "error",
+        "drop",
+        "ignore",
+        "skip",
+        "returns",
+    ]
+    .iter()
+    .any(|p| t.contains(p))
+        && !t.trim_start().starts_with("add ")
+        && !(is_question(&t) && !t.contains("fix"))
+}
+
+/// Starts like a question about how the code works.
+fn is_question(t: &str) -> bool {
+    let first = t.split_whitespace().next().unwrap_or("");
+    matches!(
+        first,
+        "how"
+            | "which"
+            | "what"
+            | "why"
+            | "when"
+            | "where"
+            | "who"
+            | "does"
+            | "is"
+            | "can"
+            | "explain"
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stub_overloads_are_shadowed_by_the_real_function() {
+        let n = |q: &str, path: &str| Node {
+            id: format!("sym:{path}#{q}"),
+            qname: Some(q.into()),
+            path: Some(path.into()),
+            ..Default::default()
+        };
+        let mut v = vec![
+            n("pkg.more.windowed", "pkg/more.py"),
+            n("pkg.more.windowed#2", "pkg/more.pyi"),
+            n("pkg.more.other#2", "pkg/more.pyi"),
+        ];
+        drop_shadowed_stubs(&mut v);
+        let left: Vec<&str> = v.iter().map(|n| n.qname.as_deref().unwrap()).collect();
+        assert_eq!(left, ["pkg.more.windowed", "pkg.more.other#2"]);
+    }
+
+    #[test]
+    fn short_words_count_inside_literals() {
+        let w = task_words("A set built from `*.gz` matches `archive.tar.gz`; go to it");
+        assert!(w.contains(&"gz".to_string()));
+        assert!(w.contains(&"tar".to_string()));
+        assert!(!w.contains(&"go".to_string()));
+        assert!(
+            !task_words("Find the cause and fix it. Make sure the tests still pass.")
+                .iter()
+                .any(|w| ["find", "cause", "sure", "still", "pass"].contains(&w.as_str()))
+        );
+    }
+
+    #[test]
+    fn bug_reports_are_told_apart() {
+        assert!(asks_about_bug("`chunk` drops the last, shorter chunk"));
+        assert!(asks_about_bug(
+            "A glob set built from `*.gz` matches `archive.gz` but not `archive.tar.gz`"
+        ));
+        assert!(!asks_about_bug(
+            "How does remeda let the same utility be called both ways?"
+        ));
+        assert!(!asks_about_bug(
+            "Add a function `take_every(iterable, n)`; it returns every nth item"
+        ));
+        assert!(!asks_about_bug(
+            "Which module defines `unique_everseen`, and what does it do? Do not change any files."
+        ));
+        assert!(asks_about_bug(
+            "Why does `chunk` drop the last chunk? Fix it."
+        ));
+    }
 
     #[test]
     fn code_like_tokens() {

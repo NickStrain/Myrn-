@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::Codex::install
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::Codex::install@c2a8ec182a3c7f45
+map_version: '2'
 ---
 # Codex::install
 
-Removes existing myrn hook entries. In Hooks mode it adds one command hook per EVENTS entry to hooks.json, and in PullOnly mode it adds the AGENTS.md instruction block. It always writes the MCP block, and it returns the touched files and a manual note telling the user to trust the project in Codex. It fails if config.toml already defines a foreign [mcp_servers.myrn] table.
+In Hooks mode, writes the five hook events to hooks.json. In PullOnly mode, removes myrn hooks and adds the AGENTS.md block. It always writes the MCP block and returns the changes plus a trust note.
+
+## Behaviour
+
+- Hooks mode -> every EVENTS entry is added with command_line and its timeout
+- PullOnly mode -> myrn hooks removed only if any existed; AGENTS.md path goes into created when pull_only::add returns true
+- always calls write_mcp; the manual note says to trust the project and not commit .codex files
+
+## Terms
+
+setup, wire up, hook install, pull only mode, trust note
 
 ## Connections
 

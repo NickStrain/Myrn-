@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::text
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::text@322e0fc50409a021
+map_version: '2'
 ---
 # Walker::text
 
-Returns the UTF-8 source text of a node, or empty string if invalid UTF-8.
+Returns the source text under a node, or an empty string if those bytes are not valid UTF-8.
+
+## Behaviour
+
+- A node covering refresh -> 'refresh'
+- Invalid UTF-8 in the node span -> ''
+- Multi-line nodes return the full text including newlines
+
+## Terms
+
+node text, source slice, node contents, raw text, token text
 
 ## Connections
 

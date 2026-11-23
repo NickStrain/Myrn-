@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/summarize.rs#repo
 anchors:
 - sym:crates/myrn-engine/tests/summarize.rs#repo@ca818524d3ba37df
+map_version: '2'
 ---
 # repo
 
-Creates a temp dir with a repo/ subdirectory holding the given files, git-inits it, and commits everything as one commit 'first'. Returns the TempDir (must stay alive) and an Engine initialized on that root with its home under the temp dir. Panics on any failure.
+Builds a temp git repo at tmp/repo with the given files committed as HEAD "first", then initialises an Engine with home at tmp/home; returns the TempDir (which owns and deletes the directory) and the Engine.
+
+## Behaviour
+
+- [("src/lib.rs", "x")] -> repo with one root commit containing src/lib.rs
+- commit author is fixed as "t" <t@example.invalid>
+- TempDir dropped -> the repo directory is deleted, so keep it alive
+
+## Terms
+
+temp repository, git fixture, initial commit, test repo, engine setup, test workspace
 
 ## Connections
 

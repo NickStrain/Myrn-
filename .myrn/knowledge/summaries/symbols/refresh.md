@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/web/src/session.ts#refresh
 anchors:
 - sym:tests/fixtures/repos/gate0/web/src/session.ts#refresh@8549771e7691a629
+map_version: '2'
 ---
 # refresh
 
-Calls store.lookup(token) and returns undefined if nothing is found; otherwise builds a new Session from the looked-up value and returns it only if isFresh() is true, which almost always holds right after construction. Nothing is written to the store.
+Looks up the token in the store; if found, builds a new Session from the found value and returns it only if it is fresh, otherwise returns undefined.
+
+## Behaviour
+
+- store.lookup returns undefined -> returns undefined and creates no Session
+- store.lookup returns a value -> new Session built from that value, returned because it was just issued
+- the Session token comes from the lookup result, not directly from the token argument
+
+## Terms
+
+renew session, reissue, revalidate, token lookup, session refresh, unknown token, expired token
 
 ## Connections
 

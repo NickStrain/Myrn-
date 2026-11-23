@@ -5,6 +5,7 @@
 
 mod metrics;
 mod report;
+mod retrieval;
 mod runner;
 mod task;
 
@@ -50,6 +51,10 @@ enum Cmd {
         /// Runs per task and condition
         #[arg(long, default_value_t = 3)]
         runs: usize,
+        /// Number of the first run, to add more runs to an existing results
+        /// directory without overwriting its transcripts (e.g. --first-run 2)
+        #[arg(long, default_value_t = 1)]
+        first_run: usize,
         /// Only tasks whose id starts with one of these (comma-separated)
         #[arg(long)]
         task: Option<String>,
@@ -84,6 +89,28 @@ enum Cmd {
         /// `myrn embeddings enable` once on this machine)
         #[arg(long)]
         embeddings: bool,
+    },
+    /// What myrn would inject for each task, and whether it points at the right
+    /// code. No agent sessions, no cost.
+    Retrieval {
+        /// Only tasks whose id starts with one of these (comma-separated)
+        #[arg(long)]
+        task: Option<String>,
+        /// Output directory for retrieval.md (default: <bench-dir>/runs/retrieval-<time>)
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// The myrn binary under test (default: target/release/myrn)
+        #[arg(long)]
+        myrn: Option<PathBuf>,
+        /// Don't give myrn the project map (`myrn summarize`)
+        #[arg(long)]
+        no_map: bool,
+        /// Print each pack's text
+        #[arg(long)]
+        show: bool,
+        /// Keep the prepared checkouts and myrn data (out/work, out/home) for debugging
+        #[arg(long)]
+        keep: bool,
     },
     /// Rebuild report.md from a run directory's results.jsonl
     Report {
@@ -219,6 +246,7 @@ fn real_main() -> Result<ExitCode> {
         }
         Cmd::Run {
             runs,
+            first_run,
             task,
             model,
             conditions,
@@ -322,7 +350,7 @@ fn real_main() -> Result<ExitCode> {
             };
             let results = out.join("results.jsonl");
             let mut n = 0;
-            for run in 1..=runs {
+            for run in first_run.max(1)..first_run.max(1) + runs {
                 for t in &selected {
                     let repo = repos
                         .get(&t.repo)
@@ -405,6 +433,71 @@ fn real_main() -> Result<ExitCode> {
             );
             std::fs::write(&file, text)?;
             println!("{} of {total} records -> {}", picked.len(), file.display());
+            Ok(ExitCode::SUCCESS)
+        }
+        Cmd::Retrieval {
+            task,
+            out,
+            myrn,
+            no_map,
+            show,
+            keep,
+        } => {
+            let selected = pick(&task);
+            if selected.is_empty() {
+                bail!("no tasks match");
+            }
+            let myrn = myrn.unwrap_or_else(|| cli.bench_dir.join("../target/release/myrn"));
+            let myrn = myrn.canonicalize().context(
+                "finding the myrn binary (build it with `cargo build --release -p myrn`)",
+            )?;
+            let out = absolute(&out.unwrap_or_else(|| {
+                cli.bench_dir
+                    .join("runs")
+                    .join(format!("retrieval-{}", runner::now()))
+            }))?;
+            std::fs::create_dir_all(&out)?;
+            let cache = cli.bench_dir.join("runs/maps");
+            let mut maps = std::collections::HashMap::new();
+            let mut rows = Vec::new();
+            for t in &selected {
+                let repo = repos
+                    .get(&t.repo)
+                    .with_context(|| format!("{}: unknown repo", t.id))?;
+                let checkout = checkouts.join(&repo.name);
+                if !no_map && !maps.contains_key(&t.repo) {
+                    let (dir, cost) = runner::build_map(&checkout, repo, &myrn, &cache)?;
+                    if cost > 0.0 {
+                        println!("project map for {} built for ${cost:.4}", repo.name);
+                    }
+                    maps.insert(t.repo.clone(), dir);
+                }
+                let map = maps.get(&t.repo).map(PathBuf::as_path);
+                let r = retrieval::one(t, repo, &checkout, &myrn, map, &out)?;
+                println!(
+                    "{:<48} {:>4} tokens  {:>2} items  {}",
+                    r.id,
+                    r.tokens,
+                    r.items,
+                    match (r.hit_rank, r.terms) {
+                        (_, Some((f, n))) => format!("{f}/{n} answer terms"),
+                        (Some(k), _) => format!("right file at rank {k}"),
+                        (None, _) => "right file missed".into(),
+                    }
+                );
+                if show {
+                    println!("{}\n", indent(&r.text));
+                }
+                rows.push(r);
+            }
+            if !keep {
+                let _ = std::fs::remove_dir_all(out.join("work"));
+                let _ = std::fs::remove_dir_all(out.join("home"));
+            }
+            let text = retrieval::render(&rows);
+            std::fs::write(out.join("retrieval.md"), &text)?;
+            println!("\n{}", text.lines().last().unwrap_or(""));
+            println!("report: {}", out.join("retrieval.md").display());
             Ok(ExitCode::SUCCESS)
         }
         Cmd::Report { dir, rescore } => {

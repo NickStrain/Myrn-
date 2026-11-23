@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::tests::def
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::tests::def@0b03198bb4831631
+map_version: '2'
 ---
 # tests::def
 
-Test helper: finds a Def by qname, panicking with the available qnames if missing.
+Test helper that returns the Def with the given qualified name, panicking with the known qnames if none matches.
+
+## Behaviour
+
+- def(&p, 'auth::session::refresh') returns that Def
+- A missing qname panics, listing every qname in the parse
+- Matches the first Def with that qname, so a #2 duplicate must be looked up by its own qname string
+
+## Terms
+
+lookup definition, find def, test lookup, qualified name lookup
 
 ## Connections
 

@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-mcp/src/tools/explain.rs
 
-MCP tool definition for the `explain` tool, which returns a symbol or file card from the engine. It exposes `spec()` for the tool's JSON schema and `call()` as the handler that runs the lookup and renders the result.
+MCP tool handler for the `explain` tool. `spec` returns its JSON tool definition and input schema, and `call` runs an engine lookup for a symbol and returns the rendered card as a string.
 
 ## Connections
 

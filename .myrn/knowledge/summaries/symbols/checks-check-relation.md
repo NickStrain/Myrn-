@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::check_relation
 anchors:
 - sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::check_relation@c9fe51974f680b1d
+map_version: '2'
 ---
 # checks::check_relation
 
-Returns an error message listing AGENT_RELATIONS if the relation is not allowed for agents, otherwise None.
+Returns an error message if the relation is not in AGENT_RELATIONS, otherwise None.
+
+## Behaviour
+
+- relation in AGENT_RELATIONS -> None
+- any other string -> Some message naming the allowed relations
+- case-sensitive exact match
+
+## Terms
+
+relation validation, allowed relation, agent relation, relation name
 
 ## Connections
 

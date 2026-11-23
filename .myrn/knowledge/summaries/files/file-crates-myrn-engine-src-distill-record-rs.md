@@ -6,11 +6,11 @@ title: crates/myrn-engine/src/distill/record.rs
 source: myrn summarize
 about: file:crates/myrn-engine/src/distill/record.rs
 anchors:
-- file:crates/myrn-engine/src/distill/record.rs@d78e8f6efa83ad59
+- file:crates/myrn-engine/src/distill/record.rs@68ea2dc551b7612c
 ---
 # crates/myrn-engine/src/distill/record.rs
 
-Turns a proposed record (bug, decision, workflow, fact or summary) into a stored note. It validates the record, resolves its references, merges it into a matching existing note, writes the note file and syncs the index. It also builds the end-of-turn prompt that asks the agent to record what it learned.
+Engine methods that validate a submitted record, merge it with existing notes or dedupe it, write it as a note file, and sync the index, plus the session-end request that asks the agent to record what it learned. Main parts: record (checks, reference resolution, merge, write), the JSON and batch entry points, put_note and note_file for file paths, and the summary staleness checks.
 
 ## Connections
 

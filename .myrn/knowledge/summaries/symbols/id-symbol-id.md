@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/id.rs#id::symbol_id
 anchors:
 - sym:crates/myrn-model/src/id.rs#id::symbol_id@e00e663486962320
+map_version: '2'
 ---
 # id::symbol_id
 
-Takes a path and qualified name and returns `sym:<path>#<qname>`; identity is file plus qualified name, so renaming or moving the symbol changes its id.
+Builds a symbol node id from a file path and a qualified name, joined with `#`.
+
+## Behaviour
+
+- ("src/a.rs", "a::f") -> "sym:src/a.rs#a::f"
+- Splits on the first `#` only when parsed by a consumer; the function itself does not escape or check for `#` in the inputs
+
+## Terms
+
+function id, definition id, qualified name, symbol key, method id
 
 ## Connections
 

@@ -6,16 +6,27 @@ title: summarize::summarize_file
 source: myrn summarize
 about: sym:crates/myrn-engine/src/summarize.rs#summarize::summarize_file
 anchors:
-- sym:crates/myrn-engine/src/summarize.rs#summarize::summarize_file@09649d216acc6b3c
+- sym:crates/myrn-engine/src/summarize.rs#summarize::summarize_file@b34e2bffdfb1a72e
+map_version: '2'
 ---
 # summarize::summarize_file
 
-Builds one prompt for a source file (cut to 160000 bytes at a char boundary) that lists the stale symbols as the required keys of the symbols object, with qualified name, kind and line range, and returns the cleaned file summary, a map from symbol qname to summary (non-string values are dropped) and the model cost. Read and model errors propagate, and the caller matches the returned keys against qualified names exactly.
+Sends one file's source (cut past 160000 bytes) and its stale symbol list to the model with the style prompt, then parses the answer with ask_json into a FileOut.
+
+## Behaviour
+
+- source longer than 160000 bytes is cut at a character boundary and marked '... (cut: file continues)'
+- reads cwd joined with the job path; an unreadable file fails with 'reading <path>' and makes no model call
+- stale symbols are listed as qualified name, kind and line range; none -> the prompt asks for an empty symbols object
+
+## Terms
+
+file prompt, source truncation, stale symbols, per-file request, file summary, model prompt
 
 ## Connections
 
-- **Location:** `crates/myrn-engine/src/summarize.rs:616-663`
+- **Location:** `crates/myrn-engine/src/summarize.rs:702-750`
 - **Signature:** `fn summarize_file(command: &[String], cwd: &Path, job: &FileJob) -> Result<FileOut>`
 - **In:** [[file-crates-myrn-engine-src-summarize-rs]]
-- **Calls:** [[summarize-ask-json]], [[summarize-clean]]
+- **Calls:** [[summarize-sym-out]], [[summarize-ask-json]]
 - **Called by:** [[engine-summarize]]

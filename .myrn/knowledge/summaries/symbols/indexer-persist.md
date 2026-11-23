@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/mod.rs#indexer::persist
 anchors:
 - sym:crates/myrn-engine/src/indexer/mod.rs#indexer::persist@782b0dc139dd249f
+map_version: '2'
 ---
 # indexer::persist
 
-Writes the file node, its FTS entry, and its module chain up to the root directory. When parsed is Some, it also writes symbol and test nodes with defined_in edges, refs, and imports. Always writes the files row, with an error message if parsing failed or the parse had syntax errors. Does not delete existing rows, so the caller must call delete_file first.
+Writes a file node, its module chain and part_of edges, and when parsed its symbol and test nodes, defined_in edges, refs and imports, then upserts its files row with symbol count and error text.
+
+## Behaviour
+
+- parsed has_errors and no error given -> files.error set to 'syntax errors; indexed as far as possible'
+- parsed None and error Some -> no symbols, files.error holds the message
+- does not delete old rows; the caller must run delete_file first because refs and imports use plain INSERT
+
+## Terms
+
+write, store, upsert, save, insert rows, module chain, syntax error
 
 ## Connections
 

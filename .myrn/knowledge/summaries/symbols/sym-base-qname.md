@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Sym::base_qname
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Sym::base_qname@f54a738cc1955dcc
+map_version: '2'
 ---
 # Sym::base_qname
 
-Returns qname with any trailing `#<digits>` suffix removed; the Resolver indexes symbols by this value.
+Returns the qualified name with any trailing '#n' collision suffix removed.
+
+## Behaviour
+
+- 'pkg.f#3' -> 'pkg.f'
+- 'pkg.f#x' -> 'pkg.f#x' unchanged, since the suffix is not all digits
+- 'f' -> 'f'
+
+## Terms
+
+collision suffix, hash suffix, base name, unsuffixed name, disambiguated name
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/outcome.rs#capture::outcome::commits_since
 anchors:
 - sym:crates/myrn-engine/src/capture/outcome.rs#capture::outcome::commits_since@863107c8e79b0af8
+map_version: '2'
 ---
 # outcome::commits_since
 
-Opens the repo containing root via Repository::discover and walks from HEAD in time-sorted order, returning up to limit entries formatted as 'sha summary', newest first. It stops at the first commit whose committer time is before since, and returns an empty Vec on any git error (no repo, no HEAD, failed walk).
+Walks commits from HEAD in the repository found from root, time-sorted, and returns up to limit entries of 'sha summary' for commits with time >= since, newest first.
+
+## Behaviour
+
+- root not in a git repo, or HEAD unborn -> empty Vec with no error; since=0 or limit=0 -> empty Vec
+- Walk stops at the first commit older than since, so a commit with an earlier timestamp than an older one can be missed if timestamps are out of order
+- Commit with no summary -> entry is just the sha (trim_end removes trailing space); revwalk errors on individual commits are skipped silently
+
+## Terms
+
+recent commits, commit history, git log, commits since timestamp, session commits, commit list, head history, revwalk
 
 ## Connections
 

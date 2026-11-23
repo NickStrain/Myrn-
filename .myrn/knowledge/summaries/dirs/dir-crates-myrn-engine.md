@@ -6,13 +6,13 @@ title: crates/myrn-engine/
 source: myrn summarize
 about: module:crates/myrn-engine
 anchors:
-- module:crates/myrn-engine@73ea9e41542dff65
+- module:crates/myrn-engine@5932bba3ba5dd965
 ---
 # crates/myrn-engine/
 
-Core library crate for the myrn code map. `src/api.rs` is the only entry point used by the MCP server and CLI; its `Engine` holds the layout, config, project id and SQLite `Db`, and every read and write goes through it. The other modules in `src/` each own one stage (indexing, retrieval/packing, distill, capture, summarize, review, and a stub validity module), and `tests/` holds per-feature integration tests, with `gate0.rs` exercising the full tool surface against the multi-language fixture in `tests/fixtures/repos/gate0`.
+Core Rust crate for the Myrn code-context tool. src/ holds the engine: indexer/ builds a SQLite code graph from the working tree and git history; capture/ and distill/ turn agent sessions into validated knowledge records; retrieve/, pack/ and validity/ use that graph and those records to find, assemble and check context. Adapters must go through api.rs, the only code touching the stores, while config.rs, learn.rs, embeddings.rs, summarize.rs and review.rs provide settings, ranking feedback, semantic seeds, summaries and hand review. tests/ has per-feature integration tests via the public Engine API, and examples/ holds manual debug binaries such as simcheck.rs.
 
 ## Connections
 
 - **In:** [[dir-crates]]
-- **Directories:** [[dir-crates-myrn-engine-src]], [[dir-crates-myrn-engine-tests]]
+- **Directories:** [[dir-crates-myrn-engine-examples]], [[dir-crates-myrn-engine-src]], [[dir-crates-myrn-engine-tests]]

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::is_python_test_file
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::is_python_test_file@0b89c2db1792d5cd
+map_version: '2'
 ---
 # lang::is_python_test_file
 
-Returns true if the basename starts with test_ or ends with _test.py, or if any path segment is exactly tests or test. The path does not need to end in .py for the prefix check, and any matching directory segment counts.
+Reports whether a path looks like a Python test. It is true when the file name starts with test_, when it ends with _test.py, or when any directory segment is exactly tests or test.
+
+## Behaviour
+
+- tests/notes.md -> true, because the directory match ignores the extension
+- src/testing.py -> false, because a segment must equal test exactly
+- pkg/foo_test.py -> true
+
+## Terms
+
+test file, test detection, pytest, test module, test path
 
 ## Connections
 

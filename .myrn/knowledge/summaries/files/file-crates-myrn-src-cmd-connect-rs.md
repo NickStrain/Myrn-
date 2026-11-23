@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn/src/cmd/connect.rs
 
-Implements the myrn connect command. It prints the session-recording disclosure, gets consent before installing hooks, chooses which agent adapters to install, runs their install step, and records per-agent install state. Helpers select adapters, prompt on stdin, and produce timestamps.
+The `myrn connect` subcommand: shows the session-recording disclosure, asks for consent, picks which agent adapters to install, and writes their setup (hooks or pull-only MCP) and the per-agent state. Main parts are the `Args` struct, adapter selection in `choose`, the consent prompt in `ask`, the `run` flow, and the `install_ctx` and `now` helpers.
 
 ## Connections
 

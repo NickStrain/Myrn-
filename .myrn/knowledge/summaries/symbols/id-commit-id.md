@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/id.rs#id::commit_id
 anchors:
 - sym:crates/myrn-model/src/id.rs#id::commit_id@52dd6398004efd90
+map_version: '2'
 ---
 # id::commit_id
 
-Takes a commit SHA and returns `commit:<sha>` as given, without checking that it is a valid SHA.
+Builds a commit node id by prefixing a SHA with `commit:`.
+
+## Behaviour
+
+- "abc123" -> "commit:abc123"
+- Does not check the SHA format or length; any string is accepted
+
+## Terms
+
+git commit, sha, revision id, commit hash
 
 ## Connections
 

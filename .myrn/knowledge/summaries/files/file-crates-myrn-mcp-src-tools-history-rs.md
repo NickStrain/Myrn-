@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-mcp/src/tools/history.rs
 
-MCP tool module for the `history` tool. It defines the tool's JSON spec, parses the `path` and `limit` arguments, calls `Engine::history`, and renders the returned entries as plain text lines, with a helper that converts epoch days to a calendar date.
+MCP history tool: lists indexed commits that touched a path, directory or symbol, newest first. Holds the tool descriptor (spec), argument parsing and the engine call (call), one-line-per-commit text formatting (render), and a days-since-epoch to YYYY-MM-DD converter (days_to_date).
 
 ## Connections
 

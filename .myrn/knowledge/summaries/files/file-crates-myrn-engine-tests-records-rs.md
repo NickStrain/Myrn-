@@ -6,11 +6,11 @@ title: crates/myrn-engine/tests/records.rs
 source: myrn summarize
 about: file:crates/myrn-engine/tests/records.rs
 anchors:
-- file:crates/myrn-engine/tests/records.rs@05b57669d40b20c6
+- file:crates/myrn-engine/tests/records.rs@61b59c665dcfb4fa
 ---
 # crates/myrn-engine/tests/records.rs
 
-Integration tests for the record tool and distiller in myrn-engine (Step 16), covering rejection messages for invalid records, bug deduplication and recall by error signature, contradiction and supersede handling, summary staleness, session-end record requests, shell-edit capture, and batch recording. Fixtures are a temp git repo containing a small Python package, plus helpers that build episodes, consent state, and Bash events.
+Integration tests for the record tool, distiller checks and recall, run against a temporary git repo with a small Python package. Fixture sources (PY) and helpers (write, repo, session, consent, bash, has_edge, node, bug) sit above tests covering rejections, bug dedup and recall, contradictions and supersession, summary staleness, session-end record requests, and shell-edit capture.
 
 ## Connections
 

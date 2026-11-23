@@ -6,14 +6,16 @@ title: crates/myrn/src/cmd/forget.rs
 source: myrn summarize
 about: file:crates/myrn/src/cmd/forget.rs
 anchors:
-- file:crates/myrn/src/cmd/forget.rs@bbe8703ce968ce7a
+- file:crates/myrn/src/cmd/forget.rs@801ed9d7c8eecb08
 ---
 # crates/myrn/src/cmd/forget.rs
 
-Defines the `myrn forget <id>` CLI subcommand module. The source shown contains only the module doc comment; the description states it permanently removes a record and anything derived only from it, but no functions, types, or logic are present in the provided source.
+Implements the `myrn forget <id>` command, which permanently removes a record and anything derived only from it. It plans the removal with the engine, asks for y/N confirmation on a terminal unless `yes` is set, then performs the removal and prints the result.
 
 ## Connections
 
 - **Location:** `crates/myrn/src/cmd/forget.rs`
 - **In:** [[dir-crates-myrn-src-cmd]]
+- **Defines:** [[forget-run]]
+- **Imports:** [[file-crates-myrn-src-cmd-mod-rs]]
 - **Imported by:** [[file-crates-myrn-src-cmd-mod-rs]]

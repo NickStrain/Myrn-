@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-model/src/record.rs
 
-Defines the validity and provenance enums used for earned records and derived edges: Status (unverified, verified, suspect, superseded), EdgeStatus (resolved, inferred), and Visibility (private, shared). Each derives serde with snake_case names, and the enums that have as_str return the same lowercase strings.
+Validity and visibility metadata for earned records and derived edges. Defines three serde enums: Status (record verification state), EdgeStatus (whether an edge was resolved or only inferred), and Visibility (private or shared), each with an as_str method that returns its snake_case name.
 
 ## Connections
 

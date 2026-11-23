@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/tests/connect.rs#Env::hook
 anchors:
 - sym:crates/myrn/tests/connect.rs#Env::hook@68d21be8cede8ff7
+map_version: '2'
 ---
 # Env::hook
 
-Spawns myrn hook <agent> <event> from the given directory, writes the payload to stdin, and returns the captured Output plus elapsed milliseconds.
+Runs myrn hook with the agent and event, from the given directory, writes the payload to stdin, and returns the Output plus elapsed milliseconds.
+
+## Behaviour
+
+- agent 'claude', event 'SessionStart', dir X -> runs myrn hook claude SessionStart with cwd X
+- stdin is closed after the payload is written, so the child reads EOF
+- elapsed time starts before spawn, so it includes process startup
+
+## Terms
+
+agent hook, stdin payload, hook latency, elapsed time, hook event, JSON event
 
 ## Connections
 

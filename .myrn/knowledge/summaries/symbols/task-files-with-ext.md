@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/task.rs#task::files_with_ext
 anchors:
 - sym:bench/src/task.rs#task::files_with_ext@afb3d44276a03629
+map_version: '2'
 ---
 # task::files_with_ext
 
-Returns the sorted paths of non-recursive entries in dir whose extension equals ext. ext is given without the dot. Unreadable directory entries are silently skipped.
+Lists the entries directly inside dir whose extension equals ext, sorted by path. It is non-recursive and takes the extension without a dot.
+
+## Behaviour
+
+- ext toml matches a.toml and x.y.toml, but not A.TOML, because the comparison is case-sensitive.
+- A directory named something.toml is included, because there is no is_file check.
+- Entries that fail to read are skipped silently.
+
+## Terms
+
+extension filter, file listing, suffix match, sorted listing, non-recursive scan
 
 ## Connections
 

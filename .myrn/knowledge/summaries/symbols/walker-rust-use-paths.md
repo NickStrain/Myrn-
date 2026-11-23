@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::rust_use_paths
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::rust_use_paths@e564cc9d64fedf1b
+map_version: '2'
 ---
 # Walker::rust_use_paths
 
-Flattens a Rust use tree into (path, alias) pairs, handling `as` renames, nested lists, `self` segments, and `*` globs (alias "*").
+Expands a Rust use tree into full (path, alias) pairs, handling nested lists, as renames, self leaves and * globs.
+
+## Behaviour
+
+- a::{B, c::D as E} gives ('a::B', 'B') and ('a::c::D', 'E')
+- a::b::{self} gives ('a::b', 'b'); a::* gives ('a::*', '*')
+- Unrecognised node kinds yield nothing
+
+## Terms
+
+use tree, use list, rename, glob import, use path, self import
 
 ## Connections
 

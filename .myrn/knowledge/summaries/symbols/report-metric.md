@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:bench/src/report.rs#report::Metric
 anchors:
 - sym:bench/src/report.rs#report::Metric@0463af92def3defe
+map_version: '2'
 ---
 # report::Metric
 
-Type alias for a boxed closure returning Option<f64> per run, where None means the metric does not apply to that run.
+Type alias for a boxed per-run extractor returning Option f64, used for the rows of the All tasks table.
+
+## Behaviour
+
+- Returns None for a run -> that run is left out of the mean for that row
+- Box::new(|r| Some(tokens(r))) counts every run
+
+## Terms
+
+row extractor, optional value, metric row, per-run value, boxed closure
 
 ## Connections
 

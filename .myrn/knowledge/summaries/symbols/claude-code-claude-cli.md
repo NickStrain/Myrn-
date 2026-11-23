@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::claude_cli
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::claude_cli@40dafccc50c2816f
+map_version: '2'
 ---
 # claude_code::claude_cli
 
-Runs the claude CLI with the given args in the repo root and returns its Output. Returns None if ctx.run_agent_cli is false, claude is not on PATH, or the spawn fails.
+Runs the claude CLI with the given args in the repo root and returns its output, or None if it cannot be run. Non-zero exit still returns Some, so the caller must check the status.
+
+## Behaviour
+
+- ctx.run_agent_cli false -> None, and PATH is not searched
+- claude not found by detect::which -> None
+- Spawn failure -> None; a failed exit status -> Some(output)
+
+## Terms
+
+agent cli, subprocess, claude command, external command
 
 ## Connections
 

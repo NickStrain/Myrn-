@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::classify
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::classify@ad730fa427a4cf55
+map_version: '2'
 ---
 # Walker::classify
 
-Dispatches node classification to the Rust, Python, or JS/TS classifier based on the language family.
+Routes a node to the classifier for the file's language family: Rust, Python, or JS/TS.
+
+## Behaviour
+
+- Rust files use classify_rust, Python files classify_python, and JavaScript and TypeScript files classify_js
+- Adds no logic of its own
+
+## Terms
+
+dispatch, language router, node classifier, family
 
 ## Connections
 

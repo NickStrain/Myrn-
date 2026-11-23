@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::tests::clean
 anchors:
 - sym:crates/myrn-engine/src/capture/redact.rs#capture::redact::tests::clean@ab9ccf1a5636c69f
+map_version: '2'
 ---
 # tests::clean
 
-Test helper asserting that `redact` leaves the input unchanged, with the input shown in the failure message.
+Test helper that asserts redact leaves the input unchanged, and includes the input in the failure message.
+
+## Behaviour
+
+- clean('max_tokens=1500') passes
+- clean('AKIAIOSFODNN7EXAMPLE') fails because the input is redacted
+
+## Terms
+
+unchanged assertion, no-op check, false positive guard, should be left alone
 
 ## Connections
 

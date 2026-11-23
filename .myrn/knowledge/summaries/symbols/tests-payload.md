@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::tests::payload
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::tests::payload@89fa4047e7ff9e14
+map_version: '2'
 ---
 # tests::payload
 
-Test helper that reads and parses the recorded hook payload JSON with the given file name from tests/fixtures/hook-payloads/claude-code.
+Test helper that loads a recorded hook payload by file name from tests/fixtures/hook-payloads/claude-code and parses it as JSON.
+
+## Behaviour
+
+- session_start.json -> parsed Value from that fixture file
+- Missing file or invalid JSON -> panic through unwrap
+
+## Terms
+
+fixture loader, recorded payload, sample hook input, test data
 
 ## Connections
 

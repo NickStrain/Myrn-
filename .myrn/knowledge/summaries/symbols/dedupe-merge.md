@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/dedupe.rs#distill::dedupe::merge
 anchors:
 - sym:crates/myrn-engine/src/distill/dedupe.rs#distill::dedupe::merge@bf610c7d3e8a0862
+map_version: '2'
 ---
 # dedupe::merge
 
-Mutates old in place: appends evidence and links not already present, updates an existing anchor's hash (even to None) or appends a new anchor by target, and sets signature only if old has none. With replace_body it overwrites body and title (title only if new has one); otherwise it appends new's trimmed body unless its whitespace-normalized text is already a substring of old's body. source is overwritten whenever new has one.
+Updates the old note in place with the new note's evidence, links, anchors, signature, body, title and source, without removing anything from the old note.
+
+## Behaviour
+
+- replace_body false and new body already contained in old body, ignoring whitespace -> body unchanged; otherwise appended after a blank line
+- empty old body with replace_body false -> body starts with two newlines
+- replace_body true and new title None -> old title kept
+
+## Terms
+
+combine, fold into, update existing, anchor hash, append body, replace text, evidence links
 
 ## Connections
 

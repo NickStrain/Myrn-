@@ -6,11 +6,11 @@ title: crates/
 source: myrn summarize
 about: module:crates
 anchors:
-- module:crates@96456c87a3220d92
+- module:crates@9456683f1c77de73
 ---
 # crates/
 
-Rust workspace for the myrn code-map tool: myrn is the CLI binary, myrn-mcp is the stdio JSON-RPC MCP server agents spawn, and myrn-engine is the core library that both call through its Engine API in api.rs. Shared domain types live in myrn-model (pure, no I/O), persistence in myrn-store (SQLite plus Markdown notes and JSONL episode logs), per-agent hook and config integration in myrn-adapters, and the optional long-lived embedding helper in myrn-embed.
+crates/ is the Rust workspace for Myrn, a code-context tool, split into a pure domain model (myrn-model), storage (myrn-store), the core engine (myrn-engine), agent adapters (myrn-adapters), optional embeddings (myrn-embed), an MCP JSON-RPC server (myrn-mcp), and the myrn CLI binary (myrn), which dispatches thin subcommand handlers to the engine. Adapters must reach storage only through the engine's api.rs, and the MCP server and CLI both sit on top of the engine rather than touching stores directly.
 
 ## Connections
 

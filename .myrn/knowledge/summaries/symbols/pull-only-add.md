@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/pull_only.rs#pull_only::add
 anchors:
 - sym:crates/myrn-adapters/src/pull_only.rs#pull_only::add@881790d811e1d6fb
+map_version: '2'
 ---
 # pull_only::add
 
-Strips any existing block from the file (or empty content if the file is missing), appends a fresh block with a blank-line separator, creates parent directories, and overwrites the file. Returns true only when the file did not exist before; a re-run refreshes the block in place at the end of the file.
+Inserts the marker block at the end of the file, replacing any existing block so it is idempotent. It creates parent directories and the file if needed, and returns true only when the file did not exist before.
+
+## Behaviour
+
+- missing file -> created with just the block, returns true
+- existing block -> removed and re-appended at the end, returns false
+- body ending in a newline gets one extra newline before the block; body ending in a blank line gets none
+
+## Terms
+
+insert block, install, append block, refresh block, create file, upsert, idempotent
 
 ## Connections
 

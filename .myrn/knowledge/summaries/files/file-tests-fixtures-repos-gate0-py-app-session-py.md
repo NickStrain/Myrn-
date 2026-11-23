@@ -10,7 +10,7 @@ anchors:
 ---
 # tests/fixtures/repos/gate0/py/app/session.py
 
-Defines a small session model and a refresh helper: Session records a token with its issue time and reports whether it is still fresh, and refresh looks up a token in a TokenStore and returns a new Session only if the lookup succeeds and the session is fresh.
+Session token helpers for the app package: defines the Session class, which records a token and its creation time with a 10-unit freshness window, and the refresh function, which looks up a token in a store and issues a new Session for it. Time comes from now() imported from the store module.
 
 ## Connections
 

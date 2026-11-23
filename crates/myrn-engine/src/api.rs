@@ -733,6 +733,36 @@ impl Engine {
         }
         seed::drop_shadowed_stubs(&mut items);
         items.truncate(cfg.max_items);
+        // Code is shown only when the best match is certain: the task names it,
+        // or it is far ahead of the best match in any other file. Otherwise one
+        // line each, so a wrong guess costs little and does not look like the
+        // answer. (On the benchmark tasks a small lead said nothing about being
+        // right; being named did.)
+        let ranked_of = |id: &str| ranked.iter().find(|r| r.id == id);
+        let score_of = |id: &str| ranked_of(id).map_or(0.0, |r| r.score);
+        let confident = items.first().is_some_and(|first| {
+            // Named, and the name picks out one thing (not `TokenStore` in three languages).
+            let named = ranked_of(&first.id)
+                .is_some_and(|r| matches!(r.why, "named in task" | "named file"))
+                && !items.iter().skip(1).any(|n| n.title == first.title);
+            let runner_up = items
+                .iter()
+                .skip(1)
+                .find(|n| n.path != first.path)
+                .map_or(0.0, |n| score_of(&n.id));
+            named || score_of(&first.id) >= runner_up * CONFIDENT_MARGIN
+        });
+        // A bug report is about one place: when it is clear, show it and a
+        // couple of pointers. When it is not, keep every pointer (one line each).
+        let bug = seed::asks_about_bug(task);
+        if bug && confident {
+            items.truncate(BUG_MAX_ITEMS);
+        }
+        let max_cards = match (confident, bug) {
+            (false, _) => 0,
+            (true, true) => 1,
+            (true, false) => 2,
+        };
 
         let mut cards = Vec::new();
         let mut rest = Vec::new();
@@ -740,7 +770,7 @@ impl Engine {
         for n in items {
             if n.origin == "earned" {
                 known.push(n);
-            } else if n.ntype == "symbol" && cards.len() < 2 {
+            } else if n.ntype == "symbol" && cards.len() < max_cards {
                 // The best match is usually what the task is about: allow it more.
                 let limit = if cards.is_empty() {
                     cfg.code_lines * 2
@@ -749,7 +779,13 @@ impl Engine {
                 };
                 let code = self.source_if_short(&n, limit);
                 let card = self.symbol_card(n.clone())?;
-                cards.push((n.id.clone(), card.render_compact(code.as_deref(), history)));
+                // A bug report says how to run the tests; pointing at test files
+                // only invites reading them (seen on the benchmark).
+                let with_tests = tests || !bug;
+                cards.push((
+                    n.id.clone(),
+                    card.render_compact(code.as_deref(), history, with_tests),
+                ));
             } else {
                 rest.push(n);
             }
@@ -1273,6 +1309,11 @@ impl Pack {
 
 /// Items scoring below this share of the best match are left out.
 const RELATIVE_CUTOFF: f64 = 0.4;
+/// A best match the task does not name shows its code only when it scores at
+/// least this many times the best match in another file.
+const CONFIDENT_MARGIN: f64 = 1.5;
+/// Most items for a bug report: the place to fix and two pointers.
+const BUG_MAX_ITEMS: usize = 3;
 
 /// Does the task ask about history (so commits are worth showing)?
 /// Whole sentences of `s` up to about `max` characters (at least the first, clipped).
@@ -1327,9 +1368,13 @@ fn is_test_path(path: &str) -> bool {
 }
 
 /// Is the task about tests themselves?
+/// Does the task ask about tests themselves? "Make sure the tests still pass"
+/// does not: it only says how to check the work.
 fn asks_about_tests(task: &str) -> bool {
     task.to_lowercase()
-        .split(|c: char| !c.is_alphanumeric())
+        .split(['.', '?', '!'])
+        .filter(|s| !s.contains("pass"))
+        .flat_map(|s| s.split(|c: char| !c.is_alphanumeric()))
         .any(|w| w.starts_with("test") || w == "spec" || w == "specs")
 }
 
@@ -1338,4 +1383,19 @@ fn episode_key(path: &Path) -> String {
     path.file_stem()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod pack_rule_tests {
+    use super::*;
+
+    #[test]
+    fn keeping_tests_green_is_not_asking_about_tests() {
+        assert!(!asks_about_tests(
+            "`unique_everseen` returns duplicates. Find the cause and fix it. Make sure the test suite still passes\n(`python3 -m unittest discover -s tests -t .`)."
+        ));
+        assert!(!asks_about_tests("Fix it. Make sure the ignore crate's tests still pass."));
+        assert!(asks_about_tests("Which tests cover `clamp`?"));
+        assert!(asks_about_tests("Add a test for chunk with a zero size."));
+    }
 }

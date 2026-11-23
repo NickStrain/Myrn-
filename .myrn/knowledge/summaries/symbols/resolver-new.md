@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::new
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::new@b82656eab46147c8
+map_version: '2'
 ---
 # Resolver::new
 
-Builds the indexes from the symbols and a (path, lang) file list; crates maps underscored Rust crate names to directories. lib.rs sorts first so it wins Rust module-path collisions, and the first file wins for other duplicates.
+Builds the name, qualified name, path and id indexes, plus Rust module and crate, Python module and JS file maps. Files are sorted so lib.rs comes before other files, making a crate root resolve to the library.
+
+## Behaviour
+
+- lib.rs and main.rs both at crate root -> the lib.rs path is registered first and wins
+- two Python files with the same dotted module name -> the first in sorted order wins
+- crates map is stored as given; keys are underscored crate names
+
+## Terms
+
+constructor, index building, crate root, module map, file ordering
 
 ## Connections
 

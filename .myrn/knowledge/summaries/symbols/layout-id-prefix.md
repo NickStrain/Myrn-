@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/notes/layout.rs#notes::layout::id_prefix
 anchors:
 - sym:crates/myrn-store/src/notes/layout.rs#notes::layout::id_prefix@2d752965834a2524
+map_version: '2'
 ---
 # layout::id_prefix
 
-Returns the type name with underscores removed, so root_cause becomes rootcause and other names are unchanged. It does not validate the input.
+Returns the id prefix for a note type by removing every underscore. Other characters are kept as they are.
+
+## Behaviour
+
+- root_cause -> "rootcause"
+- bug -> "bug" (unchanged)
+- a_b_c -> "abc" (all underscores removed)
+
+## Terms
+
+id stem, id head, identifier prefix, underscore removal, type tag
 
 ## Connections
 

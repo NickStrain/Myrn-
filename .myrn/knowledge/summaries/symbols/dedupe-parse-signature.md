@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/dedupe.rs#distill::dedupe::parse_signature
 anchors:
 - sym:crates/myrn-engine/src/distill/dedupe.rs#distill::dedupe::parse_signature@39d83aabbe45ee66
+map_version: '2'
 ---
 # dedupe::parse_signature
 
-Splits a stored signature at the first ": " into kind and message; with no separator the whole string becomes kind and message is empty.
+Splits a stored signature string at its first colon-space into an error kind and an error message.
+
+## Behaviour
+
+- 'TypeError: unhashable type' -> kind 'TypeError', message 'unhashable type'
+- 'a: b: c' -> kind 'a', message 'b: c' (splits at the first ': ' only)
+- 'Timeout' with no ': ' -> kind 'Timeout', message empty string
+
+## Terms
+
+error kind, error message, error type, colon split, stored text, decode
 
 ## Connections
 

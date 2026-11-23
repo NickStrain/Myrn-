@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/src/auth/session.rs#auth::session::Session::is_fresh
 anchors:
 - sym:tests/fixtures/repos/gate0/src/auth/session.rs#auth::session::Session::is_fresh@7887e839edc46889
+map_version: '2'
 ---
 # Session::is_fresh
 
-Returns true when issued + 10 is greater than store::now(), so the session counts as fresh for 10 time units after issue. The 10 is hardcoded and the time unit is defined by store::now(), which is not shown here.
+Returns true while the session is less than 10 time units old, measured against store::now().
+
+## Behaviour
+
+- issued = now -> true (10 > 0)
+- issued = now - 9 -> true; issued = now - 10 -> false (boundary is exclusive)
+- issued in the future -> true, since the comparison only checks the upper bound
+
+## Terms
+
+expiry check, session age, still valid, ttl, stale session
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/adapter.rs#adapter::Adapter::uninstall
 anchors:
 - sym:crates/myrn-adapters/src/adapter.rs#adapter::Adapter::uninstall@cd855ad96b696f63
+map_version: '2'
 ---
 # Adapter::uninstall
 
-Removes everything install wrote; files listed in created are deleted only if myrn's block was their only content. Returns the changes made.
+Removes everything install wrote, and deletes instruction files in created only when myrn's block was their only content.
+
+## Behaviour
+
+- created empty -> no instruction files deleted
+- created file with other user text -> kept, only deleted when nothing but myrn's block was in it
+- Returns Vec<Change> describing each removal
+
+## Terms
+
+remove, disconnect, teardown, undo install, cleanup
 
 ## Connections
 

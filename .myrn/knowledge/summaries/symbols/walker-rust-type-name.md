@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::rust_type_name
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::rust_type_name@f9aafdb5583d4fec
+map_version: '2'
 ---
 # Walker::rust_type_name
 
-Reduces a Rust type node to a bare name: strips generics, references, and pointers, and takes the last segment of scoped types.
+Reduces a Rust type node to its bare type name for use as an impl target or local type.
+
+## Behaviour
+
+- Wrapper<T> gives 'Wrapper'; &mut crate::Engine gives 'Engine'
+- Scoped paths keep only the last segment
+- Other node kinds, such as [u8], fall back to their source text with generics removed
+
+## Terms
+
+type name, base type, impl target, normalized type, bare name
 
 ## Connections
 

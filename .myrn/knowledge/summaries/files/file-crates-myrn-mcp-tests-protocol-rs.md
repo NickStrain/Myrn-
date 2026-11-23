@@ -6,11 +6,11 @@ title: crates/myrn-mcp/tests/protocol.rs
 source: myrn summarize
 about: file:crates/myrn-mcp/tests/protocol.rs
 anchors:
-- file:crates/myrn-mcp/tests/protocol.rs@1512ba7760e0bbf1
+- file:crates/myrn-mcp/tests/protocol.rs@eddea179d6222c06
 ---
 # crates/myrn-mcp/tests/protocol.rs
 
-Integration test for the myrn-mcp server, checking that it speaks JSON-RPC correctly (initialize handshake, notifications, tools/list, tools/call, and error codes) and that its tools answer from an indexed git repo. Helpers `engine` and `call` build a fixture repo and drive `handle_line` in-process.
+Integration test for the MCP server's JSON-RPC layer. It builds a temporary git repo with a small Rust source file, then checks the initialize handshake, the tools/list names, tool calls answered from the graph, and the error codes -32602, -32601 and -32700. The helpers engine and call are at the top.
 
 ## Connections
 

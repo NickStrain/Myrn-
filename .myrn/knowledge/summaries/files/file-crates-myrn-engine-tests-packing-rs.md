@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/tests/packing.rs
 
-Integration tests for context packs and symbol lookup in myrn-engine: they build temporary git repos from inline Python and TypeScript sources, then check that namespace calls through wildcard or export-star re-exports link to tests, that packs stay small with code and no stub or commit noise, and that the brief omits a most-called list. Helpers `write` and `repo` create the fixtures; the tests call `Engine::explain`, `Engine::context`, and `Engine::brief`.
+Integration tests for the myrn-engine context packs: re-exported namespace calls linking to tests, pack size and content, and noise filtering. It also holds two helpers, write (lays files out on disk) and repo (builds a temp git repo with one commit and an Engine over it).
 
 ## Connections
 

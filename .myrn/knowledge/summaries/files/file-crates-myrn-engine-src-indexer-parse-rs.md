@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/indexer/parse.rs
 
-Tree-sitter front end for the indexer: parses one Rust, Python, or JS/TS source file into Def, Ref, and Import records via a Walker that classifies nodes per language family, tracks scopes and locals for method-to-path rewriting, and extracts docs and signatures. Nothing is resolved across files here; FileParser::parse is the only entry point and owns per-language parser caching.
+Tree-sitter front end that turns one source file into definitions, call references and imports, with no model and no cross-file resolution. Main parts: FileParser (caches one parser per language and runs the parse), Walker (depth-first AST visitor with a scope stack, local variable types and per-language classifiers for Rust, Python and JS/TS), and helpers for signatures, doc comments, import specs and string unquoting.
 
 ## Connections
 

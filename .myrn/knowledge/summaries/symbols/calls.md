@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/summarize.rs#calls
 anchors:
 - sym:crates/myrn-engine/tests/summarize.rs#calls@0375d18c98c155c8
+map_version: '2'
 ---
 # calls
 
-Returns the number of lines in tmp/calls.log, one per stub model invocation. Returns 0 if the log does not exist yet.
+Counts how many model invocations were logged by reading the line count of tmp/calls.log.
+
+## Behaviour
+
+- calls.log with 3 lines -> 3
+- no calls.log file yet -> 0
+- empty calls.log -> 0
+
+## Terms
+
+call count, invocation count, model call count, count log lines, how many runs
 
 ## Connections
 

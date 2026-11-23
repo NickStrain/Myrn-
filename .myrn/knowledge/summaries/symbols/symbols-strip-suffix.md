@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::strip_suffix
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::strip_suffix@c1246b537b506862
+map_version: '2'
 ---
 # symbols::strip_suffix
 
-Removes a trailing `#` followed only by digits from a qualified name and returns the input unchanged otherwise.
+Removes a trailing '#' followed only by digits from a qualified name, leaving other '#' text intact.
+
+## Behaviour
+
+- 'a#1#2' -> 'a#1' (only the last '#' is checked)
+- 'f#' -> 'f' (empty digit tail counts as all digits)
+- 'f#2b' -> 'f#2b' unchanged
+
+## Terms
+
+collision suffix, hash stripping, numeric suffix, disambiguator, trim suffix
 
 ## Connections
 

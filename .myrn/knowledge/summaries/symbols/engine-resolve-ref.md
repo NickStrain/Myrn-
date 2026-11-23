@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::Engine::resolve_ref
 anchors:
 - sym:crates/myrn-engine/src/distill/checks.rs#distill::checks::Engine::resolve_ref@cc0dd9c2df93f61f
+map_version: '2'
 ---
 # Engine::resolve_ref
 
-Trims whitespace and backticks, then tries in order: note id (only if notes is true), commit sha (if sha-shaped), exact symbol or test id from a path#qname form, and fuzzy symbol lookup. The outer Result carries database errors, and the inner Err is a user-facing message for empty, ambiguous (listing up to 5 candidates), or unmatched names.
+Resolves a name from a record to a Ref by trying notes, commit sha, path#qname, and then name lookup, returning a user-facing error string when it cannot.
+
+## Behaviour
+
+- surrounding whitespace and backticks are stripped; empty -> Err "empty reference"
+- lookup order: note id (only if notes is true), commit sha, path#qname, then pick(name)
+- several candidates -> Err listing up to 5 as name (location) and asking for a qualified name
+
+## Terms
+
+resolve reference, lookup order, ambiguous name, reference error, record target, name lookup
 
 ## Connections
 

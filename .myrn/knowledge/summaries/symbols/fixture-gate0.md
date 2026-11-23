@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#Fixture
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#Fixture@d583ae746c828d11
+map_version: '2'
 ---
 # Fixture
 
-Test harness bundle: _tmp (the tempdir guard, which keeps the directory alive until drop), root (the repo copy), home (the engine home passed to Engine::init), and the initialized engine.
+Holds one test setup: the TempDir guard, the repo root, the home dir, and the Engine built on them.
+
+## Behaviour
+
+- _tmp field keeps the temp directory alive until the Fixture is dropped
+- root is tmp/repo and home is tmp/home
+- engine is the Engine returned by Engine::init
+
+## Terms
+
+test context, temp repo, test state, engine handle
 
 ## Connections
 

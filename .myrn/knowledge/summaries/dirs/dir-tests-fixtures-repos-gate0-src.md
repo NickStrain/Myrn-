@@ -6,11 +6,11 @@ title: tests/fixtures/repos/gate0/src/
 source: myrn summarize
 about: module:tests/fixtures/repos/gate0/src
 anchors:
-- module:tests/fixtures/repos/gate0/src@6b2421d4fad3d284
+- module:tests/fixtures/repos/gate0/src@8209db5ecad985e6
 ---
 # tests/fixtures/repos/gate0/src/
 
-Fixture Rust library crate (gate0) with an in-memory auth/session model: store.rs holds TokenStore (a Vec<String> of issued tokens with new, lookup, insert) and a fixed-value now(); auth/mod.rs only declares the session submodule, where session.rs or session/mod.rs defines Session (token string plus issued timestamp) and refresh(), which looks the token up in a TokenStore and returns a new Session, with a unit test for the unknown-token case. lib.rs declares the auth and store modules and re-exports auth::session::refresh at the crate root.
+Source root of the gate0 fixture crate. lib.rs declares the auth and store modules and re-exports auth::session::refresh at the crate root. store.rs holds an in-memory Vec-of-strings token store with new, lookup, and add methods, plus a standalone now() that always returns 42. auth/ holds the session logic: mod.rs only declares the session submodule, and the Session type, its freshness check, and refresh() (which looks up a token in a TokenStore and returns a fresh Session or None) live in session.rs or session/mod.rs, which were not shown.
 
 ## Connections
 

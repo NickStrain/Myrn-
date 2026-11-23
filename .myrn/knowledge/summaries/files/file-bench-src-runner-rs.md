@@ -6,16 +6,16 @@ title: bench/src/runner.rs
 source: myrn summarize
 about: file:bench/src/runner.rs
 anchors:
-- file:bench/src/runner.rs@a72d7e29364e519d
+- file:bench/src/runner.rs@f57c985a0bf4571a
 ---
 # bench/src/runner.rs
 
-Benchmark runner for myrn. It runs each task N times per condition (without, off, with) in a fresh clone of the pinned commit with a fresh myrn home, drives Claude Code headless, then scores the run by the task check or answer match and records metrics as RunRecord. It also holds the workspace setup (prepare), the agent-free validate check, and the helpers that run commands and parse node ids.
+Benchmark runner for myrn: runs each task several times per condition (without myrn, myrn with injection off, on, or fixed ranking) in a fresh clone, configures myrn and headless Claude Code for that condition, checks the result, and writes one RunRecord per run. It also builds per-repo project maps, validates tasks without an agent, and exports learned records.
 
 ## Connections
 
 - **Location:** `bench/src/runner.rs`
 - **In:** [[dir-bench-src]]
-- **Defines:** [[runner-condition]], [[condition-as-str]], [[condition-label]], [[condition-uses-myrn]], [[condition-parse]], [[runner-runrecord]], [[runner-tools]], [[runner-paths]], [[runner-git]], [[runner-git-apply]], [[runner-prepare]], [[runner-run-check]], [[runner-run-with-timeout]], [[runner-tail]], [[runner-runspec]], [[runner-run-one]], [[runner-run-inner]], [[runner-setup-myrn]], [[runner-export-records]], [[runner-collect-injections]], [[runner-item-name]], [[runner-item-path]], [[runner-now]], [[runner-validation]], [[runner-validate]]
+- **Defines:** [[runner-condition]], [[condition-as-str]], [[condition-label]], [[condition-uses-myrn]], [[condition-parse]], [[runner-runrecord]], [[runner-tools]], [[runner-paths]], [[runner-git]], [[runner-git-apply]], [[runner-prepare]], [[runner-run-check]], [[runner-run-with-timeout]], [[runner-tail]], [[runner-runspec]], [[runner-run-one]], [[runner-run-inner]], [[runner-setup-myrn]], [[runner-copy-dir]], [[runner-build-map]], [[runner-export-records]], [[runner-collect-injections]], [[runner-item-name]], [[runner-item-path]], [[runner-now]]
 - **Imports:** [[file-bench-src-metrics-rs]], [[file-bench-src-task-rs]]
-- **Imported by:** [[file-bench-src-main-rs]], [[file-bench-src-report-rs]]
+- **Imported by:** [[file-bench-src-main-rs]], [[file-bench-src-report-rs]], [[file-bench-src-retrieval-rs]]

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#ids
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#ids@4fa74998397b2a48
+map_version: '2'
 ---
 # ids
 
-Collects the id of each Link into a BTreeSet<String>, making comparisons order-independent.
+Collects the id field of each link into a BTreeSet of strings, dropping duplicates and sorting.
+
+## Behaviour
+
+- links with ids x, x, y -> {x, y}
+- empty iterator -> empty set
+- link status and other fields are ignored
+
+## Terms
+
+link ids, collect ids, id set, sorted ids
 
 ## Connections
 

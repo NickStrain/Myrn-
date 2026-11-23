@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/py/app/store.py#tests.fixtures.repos.gate0.py.app.store.TokenStore.lookup
 anchors:
 - sym:tests/fixtures/repos/gate0/py/app/store.py#tests.fixtures.repos.gate0.py.app.store.TokenStore.lookup@294ccef0a686855c
+map_version: '2'
 ---
 # TokenStore::lookup
 
-Takes a token and returns it unchanged if present in `self.tokens`, otherwise returns None; linear-time membership check.
+Returns the given token if it is present in self.tokens, otherwise None. Membership test is a linear list scan.
+
+## Behaviour
+
+- lookup('abc') when 'abc' was inserted -> 'abc'
+- lookup('abc') on empty store -> None
+- lookup of a falsy value such as '' returns '' only if '' was inserted, otherwise None
+
+## Terms
+
+find token, check token, token exists, validate token, membership check, search
 
 ## Connections
 

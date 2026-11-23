@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-model/src/relation.rs
 
-Defines the closed vocabulary of relation names used in the graph (an enum of 19 variants) with snake_case string conversion and parsing, so only these relation names are accepted. Includes a unit test confirming every variant round-trips and that unknown names like "depends_on" are rejected.
+Closed vocabulary of graph relation names: the Relation enum with its 19 variants, a hand-maintained ALL array, conversion to and from snake_case strings, and a round-trip test. Nothing outside this list is accepted, so models cannot invent relation names.
 
 ## Connections
 

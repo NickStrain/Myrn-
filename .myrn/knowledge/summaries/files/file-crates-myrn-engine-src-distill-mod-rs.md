@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/distill/mod.rs
 
-Declares the record schema the agent sends to the record tool, the outcome returned to it, and the closed vocabularies (RECORD_TYPES, AGENT_RELATIONS, EVIDENCE_KINDS). It also declares the submodules checks, contradiction, dedupe, mechanical, record and signature, which are not shown here, and includes a schema test.
+Root of the distillation module. It declares the submodules (checks, contradiction, dedupe, mechanical, record, signature) and defines the closed RECORD_TYPES, AGENT_RELATIONS and EVIDENCE_KINDS lists, plus the RecordItem, RelationItem and RecordOutcome types used by the `record` tool. It also holds the one_or_many deserializer and a schema unit test.
 
 ## Connections
 
@@ -18,4 +18,4 @@ Declares the record schema the agent sends to the record tool, the outcome retur
 - **In:** [[dir-crates-myrn-engine-src-distill]]
 - **Defines:** [[distill-recorditem]], [[distill-relationitem]], [[distill-recordoutcome]], [[recordoutcome-reject]], [[recordoutcome-render]], [[distill-one-or-many]], [[one-or-many-oneormany]]
 - **Imports:** [[file-crates-myrn-engine-src-distill-checks-rs]], [[file-crates-myrn-engine-src-distill-contradiction-rs]], [[file-crates-myrn-engine-src-distill-dedupe-rs]], [[file-crates-myrn-engine-src-distill-mechanical-rs]], [[file-crates-myrn-engine-src-distill-record-rs]], [[file-crates-myrn-engine-src-distill-signature-rs]]
-- **Imported by:** [[file-crates-myrn-engine-src-distill-checks-rs]], [[file-crates-myrn-engine-src-distill-record-rs]], [[file-crates-myrn-engine-src-lib-rs]]
+- **Imported by:** [[file-crates-myrn-engine-src-distill-checks-rs]], [[file-crates-myrn-engine-src-distill-record-rs]], [[file-crates-myrn-engine-src-lib-rs]], [[file-crates-myrn-engine-src-validity-states-rs]]

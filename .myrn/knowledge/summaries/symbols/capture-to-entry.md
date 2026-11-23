@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/mod.rs#capture::to_entry
 anchors:
 - sym:crates/myrn-engine/src/capture/mod.rs#capture::to_entry@990d47f4dadd3e50
+map_version: '2'
 ---
 # capture::to_entry
 
-Converts an Event into an Entry for session_start, prompt, tool, or session_end, or returns None. For tool results, each listed file must be repo-relative and not ignored; if files were listed and none survived, it returns None even when a command is present, and it also returns None when files, command, and error are all empty. Commands matched by outcome::is_test_command get test set to pass or fail from ToolOutcome::Failure; symbols and commits are left to the caller.
+Maps one Event to an episode Entry (session_start, prompt, tool, session_end), or returns None when nothing is worth keeping. The engine fills in symbols and commits afterwards.
+
+## Behaviour
+
+- ToolResult with files ["/r/src/a.rs", "src/./b.rs"] and cwd /r -> files ["src/a.rs", "src/b.rs"], duplicates removed
+- ToolResult whose files are all ignored or outside the repo -> None, even when a command is present
+- test command with Failure outcome -> test "fail"; other outcomes -> "pass"; non-test command -> no test field
+
+## Terms
+
+log entry, event record, episode line, session event, tool result, test pass fail, drop event, prompt text
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/event.rs#event::EventKind
 anchors:
 - sym:crates/myrn-model/src/event.rs#event::EventKind@b263e38d2ca70519
+map_version: '2'
 ---
 # event::EventKind
 
-Enum serialized with an internal tag field named event in snake_case. Variants: SessionStart{source}, PromptSubmitted{prompt}, ToolResult(ToolResult), and SessionEnd{reason, continued}. The continued flag defaults to false when absent and means the agent is already continuing because a stop hook asked it to, so the engine must not ask again or it will loop.
+Tagged enum of the four event types an adapter can emit: session start, prompt submitted, tool result, and session end. The serde tag is the field named event, with snake_case variant names.
+
+## Behaviour
+
+- {"event":"session_start","source":"resume"} -> SessionStart with source Some("resume")
+- {"event":"session_end"} with no continued key -> SessionEnd with continued false
+- SessionEnd continued true means the agent is already continuing because a stop hook asked it to, so the caller must not ask again
+
+## Terms
+
+event kind, event type, hook event, session start, session end, prompt submitted, stop hook, tool result event
 
 ## Connections
 

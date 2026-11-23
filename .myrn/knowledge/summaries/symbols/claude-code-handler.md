@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/claude_code.rs#claude_code::handler
 anchors:
 - sym:crates/myrn-adapters/src/claude_code.rs#claude_code::handler@6621d768eeb1c040
+map_version: '2'
 ---
 # claude_code::handler
 
-Builds a command-type hook object with command set to the binary path, args ["hook", "claude", event], and the given timeout. No shell is involved.
+Builds a command hook object that runs the myrn binary with args hook, claude and the event name, using the given timeout.
+
+## Behaviour
+
+- /opt/myrn/bin/myrn, SessionStart, 30 -> type command, args [hook, claude, SessionStart], timeout 30
+- Binary path is converted lossily to a string
+- args is a list, so no shell is involved
+
+## Terms
+
+hook entry, command hook, hook json, timeout
 
 ## Connections
 

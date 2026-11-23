@@ -7,10 +7,20 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::hooks_path
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::hooks_path@bb051ae9ae5e184d
+map_version: '2'
 ---
 # codex::hooks_path
 
-Returns root/.codex/hooks.json, where myrn writes its hook entries.
+Returns the path of the Codex hooks file, <root>/.codex/hooks.json. It does no I/O.
+
+## Behaviour
+
+- /repo -> /repo/.codex/hooks.json
+- file need not exist
+
+## Terms
+
+hooks file, hook config, hooks json location
 
 ## Connections
 

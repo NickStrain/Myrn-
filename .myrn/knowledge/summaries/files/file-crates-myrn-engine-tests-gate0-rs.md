@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/tests/gate0.rs
 
-Gate 0 acceptance test for the engine. It runs explain, impact, context, brief, refresh, history and rebuild against the multi-language fixture at tests/fixtures/repos/gate0 and asserts exact call and test edges. The helpers (setup, check, card, impact) sit above the per-language tests gate0_rust, gate0_python and gate0_typescript, followed by the lookup, context pack and incremental refresh tests.
+Gate 0 integration tests. They run the engine on the multi-language fixture repo at tests/fixtures/repos/gate0 (Rust, Python, TypeScript) and compare explain and impact answers exactly with known call graphs, along with incremental refresh, lookup forms, and context pack checks. Helpers copy the fixture into a temp git repo, commit it, and build an Engine.
 
 ## Connections
 

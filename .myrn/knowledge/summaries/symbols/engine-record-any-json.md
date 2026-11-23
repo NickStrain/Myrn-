@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/distill/record.rs#distill::record::Engine::record_any_json
 anchors:
 - sym:crates/myrn-engine/src/distill/record.rs#distill::record::Engine::record_any_json@70cb51ce245e21c4
+map_version: '2'
 ---
 # Engine::record_any_json
 
-Accepts either one record or an object with an items array and returns one RecordOutcome per item, in order. Items without their own session field inherit the top-level session; an empty items array or a non-array items value is rejected, and each item is checked independently.
+Accepts either one record object or an object with an items array, and records each item. A top-level session is copied into items that have none of their own.
+
+## Behaviour
+
+- items: [] -> one rejection saying items is empty; nothing is recorded
+- items present but not an array -> one rejection: items must be a list of records
+- no items key -> record_json on the whole value, returned as a one-element list
+
+## Terms
+
+batch, bulk record, multiple items, session default, items list
 
 ## Connections
 

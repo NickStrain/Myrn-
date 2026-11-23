@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/indexer/walk.rs
 
-Repository file walker for the indexer: enumerates supported-language source files under a root, applying .gitignore rules plus an extra ignore file (.myrn/ignore) and a size cap, and returns them as sorted FileStat records. Main parts are the FileStat struct, load_ignore for building the extra matcher, and walk itself.
+Repository file walker for the indexer: it lists supported-language source files under a root, honouring standard .gitignore rules plus an extra ignore file (.myrn/ignore). Main parts are the FileStat record, load_ignore (builds the extra matcher), and walk (traverses, filters, and returns sorted FileStat entries).
 
 ## Connections
 

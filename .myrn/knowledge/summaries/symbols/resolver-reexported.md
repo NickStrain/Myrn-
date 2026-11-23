@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::reexported
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::reexported@a1b577609f135579
+map_version: '2'
 ---
 # Resolver::reexported
 
-Resolves a name exported from a file by following that file's use binding for it, or falling back to exported_from.
+Finds what a name in a file refers to after an import, using the bound target if present and otherwise exported_from with depth 3.
+
+## Behaviour
+
+- name bound with a qname -> lookup of that qname in the bound file
+- no binding -> exported_from with depth 3
+- binding without a qname -> exported_from fallback
+
+## Terms
+
+re-export, bound name, exported name, import target, forwarded name
 
 ## Connections
 

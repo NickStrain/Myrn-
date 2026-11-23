@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-store/src/notes/wikilink.rs
 
-Extracts Obsidian-style [[wikilink]] targets from note bodies for indexing as generic `related` edges, skipping fenced code blocks and inline code spans. Its main parts are `extract` (body to ordered, deduplicated targets), `normalize` (raw link text to bare target name), and `unwrap_link` (header value to target name).
+Parses Obsidian-style [[wikilink]] forms out of note bodies: extract collects the link targets, normalize reduces raw link text to a bare note name, and unwrap_link strips [[ ]] from header values. Links inside fenced code blocks and inline code spans are ignored.
 
 ## Connections
 

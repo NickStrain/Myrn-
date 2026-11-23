@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-store/src/paths.rs#paths::Layout::state_path
 anchors:
 - sym:crates/myrn-store/src/paths.rs#paths::Layout::state_path@4623ec76ea8886a9
+map_version: '2'
 ---
 # Layout::state_path
 
-Returns data_dir/state.json, which stores consent and connected agents. The source comment says it survives rebuild.
+Returns the path to the per-user state file that stores consent and connected agents.
+
+## Behaviour
+
+- -> <data_dir>/state.json
+- per the doc comment, state survives `rebuild`
+- lives in the per-user data dir, not the repo
+
+## Terms
+
+consent, connected agents, state file, state json, survives rebuild
 
 ## Connections
 

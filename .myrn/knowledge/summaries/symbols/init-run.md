@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/init.rs#cmd::init::run
 anchors:
 - sym:crates/myrn/src/cmd/init.rs#cmd::init::run@bef1010607eb9db1
+map_version: '2'
 ---
 # init::run
 
-Takes the `Ctx` (uses its `data_dir` override) and indexes the current directory via `Engine::init`, which creates the local store and returns an `Engine` plus a report of file, symbol, commit, and timing counts, with optional call, import, and test link counts. It emits that report through `ctx.emit`, noting a temporary id when there are no commits yet and the count of files with syntax errors, and it prints the shared config and private store paths. The engine status lookup uses `.ok()`, so a failed status call silently drops the syntax-error line rather than failing the command.
+Initialises the engine in the current directory, indexes the repository, and emits the report. The text output lists indexed counts, optional link counts, a temporary-id note, syntax-error count, and the shared-config and private-store paths.
+
+## Behaviour
+
+- current_dir failure -> returns Err before any indexing happens
+- report.edges None -> the links line is omitted
+- engine.provisional_id true -> adds a note that a temporary id is used until the first commit
+
+## Terms
+
+index repository, setup, initialise, create store, first run, bootstrap, syntax errors, temporary id
 
 ## Connections
 

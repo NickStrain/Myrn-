@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn/src/cmd/connect.rs#cmd::connect::run
 anchors:
 - sym:crates/myrn/src/cmd/connect.rs#cmd::connect::run@6c5901b5deaa8834
+map_version: '2'
 ---
 # connect::run
 
-Opens the engine at the current directory and chooses adapters. In hooks mode without prior capture_consent it prints the disclosure and asks unless yes is set; declining returns FAILURE with nothing written. Consent sets capture_consent and consent_time. It then installs each adapter, prints changes and manual steps, merges created paths with prior ones (Vec::dedup removes only consecutive duplicates), and saves AgentState once at the end. If an install fails mid-loop, state is not saved, so files already written by earlier adapters go unrecorded.
+Runs the connect flow: asks for consent when hooks are requested and not yet granted, installs each chosen adapter, merges the created-file list into the agent's state, and saves state.
+
+## Behaviour
+
+- hooks mode, consent not yet given, user declines -> prints nothing installed, returns FAILURE, writes nothing
+- consent already given -> no prompt, installs directly and keeps existing state.created entries
+- an adapter install error stops the loop with ? before save_state, so consent and state from this run are not persisted
+
+## Terms
+
+connect, install hooks, consent, setup, session recording, agent state, pull only, mcp tools
 
 ## Connections
 

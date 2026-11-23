@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::ends_with_segments
 anchors:
 - sym:crates/myrn-engine/src/retrieve/seed.rs#retrieve::seed::ends_with_segments@7ea86e0e1f28e0a2
+map_version: '2'
 ---
 # seed::ends_with_segments
 
-Returns true if the qualname's segments end with the wanted segments (suffix match on segments, not substring).
+Checks whether the segments of a qualified name end with the wanted segments, in order.
+
+## Behaviour
+
+- auth::session::Session::refresh with [Session, refresh] -> true
+- auth::refresh with [Session, refresh] -> false (too few segments)
+- an empty wanted list -> true
+
+## Terms
+
+suffix match, trailing segments, qualified name tail, name match
 
 ## Connections
 

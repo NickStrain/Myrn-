@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/src/store.rs#store::TokenStore::insert
 anchors:
 - sym:tests/fixtures/repos/gate0/src/store.rs#store::TokenStore::insert@5c4f94699d47d504
+map_version: '2'
 ---
 # TokenStore::insert
 
-Takes &mut self and a &str token; appends an owned copy to the list without checking for duplicates. Returns nothing.
+Appends a copy of the given token string to the end of the stored list, mutating the store.
+
+## Behaviour
+
+- insert("abc") -> tokens now ends with "abc"; the input is copied with to_string.
+- Inserting the same token twice stores it twice.
+- Empty string is accepted and stored as-is.
+
+## Terms
+
+add token, store token, issue token, record token, push token, save token
 
 ## Connections
 

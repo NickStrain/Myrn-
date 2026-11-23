@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::common_prefix
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::common_prefix@8e8b846487355d58
+map_version: '2'
 ---
 # symbols::common_prefix
 
-Counts the leading characters two strings share; used to choose the closest of several same-file candidates.
+Counts how many leading characters two strings share.
+
+## Behaviour
+
+- 'abc' and 'abd' -> 2
+- empty and any string -> 0
+- identical strings -> their length in characters
+
+## Terms
+
+shared prefix, longest common prefix, closeness, character overlap, nearest parent
 
 ## Connections
 

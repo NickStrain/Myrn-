@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/capture/episode.rs#capture::episode::fold
 anchors:
 - sym:crates/myrn-engine/src/capture/episode.rs#capture::episode::fold@8524d2e4c076d9ae
+map_version: '2'
 ---
 # episode::fold
 
-Folds a session's entries into an Episode: the first entry sets started and agent, the first prompt sets task, 'tool' entries with outcome 'file_edit' add to edits and others to reads, and each 'session_end' sets ended and appends new commits. Afterward, files that were also edited are removed from files_read, and commands and errors are trimmed to the newest 50 and 20.
+Folds a session's ordered log entries into one Episode, tallying prompts, file reads and edits, tests, commands, errors and commits.
+
+## Behaviour
+
+- first entry sets started and agent; first prompt text becomes task, later prompts only increment the count; empty input gives started 0 and empty agent
+- tool entry with outcome 'file_edit' adds its files to edited, otherwise to read; a file both read and edited ends up only in edited
+- keeps only the last 50 commands and last 20 errors; session_end sets ended and adds only commits not already present
+
+## Terms
+
+replay, aggregate, rollup, reduce, session log, tally, build episode
 
 ## Connections
 

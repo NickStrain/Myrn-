@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-model/src/relation.rs#relation::Relation::parse
 anchors:
 - sym:crates/myrn-model/src/relation.rs#relation::Relation::parse@560bbd8609a7d2ab
+map_version: '2'
 ---
 # Relation::parse
 
-Returns Some(Relation) when the input exactly matches a variant's as_str() value (case-sensitive, no trimming), otherwise None; it does a linear search over ALL, so callers should treat None as rejection.
+Looks up a relation by exact, case-sensitive match against as_str over ALL, returning Some on a hit and None otherwise.
+
+## Behaviour
+
+- defined_in -> Some(DefinedIn)
+- DefinedIn or depends_on or empty string -> None
+- Linear scan of 19 entries; any new variant must also be added to ALL to be found
+
+## Terms
+
+lookup, from string, string to relation, validate, exact match, unknown name, parse relation, closed check
 
 ## Connections
 

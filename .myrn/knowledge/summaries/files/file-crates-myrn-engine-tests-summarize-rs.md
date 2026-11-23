@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/tests/summarize.rs
 
-Integration test for the summarize pipeline. It checks that summaries are written as Obsidian notes linked by [[id]], that unchanged code makes no model calls, that only changed files are re-asked, and that notes for removed code are deleted. It runs against a temp git repo and a stub model command.
+Integration test for the summarize feature: it checks that summary notes are written and linked, that only changed code is re-summarized, and that search finds code by its summary. It also holds the shared helpers: a fixture file writer, a temporary git repo builder, a stub model command that logs each call, and a call counter.
 
 ## Connections
 

@@ -6,11 +6,11 @@ title: crates/myrn-mcp/
 source: myrn summarize
 about: module:crates/myrn-mcp
 anchors:
-- module:crates/myrn-mcp@c94a2d71bbf184b2
+- module:crates/myrn-mcp@1a737bc7c402f557
 ---
 # crates/myrn-mcp/
 
-Stdio JSON-RPC 2.0 MCP server (myrn-mcp) that an agent spawns and owns; src/server.rs reads one message per line and handles initialize, ping, tools/list and tools/call, writing protocol output only to stdout, while src/tools/ routes each tool (context, explain, history, impact, recall, record) to its own submodule that forwards arguments to the Engine. tests/protocol.rs drives the server in-process via handle_line against an indexed git fixture repo built by the engine and call helpers.
+Rust MCP server crate that speaks JSON-RPC 2.0 over stdio, one message per line, with protocol on stdout and diagnostics on stderr. `src/lib.rs` re-exports `server::serve` as the entry point; `src/server.rs` runs the stdin loop, dispatches single and batch messages, and handles initialize, ping, tools/list and tools/call, while `src/tools/` holds one handler per tool and builds the advertised tool list, refreshes the index and marks cited node ids as used before routing each call. `tests/protocol.rs` runs integration tests against a temporary git repo with a small Rust file, covering the handshake, tool names, graph-backed tool answers, and error codes -32602, -32601 and -32700.
 
 ## Connections
 

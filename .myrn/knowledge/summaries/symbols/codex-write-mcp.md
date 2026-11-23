@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/codex.rs#codex::write_mcp
 anchors:
 - sym:crates/myrn-adapters/src/codex.rs#codex::write_mcp@4886575ffe51f869
+map_version: '2'
 ---
 # codex::write_mcp
 
-Replaces or appends the managed block in config.toml and creates .codex/ if needed. It fails if a [mcp_servers.myrn] table exists outside the managed markers, and the user must remove that table manually.
+Writes or replaces the managed MCP block in config.toml, creating .codex/ if needed. It refuses to write if [mcp_servers.myrn] already exists outside the markers.
+
+## Behaviour
+
+- existing config with other tables -> kept, with the block appended after a blank line
+- [mcp_servers.myrn] defined outside the markers -> error and the file is left unchanged
+- no existing file -> created containing only the block
+
+## Terms
+
+write config, install mcp, toml write, conflict check
 
 ## Connections
 

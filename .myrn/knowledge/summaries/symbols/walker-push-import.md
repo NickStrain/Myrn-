@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::push_import
 anchors:
 - sym:crates/myrn-engine/src/indexer/parse.rs#indexer::parse::Walker::push_import@89a59c604180d8d4
+map_version: '2'
 ---
 # Walker::push_import
 
 Stamps the current Rust module path onto an Import and appends it to the output.
+
+## Behaviour
+
+- Overwrites any module value the caller set
+- Non-Rust imports keep module None
+- A Rust use inside an inline mod block records that block's path
+
+## Terms
+
+record import, add import, import output, module stamp, store import
 
 ## Connections
 

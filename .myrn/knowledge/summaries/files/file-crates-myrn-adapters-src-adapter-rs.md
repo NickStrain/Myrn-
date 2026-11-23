@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-adapters/src/adapter.rs
 
-Defines the Adapter trait that each coding-agent integration implements (detect, install, uninstall, inspect, translate hook payloads, format hook output), plus shared helpers: repo-relative paths, JSON file read/write, hook-context clipping, and a hooks-JSON editor for the nested {"hooks": {Event: [{matcher, hooks: [...]}]}} layout.
+Defines the Adapter trait that each coding agent integration implements, the shared types it uses (InstallCtx, Mode, Change, Installed, Finding), and helpers for relative paths, hook context clipping, and reading, writing and editing agent JSON config files and hook lists.
 
 ## Connections
 

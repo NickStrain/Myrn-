@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:tests/fixtures/repos/gate0/web/src/store.ts#TokenStore.insert
 anchors:
 - sym:tests/fixtures/repos/gate0/web/src/store.ts#TokenStore.insert@33cd82562dc80c55
+map_version: '2'
 ---
 # TokenStore::insert
 
-Appends the given token string to the internal list with no deduplication or validation, so inserting the same token twice stores two entries; returns void.
+Appends the given token to the internal array with no validation, returning nothing.
+
+## Behaviour
+
+- insert('a') -> array gains 'a' at the end
+- insert('a') twice -> 'a' appears twice
+- insert('') -> empty string is stored as-is
+
+## Terms
+
+add token, store token, push token, issue token, record token
 
 ## Connections
 

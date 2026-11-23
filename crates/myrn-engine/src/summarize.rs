@@ -36,6 +36,12 @@ const KINDS: [&str; 8] = [
 const MAX_SOURCE: usize = 160_000;
 /// Most links of one kind written on a note.
 const MAX_LINKS: usize = 25;
+/// Version of what a symbol note holds. Notes from an older version are
+/// written again once (version 2 added `## Behaviour` and `## Terms`).
+const MAP_VERSION: &str = "2";
+/// Most behaviour lines and terms kept per symbol.
+const MAX_BEHAVIOUR: usize = 3;
+const MAX_TERMS: usize = 10;
 
 #[derive(Debug, Clone)]
 pub struct Options {
@@ -78,6 +84,10 @@ struct Entry {
     hash: String,
     note_id: String,
     summary: Option<String>,
+    /// What the code does on concrete inputs, and edge cases (symbols only).
+    behaviour: Vec<String>,
+    /// Words a person or a bug report would use for it (symbols only).
+    terms: Vec<String>,
     stale: bool,
 }
 
@@ -85,6 +95,9 @@ struct Entry {
 struct Existing {
     note_id: String,
     summary: String,
+    behaviour: Vec<String>,
+    terms: Vec<String>,
+    version: Option<String>,
     hash: Option<String>,
     path: String,
 }
@@ -132,11 +145,15 @@ impl Engine {
                 let Some(about) = note.links.iter().find(|l| l.rel == Relation::About) else {
                     continue;
                 };
+                let (behaviour, terms) = note.summary_details();
                 existing.insert(
                     about.target.clone(),
                     Existing {
                         note_id: note.id.clone(),
                         summary: note.summary_text(),
+                        behaviour,
+                        terms,
+                        version: note.extra_str("map_version"),
                         hash: note.anchors.first().and_then(|a| a.hash.clone()),
                         path,
                     },
@@ -206,6 +223,7 @@ impl Engine {
                     e.hash
                         .as_deref()
                         .is_some_and(|h| !h.is_empty() && hash.starts_with(h))
+                        && (n.ntype != "symbol" || e.version.as_deref() == Some(MAP_VERSION))
                 });
             entries.insert(
                 n.id.clone(),
@@ -214,6 +232,8 @@ impl Engine {
                     hash,
                     note_id,
                     summary: prev.map(|e| e.summary.clone()).filter(|s| !s.is_empty()),
+                    behaviour: prev.map(|e| e.behaviour.clone()).unwrap_or_default(),
+                    terms: prev.map(|e| e.terms.clone()).unwrap_or_default(),
                     stale,
                 },
             );
@@ -248,6 +268,7 @@ impl Engine {
                         .iter()
                         .map(|id| entries[id].node.clone())
                         .collect(),
+                    want_file: true,
                 });
             }
         }
@@ -267,11 +288,23 @@ impl Engine {
         }
 
         // 1. Files and their symbols.
+        // A bare name is matched only when it is unique in its whole file,
+        // not just in one part of a split file.
+        let mut titles: HashMap<(String, String), usize> = HashMap::new();
+        for j in &jobs {
+            for n in &j.symbols {
+                *titles
+                    .entry((j.file.clone(), n.title.clone().unwrap_or_default()))
+                    .or_default() += 1;
+            }
+        }
+        let files_sent = jobs.len();
+        let jobs = split_jobs(jobs, SYMBOLS_PER_CALL);
         if !jobs.is_empty() {
             progress(&format!(
-                "summarizing {} files ({} symbols) with {} at a time",
-                jobs.len(),
+                "summarizing {files_sent} files ({} symbols) in {} calls, {} at a time",
                 jobs.iter().map(|j| j.symbols.len()).sum::<usize>(),
+                jobs.len(),
                 opts.jobs.max(1)
             ));
         }
@@ -292,7 +325,7 @@ impl Engine {
             match r {
                 Ok(out) => {
                     report.cost_usd += out.cost;
-                    if let Some(s) = out.file.filter(|s| !s.is_empty()) {
+                    if let Some(s) = out.file.filter(|s| job.want_file && !s.is_empty()) {
                         let e = entries.get_mut(&job.file).expect("file entry");
                         e.summary = Some(s);
                         e.stale = false;
@@ -302,14 +335,18 @@ impl Engine {
                         let qn = n.qname.clone().unwrap_or_default();
                         // Exact qualified name, else the bare name when it is unique in the file.
                         let bare = n.title.clone().unwrap_or_default();
-                        let unique = job.symbols.iter().filter(|m| m.title == n.title).count() == 1;
+                        let unique = titles
+                            .get(&(job.file.clone(), bare.clone()))
+                            .is_some_and(|&c| c == 1);
                         let answer = out
                             .symbols
                             .get(&qn)
                             .or_else(|| unique.then(|| out.symbols.get(&bare)).flatten());
-                        if let Some(s) = answer.filter(|s| !s.is_empty()) {
+                        if let Some(s) = answer.filter(|s| !s.does.is_empty()) {
                             let e = entries.get_mut(&n.id).expect("symbol entry");
-                            e.summary = Some(s.clone());
+                            e.summary = Some(s.does.clone());
+                            e.behaviour = s.behaviour.clone();
+                            e.terms = s.terms.clone();
                             e.stale = false;
                             report.updated_symbols += 1;
                         }
@@ -421,7 +458,7 @@ impl Engine {
         for e in entries.values() {
             let Some(summary) = &e.summary else { continue };
             let body = self.map_body(e, summary, &has_note)?;
-            let note = Note {
+            let mut note = Note {
                 id: e.note_id.clone(),
                 ntype: "summary".into(),
                 status: "unverified".into(),
@@ -442,6 +479,9 @@ impl Engine {
                 extra: Vec::new(),
                 body,
             };
+            if e.node.ntype == "symbol" {
+                note.set_extra("map_version", MAP_VERSION);
+            }
             let sub = match e.node.ntype.as_str() {
                 "module" if e.node.path.as_deref() == Some("") => "project",
                 "module" => "dirs",
@@ -578,6 +618,15 @@ impl Engine {
             }
         }
         let mut body = format!("# {}\n\n{}\n", title_of(n), summary.trim());
+        if !e.behaviour.is_empty() {
+            body.push_str("\n## Behaviour\n\n");
+            for b in &e.behaviour {
+                body.push_str(&format!("- {b}\n"));
+            }
+        }
+        if !e.terms.is_empty() {
+            body.push_str(&format!("\n## Terms\n\n{}\n", e.terms.join(", ")));
+        }
         if !rows.is_empty() {
             body.push_str("\n## Connections\n\n");
             for (k, v) in rows {
@@ -593,11 +642,91 @@ struct FileJob {
     path: String,
     lang: String,
     symbols: Vec<Node>,
+    /// Only one part of a split file writes the file's own summary.
+    want_file: bool,
+}
+
+/// Most symbols asked about in one model call. A file with more is sent as
+/// several calls, each with the whole source, so no call is much longer than
+/// the others and the run is not held up by one large file.
+const SYMBOLS_PER_CALL: usize = 12;
+
+/// Split jobs with many symbols into parts of at most `per` symbols, and put
+/// the longest first so they are not the last to start.
+fn split_jobs(jobs: Vec<FileJob>, per: usize) -> Vec<FileJob> {
+    let mut out = Vec::new();
+    for job in jobs {
+        if job.symbols.len() <= per {
+            out.push(job);
+            continue;
+        }
+        let parts = job.symbols.len().div_ceil(per);
+        let size = job.symbols.len().div_ceil(parts);
+        for (i, chunk) in job.symbols.chunks(size).enumerate() {
+            out.push(FileJob {
+                file: job.file.clone(),
+                path: job.path.clone(),
+                lang: job.lang.clone(),
+                symbols: chunk.to_vec(),
+                want_file: job.want_file && i == 0,
+            });
+        }
+    }
+    out.sort_by_key(|j| std::cmp::Reverse(j.symbols.len()));
+    out
+}
+
+/// One symbol's answer: what it does, its behaviour lines and its terms.
+#[derive(Debug, Clone, PartialEq)]
+struct SymOut {
+    does: String,
+    behaviour: Vec<String>,
+    terms: Vec<String>,
+}
+
+/// A symbol's answer in either shape: a plain sentence (older prompt, or a
+/// model that ignored the object form) or `{does, behaviour, terms}`.
+fn sym_out(v: &serde_json::Value) -> Option<SymOut> {
+    if let Some(s) = v.as_str() {
+        return Some(SymOut {
+            does: clean(s),
+            behaviour: Vec::new(),
+            terms: Vec::new(),
+        });
+    }
+    let does = v["does"].as_str().or(v["summary"].as_str())?;
+    // Terms are stored comma-separated, so a comma inside one would split it.
+    let list = |key: &str, max: usize| -> Vec<String> {
+        let mut seen = HashSet::new();
+        v[key]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str())
+                    .map(|x| {
+                        let x = clean(x);
+                        if key == "terms" {
+                            x.replace(',', ";")
+                        } else {
+                            x
+                        }
+                    })
+                    .filter(|x| !x.is_empty() && seen.insert(x.to_lowercase()))
+                    .take(max)
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    Some(SymOut {
+        does: clean(does),
+        behaviour: list("behaviour", MAX_BEHAVIOUR),
+        terms: list("terms", MAX_TERMS),
+    })
 }
 
 struct FileOut {
     file: Option<String>,
-    symbols: HashMap<String, String>,
+    symbols: HashMap<String, SymOut>,
     cost: f64,
 }
 
@@ -611,7 +740,11 @@ const STYLE: &str = "You write entries for a code map that AI coding agents read
 opening files, so they can decide what to edit. Be concrete: name what the code actually \
 does, what it takes and returns, its side effects, and any non-obvious rule or gotcha. No \
 filler (never start with \"This function\" or \"This file\"), no markdown, no guessing beyond \
-the code shown.";
+the code shown. For each symbol also give its behaviour: up to 3 short lines, each a concrete \
+input and what comes out, or an edge case it handles (empty input, zero, several dots, \
+negation, order). And its terms: up to 8 plain words or short phrases a user or a bug report \
+would use for what it does, which its name does not already say (e.g. for a function that \
+finds a file extension: extension, suffix, dot, multi-dot name).";
 
 fn summarize_file(command: &[String], cwd: &Path, job: &FileJob) -> Result<FileOut> {
     let src = std::fs::read_to_string(cwd.join(&job.path))
@@ -628,7 +761,8 @@ fn summarize_file(command: &[String], cwd: &Path, job: &FileJob) -> Result<FileO
     let mut prompt = format!(
         "{STYLE}\n\nFile: {path}\n\nReturn ONLY a JSON object, no code fence:\n\
          {{\"file\": \"<what this file is for and its main parts, 1-2 sentences>\", \
-         \"symbols\": {{\"<name>\": \"<what it does, 1 sentence, 2 at most>\"}}}}\n",
+         \"symbols\": {{\"<name>\": {{\"does\": \"<what it does, 1 sentence, 2 at most>\", \
+         \"behaviour\": [\"<input -> result, or edge case>\"], \"terms\": [\"<word>\"]}}}}}}\n",
         path = job.path
     );
     if job.symbols.is_empty() {
@@ -650,8 +784,8 @@ fn summarize_file(command: &[String], cwd: &Path, job: &FileJob) -> Result<FileO
     let mut symbols = HashMap::new();
     if let Some(map) = v["symbols"].as_object() {
         for (k, s) in map {
-            if let Some(s) = s.as_str() {
-                symbols.insert(k.clone(), clean(s));
+            if let Some(out) = sym_out(s) {
+                symbols.insert(k.clone(), out);
             }
         }
     }
@@ -748,7 +882,15 @@ fn run_model(command: &[String], prompt: &str) -> Result<(String, f64)> {
 
 /// Ask, and ask once more if the answer is not valid JSON.
 fn ask_json(command: &[String], prompt: &str) -> Result<(serde_json::Value, f64)> {
-    let (text, mut cost) = run_model(command, prompt)?;
+    // One retry after a pause: with many calls at once, a busy or
+    // rate-limited model is the usual failure.
+    let (text, mut cost) = match run_model(command, prompt) {
+        Ok(r) => r,
+        Err(_) => {
+            std::thread::sleep(std::time::Duration::from_secs(3));
+            run_model(command, prompt)?
+        }
+    };
     match parse_json(&text) {
         Ok(v) => Ok((v, cost)),
         Err(_) => {
@@ -780,7 +922,7 @@ fn parallel<T: Sync, R: Send>(items: &[T], jobs: usize, f: impl Fn(&T) -> R + Sy
     let next = AtomicUsize::new(0);
     let out: Mutex<Vec<Option<R>>> = Mutex::new((0..items.len()).map(|_| None).collect());
     std::thread::scope(|s| {
-        for _ in 0..jobs.clamp(1, 16).min(items.len().max(1)) {
+        for _ in 0..jobs.clamp(1, 32).min(items.len().max(1)) {
             s.spawn(|| loop {
                 let i = next.fetch_add(1, Ordering::Relaxed);
                 let Some(item) = items.get(i) else { break };
@@ -864,6 +1006,47 @@ pub fn slug(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn big_files_are_split_and_sent_first() {
+        let node = |i: usize| Node {
+            id: format!("sym:f#{i}"),
+            ntype: "symbol".into(),
+            title: Some(format!("s{i}")),
+            ..Default::default()
+        };
+        let job = |file: &str, n: usize| FileJob {
+            file: file.into(),
+            path: file.into(),
+            lang: "rust".into(),
+            symbols: (0..n).map(node).collect(),
+            want_file: true,
+        };
+        let out = split_jobs(vec![job("small", 3), job("big", 25)], 12);
+        // 25 symbols -> 3 parts of at most 9, longest first, small last.
+        let sizes: Vec<usize> = out.iter().map(|j| j.symbols.len()).collect();
+        assert_eq!(sizes, [9, 9, 7, 3]);
+        assert_eq!(out.iter().filter(|j| j.file == "big" && j.want_file).count(), 1);
+        assert_eq!(out.iter().filter(|j| j.file == "big").map(|j| j.symbols.len()).sum::<usize>(), 25);
+        assert!(out.last().unwrap().want_file);
+    }
+
+    #[test]
+    fn symbol_answers_in_both_shapes() {
+        let old = sym_out(&serde_json::json!("Returns the  last dot suffix.")).unwrap();
+        assert_eq!(old.does, "Returns the last dot suffix.");
+        assert!(old.terms.is_empty());
+        let new = sym_out(&serde_json::json!({
+            "does": "Returns the suffix from the last dot.",
+            "behaviour": ["f(a, b) -> .gz", "foo -> None", "a", "b"],
+            "terms": ["extension", "Extension", "dot, suffix"]
+        }))
+        .unwrap();
+        assert_eq!(new.behaviour.len(), MAX_BEHAVIOUR);
+        assert_eq!(new.behaviour[0], "f(a, b) -> .gz");
+        assert_eq!(new.terms, ["extension", "dot; suffix"]);
+        assert!(sym_out(&serde_json::json!({"terms": ["x"]})).is_none());
+    }
 
     #[test]
     fn slugs_are_obsidian_safe() {

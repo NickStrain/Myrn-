@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-mcp/src/tools/explain.rs#tools::explain::spec
 anchors:
 - sym:crates/myrn-mcp/src/tools/explain.rs#tools::explain::spec@e538b4353e9ed435
+map_version: '2'
 ---
 # explain::spec
 
-Returns the MCP tool JSON for "explain": a description of the card contents and an inputSchema with one required string property "symbol" that accepts a name, qualified name (a::b or A.b), path, or path:line.
+Builds the JSON tool definition for `explain`, with a description and an input schema that requires a `symbol` string.
+
+## Behaviour
+
+- no arguments -> JSON object with name "explain", a description, and inputSchema
+- inputSchema marks "symbol" as required, typed as string
+- accepted symbol forms per description: name, a::b or A.b qualified name, path, or path:line
+
+## Terms
+
+tool definition, input schema, tool metadata, MCP tool, json schema, tool registration
 
 ## Connections
 

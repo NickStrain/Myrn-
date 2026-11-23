@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:bench/src/metrics.rs#metrics::median
 anchors:
 - sym:bench/src/metrics.rs#metrics::median@0f578a4d7fd737cb
+map_version: '2'
 ---
 # metrics::median
 
-Sorts the slice in place and returns the upper median (xs[len/2]), or None if empty.
+Sorts the given slice in place and returns the upper middle element, or None if empty.
+
+## Behaviour
+
+- [5, 1, 3] -> Some(3), and the slice is left as [1, 3, 5]
+- [1, 2, 3, 4] -> Some(3), the upper middle, not an average
+- [] -> None
+
+## Terms
+
+middle value, median, sorted middle, in-place sort, robust centre
 
 ## Connections
 

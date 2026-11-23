@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-adapters/src/adapter.rs#adapter::Installed
 anchors:
 - sym:crates/myrn-adapters/src/adapter.rs#adapter::Installed@ac5e8430aef32a8a
+map_version: '2'
 ---
 # adapter::Installed
 
-Result of install: changes to show the developer, files written or edited, instruction files created from nothing (deleted on disconnect if left empty), and manual steps still required.
+Collects the results of an install: changes shown, files written, instruction files created, and manual steps left to the developer.
+
+## Behaviour
+
+- Default -> all four lists empty
+- created -> instruction files that uninstall deletes again if left empty
+- manual -> steps the developer must do by hand
+
+## Terms
+
+install result, install report, written files, created files, manual steps
 
 ## Connections
 

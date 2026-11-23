@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/notes.rs#copy_fixtures::rec
 anchors:
 - sym:crates/myrn-engine/tests/notes.rs#copy_fixtures::rec@f4cf2a2484a96d47
+map_version: '2'
 ---
 # copy_fixtures::rec
 
-Recursive helper that walks a fixture directory, applies the HEAD_SHA and BODY_HASH substitutions to each file's text, and writes it to the mirrored path under the destination.
+Recursively walks the source folder, copying each text file to the destination with the placeholders replaced and recreating subfolders.
+
+## Behaviour
+
+- subdirectory -> recurses into it and creates the matching destination folder
+- file -> read as text, replace HEAD_SHA with head[..7] and BODY_HASH with hash, then write
+- file names are copied unchanged, only file contents are substituted
+
+## Terms
+
+recursive copy, walk directory, copy tree, substitute text
 
 ## Connections
 

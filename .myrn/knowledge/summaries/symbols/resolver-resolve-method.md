@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::resolve_method
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::resolve_method@89fc6c431fb08570
+map_version: '2'
 ---
 # Resolver::resolve_method
 
-Resolves a method call on receiver q. self, this and cls walk up enclosing types, receivers rooted in external imports resolve to nothing, and super calls are never resolved. Otherwise it tries import-bound receivers, same-file Class.f, and then an Inferred match by receiver-word type or by a unique, non-common, reachable method name.
+Resolves a method call on a receiver text: self/this/cls walk up enclosing types, import receivers and same-file Class.f come next, then type-name hints, then a unique non-common method.
+
+## Behaviour
+
+- 'self.f()' inside a method -> the nearest enclosing type's f, Resolved
+- 'super.f()' or 'super().f()' -> empty, parent class unknown
+- receiver rooted in an external import such as 'Command::new(p).output()' -> empty
+
+## Terms
+
+method call, receiver, self call, super call, type hint, inferred method, receiver name
 
 ## Connections
 

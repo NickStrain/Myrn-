@@ -6,13 +6,13 @@ title: crates/myrn-engine/tests/
 source: myrn summarize
 about: module:crates/myrn-engine/tests
 anchors:
-- module:crates/myrn-engine/tests@a4b982237bb8e970
+- module:crates/myrn-engine/tests@cea2d475037fb31c
 ---
 # crates/myrn-engine/tests/
 
-Acceptance and integration tests for the myrn-engine crate, exercised as Rust integration tests in one file per feature area. gate0.rs runs the full tool surface (explain, impact, context, brief, refresh, history, rebuild) against the multi-language fixture at tests/fixtures/repos/gate0 and asserts exact call and test edges; notes.rs, packing.rs, records.rs and summarize.rs cover markdown note indexing, context packs and lookup, the record/distiller tool, and the summarize pipeline, mostly building temp git repos with inline or copied fixtures.
+Integration tests for the myrn-engine crate. Each file covers one feature area through the public Engine API, using temporary git repos or the multi-language gate0 fixture: explain and impact call graphs, history, the learning loop, note indexing, context packs, the record tool and distiller, Git-based record sharing, summaries, validity tracking, and the data behind 'myrn ui' (viz). Helpers are defined per file rather than in a shared module, and each test builds its own fixture repo.
 
 ## Connections
 
 - **In:** [[dir-crates-myrn-engine]]
-- **Files:** [[file-crates-myrn-engine-tests-gate0-rs]], [[file-crates-myrn-engine-tests-notes-rs]], [[file-crates-myrn-engine-tests-packing-rs]], [[file-crates-myrn-engine-tests-records-rs]], [[file-crates-myrn-engine-tests-summarize-rs]]
+- **Files:** [[file-crates-myrn-engine-tests-gate0-rs]], [[file-crates-myrn-engine-tests-history-rs]], [[file-crates-myrn-engine-tests-learning-rs]], [[file-crates-myrn-engine-tests-notes-rs]], [[file-crates-myrn-engine-tests-packing-rs]], [[file-crates-myrn-engine-tests-records-rs]], [[file-crates-myrn-engine-tests-sharing-rs]], [[file-crates-myrn-engine-tests-summarize-rs]], [[file-crates-myrn-engine-tests-validity-rs]], [[file-crates-myrn-engine-tests-viz-rs]]

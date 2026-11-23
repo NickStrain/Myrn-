@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/retrieve/walks.rs#retrieve::walks::direct_tests
 anchors:
 - sym:crates/myrn-engine/src/retrieve/walks.rs#retrieve::walks::direct_tests@e6f22b54ec5d65cb
+map_version: '2'
 ---
 # walks::direct_tests
 
-Returns the test nodes that have an incoming `tests` edge to the given symbol id, i.e. tests that directly call it, discarding the edge metadata.
+Returns the test nodes that have an incoming tests edge to the given symbol id. Edge status is dropped.
+
+## Behaviour
+
+- Symbol id with no incoming tests edges -> empty Vec
+- Outgoing tests edges from the symbol are ignored; only incoming ones are returned
+- Only one hop: tests that reach the symbol through callers are not included
+
+## Terms
+
+test coverage, covering tests, which tests cover, test links, unit tests, tests for symbol
 
 ## Connections
 

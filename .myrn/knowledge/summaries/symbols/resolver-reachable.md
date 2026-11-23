@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::reachable
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Resolver::reachable@d12d4c37beaa9751
+map_version: '2'
 ---
 # Resolver::reachable
 
-True when two files are the same, share a Rust crate, or are linked by one direct import or a second-hop import.
+Decides whether code in one file can plausibly reach a symbol in another without naming it: same file, same Rust crate, a direct import, or an import of an import.
+
+## Behaviour
+
+- same path -> true
+- two Rust files in the same crate -> true
+- a imports b and b imports c -> a reaches c
+
+## Terms
+
+reachability, import graph, two hops, same crate, visibility, can reach
 
 ## Connections
 

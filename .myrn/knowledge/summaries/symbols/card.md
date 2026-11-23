@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/tests/gate0.rs#card
 anchors:
 - sym:crates/myrn-engine/tests/gate0.rs#card@1faa8fcdb5f7a349
+map_version: '2'
 ---
 # card
 
-Calls e.explain(id) and returns the SymbolCard. Panics with the JSON-serialized result if the lookup is not Found(Explained::Symbol).
+Calls engine explain on an id and returns the SymbolCard, panicking if the result is not a found symbol.
+
+## Behaviour
+
+- Found(Explained::Symbol) -> the SymbolCard
+- NotFound, Ambiguous, or a File result -> panic with the JSON of the result
+- id is a symbol id such as sym:path#qualified::name
+
+## Terms
+
+symbol card, explain lookup, unwrap card, symbol details
 
 ## Connections
 

@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Binding::external
 anchors:
 - sym:crates/myrn-engine/src/indexer/symbols.rs#indexer::symbols::Binding::external@f2128a5a9d6ffda8
+map_version: '2'
 ---
 # Binding::external
 
-True when both file and qname are None, meaning the import points outside the repository.
+Returns true when both file and qname are absent, meaning the import points outside the repository.
+
+## Behaviour
+
+- file None and qname None -> true
+- file Some and qname None -> false
+- file None and qname Some -> false
+
+## Terms
+
+external import, outside repository, unresolved import, third-party import, unknown target
 
 ## Connections
 

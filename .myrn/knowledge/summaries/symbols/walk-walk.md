@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/walk.rs#indexer::walk::walk
 anchors:
 - sym:crates/myrn-engine/src/indexer/walk.rs#indexer::walk::walk@74206f607ab372a5
+map_version: '2'
 ---
 # walk::walk
 
-Returns all regular files under `root` that map to a supported `Lang`, are not ignored by standard git filters or the extra ignore file, and are at most `max_bytes`, sorted by path; unreadable entries and files outside the repo are silently skipped, and symlinks are not followed.
+Traverses root with standard gitignore filters plus the extra ignore matcher, returns supported-language files under max_bytes, sorted by path. Symlinks are not followed and read errors are skipped silently.
+
+## Behaviour
+
+- ignore_file missing -> only standard gitignore filters apply (require_git is false, so .gitignore works without a git repo)
+- file size equal to max_bytes is kept; size greater than max_bytes is skipped
+- file outside root, unsupported extension (Lang::from_path returns None), or unreadable metadata -> skipped; returns Ok with the rest
+
+## Terms
+
+file discovery, directory traversal, source files, gitignore filter, size limit, max bytes, skip large files, symlinks, sorted file list, repo scan
 
 ## Connections
 

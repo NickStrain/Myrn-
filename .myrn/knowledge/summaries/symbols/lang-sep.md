@@ -7,10 +7,21 @@ source: myrn summarize
 about: sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::sep
 anchors:
 - sym:crates/myrn-engine/src/indexer/lang/mod.rs#indexer::lang::Lang::sep@0ed5170637bf4967
+map_version: '2'
 ---
 # Lang::sep
 
-Returns the qualified-name separator: "::" for the Rust family and "." for every other family.
+Returns the separator between qualified-name segments. The Rust family uses '::' and every other family uses '.'.
+
+## Behaviour
+
+- Rust -> ::
+- Python -> .
+- TypeScript -> .
+
+## Terms
+
+qualified name separator, path separator, name delimiter, scope separator, dot
 
 ## Connections
 

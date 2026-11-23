@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-mcp/src/tools/impact.rs
 
-MCP tool handler for the `impact` tool: it declares the tool's JSON spec (name, description, and a required `symbol` string argument) and dispatches calls to the Engine's impact analysis, rendering up to 15 results.
+Defines the MCP 'impact' tool: its advertised spec (name, description, input schema requiring 'symbol') and the handler that runs the engine's impact query and renders the result as text.
 
 ## Connections
 

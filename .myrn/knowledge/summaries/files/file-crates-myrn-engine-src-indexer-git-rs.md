@@ -10,7 +10,7 @@ anchors:
 ---
 # crates/myrn-engine/src/indexer/git.rs
 
-Git history indexer that uses libgit2 directly instead of shelling out. It records each commit as a graph node with its message and metadata, the files it changed (including renames), and 'touches' edges from the commit to the symbols whose line ranges its hunks overlap. index_history drives the walk and index_commit handles a single commit.
+Indexes git history into the graph using libgit2: one commit node per commit (message, author, parents, revert target), per-file change rows, and 'touches' edges from each commit to the innermost symbols its hunks changed. Entry points are index_history, which walks back from HEAD, and the HEAD and root-commit lookups it relies on.
 
 ## Connections
 
