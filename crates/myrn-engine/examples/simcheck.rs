@@ -6,7 +6,9 @@ fn main() {
         let qv = e.embed(&[q.clone()]).unwrap().pop().unwrap();
         let mut stmt = e.db().conn.prepare("SELECT id, vec FROM vectors").unwrap();
         let mut hits: Vec<(String, f32)> = stmt
-            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, Vec<u8>>(1)?)))
+            .query_map([], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, Vec<u8>>(1)?))
+            })
             .unwrap()
             .filter_map(|r| r.ok())
             .map(|(id, b)| (id, myrn_embed::dot(&qv, &myrn_embed::from_bytes(&b))))
