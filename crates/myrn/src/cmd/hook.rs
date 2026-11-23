@@ -125,6 +125,35 @@ fn handle(ctx: &Ctx, agent: &str, event_arg: &str, started: Instant) -> Result<S
         }
         _ => String::new(),
     };
+    // Learning: what the agent opened after an injection was used; a session's
+    // outcome is attached to everything injected in it.
+    match &event.kind {
+        EventKind::ToolResult(r) if !r.files.is_empty() => {
+            let root = engine.root().to_path_buf();
+            let files: Vec<String> = r
+                .files
+                .iter()
+                .filter_map(|f| {
+                    let p = std::path::Path::new(f);
+                    let abs = if p.is_absolute() {
+                        p.to_path_buf()
+                    } else {
+                        root.join(p)
+                    };
+                    myrn_store::paths::repo_rel(&root, &abs)
+                })
+                .collect();
+            if let Err(e) = engine.mark_used_files(&event.session_id, &files) {
+                eprintln!("myrn hook: usage not recorded: {e:#}");
+            }
+        }
+        EventKind::SessionEnd { .. } => {
+            if let Err(e) = engine.attach_outcome(&event.session_id) {
+                eprintln!("myrn hook: outcome not recorded: {e:#}");
+            }
+        }
+        _ => {}
+    }
     // Recording must never cost the agent its context: report and carry on.
     if let Err(e) = engine.capture(agent, &event) {
         eprintln!("myrn hook: recording failed: {e:#}");

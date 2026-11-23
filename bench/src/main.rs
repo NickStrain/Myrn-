@@ -76,6 +76,14 @@ enum Cmd {
         /// Don't give myrn runs the project map (`myrn summarize`)
         #[arg(long)]
         no_map: bool,
+        /// One myrn store per repository and condition for the whole run, so what
+        /// is learned in one session ranks the next (use with `--conditions fixed,with`)
+        #[arg(long)]
+        shared_store: bool,
+        /// Turn on semantic search in myrn runs (the model must be downloaded:
+        /// `myrn embeddings enable` once on this machine)
+        #[arg(long)]
+        embeddings: bool,
     },
     /// Rebuild report.md from a run directory's results.jsonl
     Report {
@@ -220,6 +228,8 @@ fn real_main() -> Result<ExitCode> {
             permission_mode,
             dry_run,
             no_map,
+            shared_store,
+            embeddings,
         } => {
             let conds: Vec<Condition> = conditions
                 .split(',')
@@ -296,6 +306,19 @@ fn real_main() -> Result<ExitCode> {
                 model,
                 permission_mode,
                 maps,
+                shared_store,
+                embeddings: if embeddings {
+                    let dir = myrn_embed::model_dir(&myrn_store::paths::data_home()?);
+                    if !dir.join("model.safetensors").exists() {
+                        bail!(
+                            "no embedding model at {}; run `myrn embeddings enable` once first",
+                            dir.display()
+                        );
+                    }
+                    Some(dir)
+                } else {
+                    None
+                },
             };
             let results = out.join("results.jsonl");
             let mut n = 0;

@@ -475,6 +475,21 @@ wrong for the current code) as the Phase 3 gate, and run it.
 
 ### Step 20 — Usage-driven ranking and optional embeddings
 
+> **Status (2026-11-22): built; gate not run.** Used detection (`learn.rs`): an injected
+> item is used when the agent then reads or edits its file (or the file of the code a
+> record is anchored to), asks `explain`/`impact`/`recall` about it, or cites its id;
+> sessions attach their outcome at each Stop. Learned ranking (`[ranking] mode = "learned"`,
+> default; `"fixed"` is the switch back): a Beta(1, 2) usefulness factor in 0.5..1.5 from
+> ended sessions (use in sessions whose tests passed counts more), and a mild age decay for
+> records. Embeddings: `myrn embeddings enable|disable|status` downloads the Model2Vec
+> `potion-base-8M` static model (~30 MB, once per machine); `myrn-embed` has the model, a
+> localhost helper (token-protected, exits when idle) and a client that falls back to
+> in-process loading or to nothing. Vectors live in the same SQLite file (table `vectors`,
+> brute-force cosine; sqlite-vec was not needed at this size) and seed retrieval only when
+> a match stands clearly above that task's background similarity. Benchmark: `fixed`
+> condition, `--shared-store` (one store per repo and condition, so learning carries over),
+> `--embeddings`. Tests: `crates/myrn-engine/tests/learning.rs`.
+
 ```
 Implement Phase 4 from docs/DESIGN.md.
 

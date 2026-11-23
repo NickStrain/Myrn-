@@ -263,6 +263,12 @@ impl Engine {
         let code_changed = r.parsed > 0 || r.removed > 0;
         let roots = self.note_roots();
         r.notes = sync::sync(&mut self.db.conn, &roots, code_changed)?;
+        // Keep vectors in step with the code and summaries (only when on).
+        if (code_changed || r.notes.relinked) && self.embeddings_on() {
+            if let Err(e) = self.update_vectors() {
+                eprintln!("myrn: embeddings not updated: {e:#}");
+            }
+        }
         r.millis = started.elapsed().as_millis();
         self.last_refresh = Some(Instant::now());
         Ok(r)
@@ -674,8 +680,9 @@ impl Engine {
     ) -> Result<Pack> {
         let cfg = &self.config.context;
         let budget = budget.unwrap_or(cfg.prompt_budget);
-        let seeds = seed::seeds(&self.db, task)?;
-        let ranked = rank::rank(&self.db, seeds)?;
+        let mut seeds = seed::seeds(&self.db, task)?;
+        seeds.extend(self.vector_seeds(task)?);
+        let ranked = rank::rank(&self.db, seeds, &self.config.ranking)?;
         let Some(top) = ranked.first() else {
             return Ok(Pack::empty());
         };

@@ -21,6 +21,9 @@ pub struct State {
     /// Recent hook timings, newest last (at most 50).
     #[serde(default)]
     pub hook_timings: Vec<HookTiming>,
+    /// Semantic search with the local embedding model (`myrn embeddings enable`).
+    #[serde(default)]
+    pub embeddings: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -162,14 +162,37 @@ enum Command {
         #[arg(long = "agent", value_name = "NAME")]
         agents: Vec<String>,
     },
+    /// Semantic search with a small local model: enable (downloads it), disable, status
+    Embeddings {
+        #[command(subcommand)]
+        action: EmbeddingsAction,
+    },
     /// Entry point for agent hooks (reads the hook payload on stdin)
     #[command(hide = true)]
     Hook { agent: String, event: String },
+    /// The embedding helper process (started on first use; exits when idle)
+    #[command(hide = true)]
+    EmbedHelper {
+        #[arg(long)]
+        home: std::path::PathBuf,
+        #[arg(long, default_value_t = 600)]
+        idle_secs: u64,
+    },
     /// Developer tools
     Debug {
         #[command(subcommand)]
         command: DebugCommand,
     },
+}
+
+#[derive(Subcommand)]
+enum EmbeddingsAction {
+    /// Download the model (about 30 MB, once per machine) and turn semantic search on here
+    Enable,
+    /// Turn semantic search off here and drop the vectors (the model stays downloaded)
+    Disable,
+    /// Whether it is on, the model, the vectors and the helper
+    Status,
 }
 
 #[derive(Subcommand)]
@@ -253,6 +276,15 @@ fn main() -> ExitCode {
         ),
         Command::Disconnect { agents } => cmd::disconnect::run(&ctx, agents),
         Command::Hook { agent, event } => cmd::hook::run(&ctx, &agent, &event),
+        Command::Embeddings { action } => match action {
+            EmbeddingsAction::Enable => cmd::embeddings::enable(&ctx),
+            EmbeddingsAction::Disable => cmd::embeddings::disable(&ctx),
+            EmbeddingsAction::Status => cmd::embeddings::status(&ctx),
+        },
+        Command::EmbedHelper { home, idle_secs } => {
+            myrn_embed::helper::serve(&home, std::time::Duration::from_secs(idle_secs))
+                .map(|_| std::process::ExitCode::SUCCESS)
+        }
         Command::Debug {
             command:
                 DebugCommand::Review {

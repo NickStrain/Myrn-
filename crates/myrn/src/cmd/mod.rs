@@ -5,6 +5,7 @@ pub mod debug;
 pub mod diff;
 pub mod disconnect;
 pub mod doctor;
+pub mod embeddings;
 pub mod forget;
 pub mod gc;
 pub mod hook;

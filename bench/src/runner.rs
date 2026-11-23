@@ -29,6 +29,8 @@ pub enum Condition {
     Off,
     /// myrn connected, injection on.
     With,
+    /// Injection on with the fixed ranking (no learning from past use).
+    Fixed,
 }
 
 impl Condition {
@@ -37,6 +39,7 @@ impl Condition {
             Condition::Without => "without",
             Condition::Off => "off",
             Condition::With => "with",
+            Condition::Fixed => "fixed",
         }
     }
     /// Column heading in the report.
@@ -45,6 +48,7 @@ impl Condition {
             Condition::Without => "Without myrn",
             Condition::Off => "myrn, inject off",
             Condition::With => "myrn, inject on",
+            Condition::Fixed => "myrn, inject on, fixed ranking",
         }
     }
     pub fn uses_myrn(self) -> bool {
@@ -55,7 +59,8 @@ impl Condition {
             "without" => Ok(Condition::Without),
             "off" => Ok(Condition::Off),
             "with" => Ok(Condition::With),
-            _ => bail!("unknown condition {s}; use without, off or with"),
+            "fixed" => Ok(Condition::Fixed),
+            _ => bail!("unknown condition {s}; use without, off, with or fixed"),
         }
     }
 }
@@ -100,6 +105,11 @@ pub struct Tools {
     pub permission_mode: String,
     /// Project map (summaries directory) per repository, copied into myrn runs.
     pub maps: std::collections::HashMap<String, PathBuf>,
+    /// Keep one myrn store per repository and condition for the whole run, so
+    /// usage learned in one session ranks the next (Step 20 gate).
+    pub shared_store: bool,
+    /// The embedding model's directory, copied into myrn runs to turn semantic search on.
+    pub embeddings: Option<PathBuf>,
 }
 
 pub struct Paths {
@@ -339,25 +349,36 @@ fn run_inner(
         );
     }
     let work = paths.work.join(&spec.repo.name);
-    let home = paths.work.join("myrn-home");
+    let home = if tools.shared_store {
+        paths
+            .work
+            .parent()
+            .unwrap_or(&paths.work)
+            .join("stores")
+            .join(format!("{}--{}", spec.repo.name, spec.condition.as_str()))
+    } else {
+        paths.work.join("myrn-home")
+    };
     let target = paths.target.join(&spec.repo.name);
     std::fs::create_dir_all(&target)?;
     prepare(&checkout, spec.repo, spec.task, &work)?;
-    if home.exists() {
+    if home.exists() && !tools.shared_store {
         std::fs::remove_dir_all(&home)?;
     }
 
     let mcp_config = paths.work.join("mcp.json");
     let mcp = match spec.condition {
         Condition::Without => serde_json::json!({ "mcpServers": {} }),
-        Condition::Off | Condition::With => {
+        Condition::Off | Condition::With | Condition::Fixed => {
             let map = tools.maps.get(&spec.repo.name).map(PathBuf::as_path);
             setup_myrn(
                 &tools.myrn,
                 &work,
                 &home,
-                spec.condition == Condition::With,
+                spec.condition != Condition::Off,
+                spec.condition == Condition::Fixed,
                 map,
+                tools.embeddings.as_deref(),
             )?;
             serde_json::json!({ "mcpServers": { "myrn": {
                 "type": "stdio",
@@ -436,12 +457,15 @@ fn run_inner(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn setup_myrn(
     myrn: &Path,
     work: &Path,
     home: &Path,
     inject: bool,
+    fixed_ranking: bool,
     map: Option<&Path>,
+    embeddings: Option<&Path>,
 ) -> Result<()> {
     let run = |args: &[&str]| -> Result<()> {
         let o = Command::new(myrn)
@@ -467,7 +491,16 @@ fn setup_myrn(
     // record request: its tokens are not part of the comparison, only the bill.
     let cfg = work.join(".myrn/project.toml");
     let mut text = std::fs::read_to_string(&cfg)?;
-    for (key, value) in [("inject", inject), ("ask_at_session_end", false)] {
+    let mode = if fixed_ranking {
+        "\"fixed\""
+    } else {
+        "\"learned\""
+    };
+    for (key, value) in [
+        ("inject", inject.to_string()),
+        ("ask_at_session_end", "false".to_string()),
+        ("mode", mode.to_string()),
+    ] {
         let line = text
             .lines()
             .find(|l| l.trim_start().starts_with(&format!("{key} =")))
@@ -480,6 +513,16 @@ fn setup_myrn(
     // the bug landed): the broken function's summary shows as possibly outdated.
     if let Some(map) = map {
         copy_dir(map, &work.join(".myrn/knowledge/summaries"))?;
+    }
+    // Semantic search: the model from this machine, never a download per run.
+    if let Some(model) = embeddings {
+        let dst = home
+            .join("models")
+            .join(model.file_name().unwrap_or_default());
+        if !dst.join("model.safetensors").exists() {
+            copy_dir(model, &dst)?;
+        }
+        run(&["embeddings", "enable"])?;
     }
     Ok(())
 }
@@ -608,9 +651,10 @@ fn collect_injections(work: &Path, home: &Path, rec: &mut RunRecord) -> Result<(
     let mut stmt = engine
         .db()
         .conn
-        .prepare("SELECT DISTINCT note_id FROM usage WHERE injected = 1")?;
+        .prepare("SELECT DISTINCT note_id FROM usage WHERE injected = 1 AND session_id = ?1")?;
+    let session = rec.session.session_id.clone().unwrap_or_default();
     rec.injected = stmt
-        .query_map([], |r| r.get::<_, String>(0))?
+        .query_map([&session], |r| r.get::<_, String>(0))?
         .collect::<rusqlite::Result<_>>()?;
     let answer = rec.session.answer.to_lowercase();
     rec.injected_used = rec
@@ -624,8 +668,8 @@ fn collect_injections(work: &Path, home: &Path, rec: &mut RunRecord) -> Result<(
     let (records, stale): (i64, i64) = engine.db().conn.query_row(
         "SELECT COUNT(DISTINCT u.note_id), COUNT(DISTINCT CASE WHEN u.status = 'suspect' THEN u.note_id END)
          FROM usage u JOIN nodes n ON n.id = u.note_id
-         WHERE u.injected = 1 AND n.origin = 'earned'",
-        [],
+         WHERE u.injected = 1 AND n.origin = 'earned' AND u.session_id = ?1",
+        [&session],
         |r| Ok((r.get(0)?, r.get(1)?)),
     )?;
     rec.injected_records = records as usize;
@@ -634,7 +678,7 @@ fn collect_injections(work: &Path, home: &Path, rec: &mut RunRecord) -> Result<(
         .state()?
         .hook_timings
         .iter()
-        .filter(|t| t.event == "UserPromptSubmit")
+        .filter(|t| t.event == "UserPromptSubmit" && t.time >= rec.started)
         .map(|t| t.millis)
         .collect();
     Ok(())

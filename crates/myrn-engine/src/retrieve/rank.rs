@@ -8,6 +8,7 @@ use myrn_store::Db;
 
 use super::seed::Seed;
 use super::walks;
+use crate::config::RankingConfig;
 
 /// Below this best-seed score nothing is injected: silence beats filler.
 pub const MIN_SCORE: f64 = 3.0;
@@ -19,7 +20,7 @@ pub struct Ranked {
     pub why: &'static str,
 }
 
-pub fn rank(db: &Db, seeds: Vec<Seed>) -> Result<Vec<Ranked>> {
+pub fn rank(db: &Db, seeds: Vec<Seed>, cfg: &RankingConfig) -> Result<Vec<Ranked>> {
     let c = &db.conn;
     let mut acc: HashMap<String, Ranked> = HashMap::new();
     let mut add = |id: &str, score: f64, why: &'static str| {
@@ -103,9 +104,34 @@ pub fn rank(db: &Db, seeds: Vec<Seed>) -> Result<Vec<Ranked>> {
             r.score *= f;
         }
     }
+    if cfg.mode == "learned" {
+        learned(c, &mut out, cfg)?;
+    }
     out.retain(|r| r.score > 0.0);
     out.sort_by(|a, b| b.score.total_cmp(&a.score).then_with(|| a.id.cmp(&b.id)));
     Ok(out)
+}
+
+/// Past usefulness (every item) and age (learned records) on top of relevance and state.
+fn learned(c: &rusqlite::Connection, out: &mut [Ranked], cfg: &RankingConfig) -> Result<()> {
+    let ids: Vec<&str> = out.iter().map(|r| r.id.as_str()).collect();
+    let usage = crate::learn::usage_of(c, &ids)?;
+    let mut mtime = c.prepare_cached("SELECT MAX(mtime) FROM notes WHERE id = ?1")?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs_f64())
+        .unwrap_or(0.0);
+    for r in out.iter_mut() {
+        if let Some(u) = usage.get(&r.id) {
+            r.score *= u.factor(cfg.usefulness_weight);
+        }
+        let t: Option<i64> = mtime.query_row([&r.id], |row| row.get(0))?;
+        if let Some(ns) = t {
+            let age_days = (now - ns as f64 / 1e9) / 86_400.0;
+            r.score *= crate::learn::freshness(cfg, age_days);
+        }
+    }
+    Ok(())
 }
 
 /// Learned records rank by state: superseded ones drop out, contradicted and

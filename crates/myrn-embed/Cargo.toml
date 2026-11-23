@@ -7,3 +7,19 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+[features]
+default = ["model"]
+# The static embedding model (Model2Vec): tokenizer, weights and the download.
+# Without it the client always answers "unavailable" and nothing else changes.
+model = ["dep:tokenizers", "dep:safetensors", "dep:ureq"]
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokenizers = { version = "0.22", default-features = false, features = ["fancy-regex"], optional = true }
+safetensors = { version = "0.6", optional = true }
+ureq = { version = "3", optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -228,7 +228,12 @@ fn diff_cell(g: &Gate) -> String {
     }
 }
 
-const ORDER: [Condition; 3] = [Condition::Without, Condition::Off, Condition::With];
+const ORDER: [Condition; 4] = [
+    Condition::Without,
+    Condition::Off,
+    Condition::Fixed,
+    Condition::With,
+];
 
 /// The Markdown report.
 pub fn render(runs: &[RunRecord], title: &str) -> String {
@@ -262,6 +267,15 @@ pub fn render(runs: &[RunRecord], title: &str) -> String {
         g.verdict.label()
     );
     let _ = writeln!(out, "{}.\n", g.reason);
+    let learned = compare(runs, Condition::Fixed, Condition::With);
+    if learned.pairs > 0 {
+        let _ = writeln!(
+            out,
+            "## Step 20 (learned vs fixed ranking): {}\n\n{}.\n",
+            learned.verdict.label(),
+            learned.reason
+        );
+    }
 
     // Every paired comparison present, on task tokens and on total tokens.
     let _ = writeln!(out, "## Paired comparisons\n");
@@ -277,6 +291,8 @@ pub fn render(runs: &[RunRecord], title: &str) -> String {
         (Condition::Without, Condition::With),
         (Condition::Without, Condition::Off),
         (Condition::Off, Condition::With),
+        (Condition::Without, Condition::Fixed),
+        (Condition::Fixed, Condition::With),
     ] {
         for (name, f) in measures {
             let c = compare_by(runs, a, b, f);

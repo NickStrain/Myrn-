@@ -17,6 +17,64 @@ pub struct Config {
     pub records: RecordsConfig,
     #[serde(default)]
     pub summarize: SummarizeConfig,
+    #[serde(default)]
+    pub ranking: RankingConfig,
+    #[serde(default)]
+    pub embeddings: EmbeddingsConfig,
+}
+
+/// How candidates are ranked (`[ranking]`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct RankingConfig {
+    /// `learned`: relevance and state, adjusted by how useful each item was
+    /// when injected before, and records' age. `fixed`: relevance and state only.
+    pub mode: String,
+    /// How far past use moves an item (0 = not at all). The factor stays within 0.5..1.5.
+    pub usefulness_weight: f64,
+    /// How much an old record ranks down (0 = not at all; at most this share).
+    pub freshness_weight: f64,
+    /// Age in days at which a record has lost half of `freshness_weight`.
+    pub freshness_half_life_days: f64,
+}
+
+impl Default for RankingConfig {
+    fn default() -> Self {
+        RankingConfig {
+            mode: "learned".into(),
+            usefulness_weight: 0.5,
+            freshness_weight: 0.2,
+            freshness_half_life_days: 180.0,
+        }
+    }
+}
+
+/// Semantic search (`[embeddings]`). It is turned on per machine with
+/// `myrn embeddings enable`, which downloads the model; these are its knobs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct EmbeddingsConfig {
+    /// Lowest cosine similarity for a vector match to seed retrieval.
+    pub min_similarity: f64,
+    /// A match must also beat the task's 20th-best similarity by this much:
+    /// static embeddings have a high background level, and only matches that
+    /// stand out from it are meaningful.
+    pub margin: f64,
+    /// Most vector matches per task.
+    pub top_k: usize,
+    /// The helper process exits after this many idle seconds.
+    pub idle_secs: u64,
+}
+
+impl Default for EmbeddingsConfig {
+    fn default() -> Self {
+        EmbeddingsConfig {
+            min_similarity: 0.40,
+            margin: 0.08,
+            top_k: 5,
+            idle_secs: 600,
+        }
+    }
 }
 
 /// `myrn summarize`: the model command that writes the project map.
@@ -171,7 +229,12 @@ impl Config {
              [summarize]\n\
              # Model command for `myrn summarize` (prompt on stdin, answer on stdout).\n\
              command = {}\n\
-             jobs = {}\n",
+             jobs = {}\n\
+             \n\
+             [ranking]\n\
+             # learned: also by how useful each item was when injected before, and\n\
+             # records' age. fixed: relevance and record state only.\n\
+             mode = \"{}\"\n",
             d.index.max_file_bytes,
             d.index.history_depth,
             d.context.inject,
@@ -183,7 +246,8 @@ impl Config {
             d.records.recall_on_failure,
             d.records.failure_budget,
             toml::Value::from(d.summarize.command.clone()),
-            d.summarize.jobs
+            d.summarize.jobs,
+            d.ranking.mode
         )
     }
 }

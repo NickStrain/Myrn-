@@ -8,8 +8,10 @@ pub mod config;
 
 pub mod capture;
 pub mod distill;
+pub mod embeddings;
 pub mod indexer;
 pub mod knowledge;
+pub mod learn;
 pub mod pack;
 pub mod retrieve;
 pub mod review;

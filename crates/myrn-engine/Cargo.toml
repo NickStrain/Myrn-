@@ -7,9 +7,15 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+[features]
+default = ["embeddings"]
+# The local embedding model (downloaded only on `myrn embeddings enable`).
+embeddings = ["myrn-embed/model"]
+
 [dependencies]
 myrn-model.workspace = true
 myrn-store.workspace = true
+myrn-embed.workspace = true
 anyhow.workspace = true
 blake3.workspace = true
 git2.workspace = true

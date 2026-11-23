@@ -47,6 +47,8 @@ pub fn call(engine: &mut Engine, name: &str, args: &Value) -> Option<Result<Stri
     if let Err(e) = engine.refresh_if_older(2) {
         return Some(Err(e));
     }
+    // Asking about or citing something that was injected means it was used.
+    let _ = engine.mark_used_ids(&cited(engine, name, args));
     Some(match name {
         "context" => context::call(engine, args),
         "explain" => explain::call(engine, args),
@@ -57,6 +59,44 @@ pub fn call(engine: &mut Engine, name: &str, args: &Value) -> Option<Result<Stri
         "supersede" => supersede::call(engine, args),
         _ => history::call(engine, args),
     })
+}
+
+/// Node ids a tool call asks about or cites.
+fn cited(engine: &Engine, name: &str, args: &Value) -> Vec<String> {
+    let s = |k: &str| args.get(k).and_then(Value::as_str).map(str::to_string);
+    match name {
+        "explain" | "impact" => s("symbol")
+            .and_then(|q| engine.find(&q).ok())
+            .and_then(|hits| hits.into_iter().next())
+            .map(|n| vec![n.id])
+            .unwrap_or_default(),
+        "confirm" | "supersede" => s("id").into_iter().collect(),
+        "recall" => s("error")
+            .and_then(|e| engine.recall(&e, 3).ok())
+            .map(|hits| hits.into_iter().map(|h| h.id).collect())
+            .unwrap_or_default(),
+        "record" => {
+            let mut out = Vec::new();
+            let items: Vec<&Value> = match args.get("items").and_then(Value::as_array) {
+                Some(list) => list.iter().collect(),
+                None => vec![args],
+            };
+            for it in items {
+                for r in it
+                    .get("relations")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                {
+                    if let Some(t) = r.get("target").and_then(Value::as_str) {
+                        out.push(t.to_string());
+                    }
+                }
+            }
+            out
+        }
+        _ => Vec::new(),
+    }
 }
 
 pub(crate) fn str_arg<'a>(args: &'a Value, key: &str) -> Result<&'a str> {

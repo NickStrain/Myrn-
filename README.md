@@ -150,6 +150,7 @@ myrn history src/auth/
 | `myrn doctor` | Check the store, the index and each agent's setup | Available |
 | `myrn log [session]` | Sessions and learned records over time (`--type`, `--status`); one session in full | Available |
 | `myrn rebuild` | Recreate the index from scratch | Available |
+| `myrn embeddings enable` | Optional semantic search with a small local model (downloaded only by this command) | Available |
 | `myrn summarize` | Write or update the project map (summaries for the project, directories, files and functions) | Available |
 | `myrn mcp` | MCP server over stdio, started by the agent | Available |
 | `myrn trace <id>` | Where a record came from: session, commits, tests, the code it is anchored to | Available |
@@ -227,7 +228,7 @@ Each phase ships something usable, and the next phase starts only after its gate
 | 1. Hooks | `myrn connect` for Claude Code and Codex; session recording with secret redaction; benchmark gate | Built; gate run pending |
 | 2. Memory | Learned records as Markdown notes: decisions, bugs, root causes, workflows | Planned |
 | 3. Validity | Records anchored to code hashes, suspect when the code changes, confirm/supersede, verify, history commands | Built; stale-injection gate needs replay tasks |
-| 4. Learning loop | Ranking from what actually helped; optional local embeddings | Planned |
+| 4. Learning loop | Ranking by what was used in past sessions; optional local embeddings (`myrn embeddings enable`) | Built; gate run pending |
 | 5. Team sharing | Publish knowledge through Git and review it in pull requests | Planned |
 
 <details>
@@ -263,7 +264,7 @@ Claude Code and Codex get hooks and MCP tools through `myrn connect`. Any other 
 Rust, Python, JavaScript and TypeScript (including TSX). Each language is one module in `crates/myrn-engine/src/indexer/lang/`.
 
 **Do I need an API key, a GPU or a vector database?**
-No. Parsing uses Tree-sitter and search uses SQLite full-text search. Optional local embeddings are planned, but nothing will depend on them.
+No. Parsing uses Tree-sitter and search uses SQLite full-text search. Optional local embeddings (`myrn embeddings enable`, a 30 MB CPU model) add search by meaning; nothing depends on them.
 
 **Will it fill my agent's context window?**
 Context packs have a hard budget (about 1,500 tokens per prompt and 500 at session start), and nothing is injected when nothing is relevant. Automatic injection is off by default.
