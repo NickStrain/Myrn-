@@ -140,10 +140,11 @@ fn published_record_reaches_a_teammate_through_git() {
 
     // Publish: the file moves into the committed knowledge directory.
     let done = a.e.publish(&id).unwrap();
-    let shared = a
-        .root
-        .join(".myrn/knowledge/facts")
-        .join(format!("{id}.md"));
+    // The engine works on the canonical root (/private/var on macOS, \\?\C:\ on Windows).
+    let shared =
+        a.e.root()
+            .join(".myrn/knowledge/facts")
+            .join(format!("{id}.md"));
     assert_eq!(done.items[0].to, shared);
     assert!(shared.exists() && !private.exists());
     assert_eq!(std::fs::read_to_string(&shared).unwrap(), item.text);

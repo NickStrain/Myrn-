@@ -256,6 +256,11 @@ fn clean(note: &mut Note, root: &Path) -> (Vec<String>, Vec<String>) {
 /// Make paths inside the repository relative; hide other absolute paths.
 fn local_paths(s: &str, root: &Path) -> String {
     let root = root.to_string_lossy().replace('\\', "/");
+    // A canonical Windows root is verbatim (`\\?\C:\...`); text names the plain form.
+    let root = match root.strip_prefix("//?/UNC/") {
+        Some(rest) => format!("//{rest}"),
+        None => root.strip_prefix("//?/").unwrap_or(&root).to_string(),
+    };
     let root = root.trim_end_matches('/');
     s.split(' ')
         .map(|tok| {
