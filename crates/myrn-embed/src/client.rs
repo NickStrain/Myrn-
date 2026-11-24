@@ -84,7 +84,7 @@ pub fn start(data_home: &Path, exe: &Path) -> bool {
 /// Load the model in this process (bulk work, or no helper binary).
 #[cfg(feature = "model")]
 pub fn local(data_home: &Path, texts: &[String]) -> Option<Vec<Vec<f32>>> {
-    let m = crate::model::StaticModel::load(&crate::model_dir(data_home)).ok()?;
+    let m = crate::model::Model::load(&crate::model_dir(data_home)).ok()?;
     m.encode(texts).ok()
 }
 

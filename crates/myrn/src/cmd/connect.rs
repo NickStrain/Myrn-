@@ -14,8 +14,10 @@ pub struct Args {
     pub agents: Vec<String>,
     pub pull_only: bool,
     pub yes: bool,
-    /// Also register the MCP server in hooks mode.
+    /// Register the MCP server in hooks mode too (default; `--no-mcp` leaves it out).
     pub mcp: bool,
+    /// Turn on semantic search (default; downloads the model once per machine).
+    pub embeddings: bool,
 }
 
 /// The install context for this repository and this binary.
@@ -139,6 +141,27 @@ pub fn run(ctx: &Ctx, args: Args) -> Result<ExitCode> {
         );
     }
     engine.save_state(&state)?;
+    drop(engine);
+    // Semantic search ranks better (git-history test: right function in the
+    // top 5 for more tasks). A failed download must not undo the connection.
+    if args.embeddings && myrn_embed::supported() {
+        let on = ctx.engine().and_then(|mut e| {
+            if e.embeddings_on() {
+                return Ok(None);
+            }
+            println!(
+                "\nTurning on semantic search ({}, {}; `--no-embeddings` skips this):",
+                myrn_embed::MODEL_REPO,
+                myrn_embed::MODEL_SIZE
+            );
+            e.enable_embeddings(&|line: &str| println!("  {line}")).map(Some)
+        });
+        match on {
+            Ok(Some(r)) => println!("  {} vectors in {:.1}s", r.total, r.millis as f64 / 1000.0),
+            Ok(None) => {}
+            Err(e) => println!("  semantic search not turned on: {e:#}\n  retry with `myrn embeddings enable`"),
+        }
+    }
     println!("\nCheck the setup any time with `myrn doctor`.");
     Ok(ExitCode::SUCCESS)
 }

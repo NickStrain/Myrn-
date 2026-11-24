@@ -1,5 +1,5 @@
-//! Optional embeddings: a small static CPU model (Model2Vec `potion-base-8M`,
-//! about 30 MB) that turns text into vectors for semantic search.
+//! Optional embeddings: a CPU model that turns text into vectors for semantic
+//! search ([`MODEL_REPO`], see [`MODEL_SIZE`]).
 //!
 //! - The model is downloaded only on `myrn embeddings enable`.
 //! - A helper process loads it once, serves requests over localhost, and
@@ -15,11 +15,20 @@ pub mod model;
 use std::path::{Path, PathBuf};
 
 /// Hugging Face repository of the model.
-pub const MODEL_REPO: &str = "minishlab/potion-base-8M";
+/// Snowflake Arctic Embed M: a 110M-parameter BERT retrieval model. On 275
+/// questions from the benchmark repositories' git history it ranked best of
+/// seven models tried (right function in the top 5: 53% alone, 57% with
+/// myrn's text search; the previous static `potion-base-8M`: 40% and 53%).
+pub const MODEL_REPO: &str = "Snowflake/snowflake-arctic-embed-m";
+/// Its download size, for messages.
+pub const MODEL_SIZE: &str = "about 440 MB";
+/// Put before a search query (not before indexed text): the model is trained
+/// with this instruction on the query side.
+pub const QUERY_PREFIX: &str = "Represent this sentence for searching relevant passages: ";
 /// Files the model needs.
 pub const MODEL_FILES: [&str; 3] = ["model.safetensors", "tokenizer.json", "config.json"];
 
-/// Where the model is kept (shared by every project): `<data home>/models/potion-base-8M`.
+/// Where the model is kept (shared by every project): `<data home>/models/<name>`.
 pub fn model_dir(data_home: &Path) -> PathBuf {
     data_home
         .join("models")

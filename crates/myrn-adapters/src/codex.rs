@@ -214,6 +214,15 @@ impl Adapter for Codex {
                     command_line(&ctx.binary, "<event>")
                 ),
             });
+            let p = instructions_path(root);
+            if pull_only::add_text(&p, pull_only::HOOKS_TEXT)? {
+                out.created.push(rel(root, &p));
+            }
+            out.written.push(rel(root, &p));
+            out.changes.push(Change {
+                path: rel(root, &p),
+                what: "line asking the agent to use the injected context, not re-read files".into(),
+            });
         } else {
             if removed > 0 {
                 write_json(&hooks, &doc)?;
@@ -242,7 +251,7 @@ impl Adapter for Codex {
         } else if remove_mcp(root)? {
             out.changes.push(Change {
                 path: rel(root, &config_path(root)),
-                what: "removed [mcp_servers.myrn] (off by default; `myrn connect --mcp` adds it)"
+                what: "removed [mcp_servers.myrn] (`myrn connect --no-mcp`)"
                     .into(),
             });
         }
@@ -326,7 +335,7 @@ impl Adapter for Codex {
         if !ctx.wants_mcp(mode) {
             out.push(Finding {
                 ok: true,
-                what: "MCP server off (hooks inject context; `myrn connect --mcp` adds it)".into(),
+                what: "MCP server off (connected with --no-mcp)".into(),
             });
             return out;
         }

@@ -46,14 +46,14 @@ pub fn serve(data_home: &Path, idle: Duration) -> Result<()> {
     if crate::client::request(data_home, &[String::from("ping")]).is_some() {
         return Ok(());
     }
-    let model = crate::model::StaticModel::load(&crate::model_dir(data_home))?;
+    let model = crate::model::Model::load(&crate::model_dir(data_home))?;
     let listener = TcpListener::bind(("127.0.0.1", 0))?;
     listener.set_nonblocking(true)?;
     let info = Info {
         port: listener.local_addr()?.port(),
         token: token(),
         pid: std::process::id(),
-        dim: model.dim,
+        dim: model.dim(),
     };
     let path = info_path(data_home);
     std::fs::create_dir_all(path.parent().expect("has a parent"))?;
@@ -90,7 +90,7 @@ pub fn serve(_data_home: &Path, _idle: Duration) -> Result<()> {
 }
 
 #[cfg(feature = "model")]
-fn answer(stream: TcpStream, token: &str, model: &crate::model::StaticModel) -> Result<()> {
+fn answer(stream: TcpStream, token: &str, model: &crate::model::Model) -> Result<()> {
     stream.set_nonblocking(false)?;
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     let mut reader = BufReader::new(stream.try_clone()?);

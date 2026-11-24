@@ -709,6 +709,26 @@ impl Engine {
         let Some(top) = ranked.first() else {
             return Ok(Pack::empty());
         };
+        // A request to add a new function (named in backticks, not in the code
+        // yet) with no strong, standout match: pointers would be guesses at a
+        // "neighbour", and agents follow them (on the benchmark both such
+        // feature tasks opened an unrelated file first and copied its style, at
+        // +30-65% tokens). Say nothing. "Add X to existing Y" keeps its pointers:
+        // they found the right file 8 times in 10 (git-history test).
+        let named = matches!(top.why, "named in task" | "named file");
+        // Flat: the best match is barely ahead of the third, so none stands out.
+        let flat = ranked
+            .get(2)
+            .is_none_or(|third| top.score - third.score < FLAT_LEAD);
+        if !named
+            && top.score < WEAK_TOP
+            && flat
+            && seed::asks_for_new_code(task)
+            && seed::names_new_symbol(&self.db, task)?
+        {
+            return Ok(Pack::empty());
+        }
+        let question = !seed::asks_about_bug(task) && seed::is_question(task);
         // Only items close to the best match; never pad to fill the budget.
         let cutoff = (top.score * RELATIVE_CUTOFF).max(rank::MIN_SCORE);
         let history = asks_about_history(task);
@@ -761,7 +781,6 @@ impl Engine {
         // A question is answered from code: its best match keeps its code even
         // when not certain (the pointer-only pack lost the answer on the
         // benchmark's questions). The rule above stays for bug reports and changes.
-        let question = !bug && seed::is_question(task);
         let max_cards = match (confident, bug) {
             (false, _) if question => 1,
             (false, _) => 0,
@@ -1314,6 +1333,12 @@ impl Pack {
 
 /// Items scoring below this share of the best match are left out.
 const RELATIVE_CUTOFF: f64 = 0.4;
+/// Below this, for a request to add new code, a best match that the task does
+/// not name is a guess (the benchmark's unrelated packs topped out at 6.2-6.9;
+/// a full match on the task's words scores up to about 10).
+const WEAK_TOP: f64 = 7.0;
+/// ...and it leads the third-best by less than this (both benchmark cases: 0.2, 0.5).
+const FLAT_LEAD: f64 = 1.0;
 /// A best match the task does not name shows its code only when it scores at
 /// least this many times the best match in another file.
 const CONFIDENT_MARGIN: f64 = 1.5;

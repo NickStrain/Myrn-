@@ -122,8 +122,7 @@ pub struct Tools {
     pub shared_store: bool,
     /// The embedding model's directory, copied into myrn runs to turn semantic search on.
     pub embeddings: Option<PathBuf>,
-    /// Attach myrn's MCP server to myrn sessions. Off by default, as `myrn
-    /// connect` now is: hooks inject the context, and the tools cost tokens.
+    /// Attach myrn's MCP server to myrn sessions (default, as `myrn connect`).
     pub mcp: bool,
 }
 
@@ -508,7 +507,7 @@ pub fn setup_myrn(
         Ok(())
     };
     run(&["init"])?;
-    run(&["connect", "--agent", "claude", "--yes"])?;
+    run(&["connect", "--agent", "claude", "--yes", "--no-embeddings"])?;
     // Set injection explicitly (the default changed), and skip the end-of-session
     // record request: its tokens are not part of the comparison, only the bill.
     let cfg = work.join(".myrn/project.toml");
@@ -542,6 +541,11 @@ pub fn setup_myrn(
             .join("models")
             .join(model.file_name().unwrap_or_default());
         if !dst.join("model.safetensors").exists() {
+            // Link, not copy: a transformer model is hundreds of megabytes.
+            std::fs::create_dir_all(dst.parent().expect("has a parent"))?;
+            #[cfg(unix)]
+            std::os::unix::fs::symlink(model, &dst)?;
+            #[cfg(not(unix))]
             copy_dir(model, &dst)?;
         }
         run(&["embeddings", "enable"])?;

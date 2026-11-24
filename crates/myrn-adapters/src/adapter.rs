@@ -14,9 +14,8 @@ pub struct InstallCtx {
     pub binary: PathBuf,
     /// Run the agent's own CLI (e.g. `claude mcp add`) when it is installed.
     pub run_agent_cli: bool,
-    /// Register myrn's MCP server in hooks mode too. Off by default: the hooks
-    /// already inject context, agents rarely call the tools, and a registered
-    /// server costs tokens on every model call. Pull-only mode always has it.
+    /// Register myrn's MCP server in hooks mode too (the default; `myrn
+    /// connect --no-mcp` leaves it out). Pull-only mode always has it.
     pub mcp: bool,
 }
 

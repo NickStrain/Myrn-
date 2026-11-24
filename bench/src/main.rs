@@ -89,9 +89,9 @@ enum Cmd {
         /// `myrn embeddings enable` once on this machine)
         #[arg(long)]
         embeddings: bool,
-        /// Attach myrn's MCP server to myrn sessions (off by default, as in `myrn connect`)
+        /// Don't attach myrn's MCP server to myrn sessions (`myrn connect --no-mcp`)
         #[arg(long)]
-        mcp: bool,
+        no_mcp: bool,
     },
     /// What myrn would inject for each task, and whether it points at the right
     /// code. No agent sessions, no cost.
@@ -264,7 +264,7 @@ fn real_main() -> Result<ExitCode> {
             no_map,
             shared_store,
             embeddings,
-            mcp,
+            no_mcp,
         } => {
             let conds: Vec<Condition> = conditions
                 .split(',')
@@ -354,7 +354,7 @@ fn real_main() -> Result<ExitCode> {
                 } else {
                     None
                 },
-                mcp,
+                mcp: !no_mcp,
             };
             let results = out.join("results.jsonl");
             let mut n = 0;

@@ -1,6 +1,8 @@
-//! The static embedding model: a tokenizer and one vector per token. A text's
-//! embedding is the mean of its tokens' vectors, normalised. No neural network
-//! runs, so it is fast on any CPU (Model2Vec).
+//! The embedding models. Two kinds, told apart by the model's `config.json`:
+//! - static (Model2Vec): one vector per token, averaged; no network runs;
+//! - transformer (BERT family, e.g. BGE): a real encoder run on the CPU with
+//!   candle, pooled from the first token. Slower, but it reads word order and
+//!   context, and ranks better.
 
 use std::io::Read;
 use std::path::Path;
@@ -9,6 +11,123 @@ use anyhow::{anyhow, bail, Context, Result};
 use safetensors::{Dtype, SafeTensors};
 
 use crate::{MODEL_FILES, MODEL_REPO};
+
+/// Either kind of model.
+pub enum Model {
+    Static(StaticModel),
+    Transformer(Box<TransformerModel>),
+}
+
+impl Model {
+    pub fn load(dir: &Path) -> Result<Model> {
+        if is_transformer(dir) {
+            Ok(Model::Transformer(Box::new(TransformerModel::load(dir)?)))
+        } else {
+            Ok(Model::Static(StaticModel::load(dir)?))
+        }
+    }
+
+    pub fn dim(&self) -> usize {
+        match self {
+            Model::Static(m) => m.dim,
+            Model::Transformer(m) => m.dim,
+        }
+    }
+
+    pub fn encode(&self, texts: &[String]) -> Result<Vec<Vec<f32>>> {
+        match self {
+            Model::Static(m) => m.encode(texts),
+            Model::Transformer(m) => m.encode(texts),
+        }
+    }
+}
+
+/// A BERT-family model (`"model_type": "bert"` in config.json).
+fn is_transformer(dir: &Path) -> bool {
+    std::fs::read_to_string(dir.join("config.json"))
+        .ok()
+        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+        .and_then(|v| v["model_type"].as_str().map(|s| s == "bert"))
+        .unwrap_or(false)
+}
+
+/// A BERT encoder; the text's vector is the first ([CLS]) token's final state,
+/// normalised, as BGE and Arctic Embed are trained.
+pub struct TransformerModel {
+    tokenizer: tokenizers::Tokenizer,
+    model: candle_transformers::models::bert::BertModel,
+    device: candle_core::Device,
+    pub dim: usize,
+}
+
+/// Longest input in tokens; longer texts are cut (summaries are short).
+const MAX_TOKENS: usize = 256;
+/// Texts encoded in one forward pass.
+const BATCH: usize = 16;
+
+impl TransformerModel {
+    pub fn load(dir: &Path) -> Result<TransformerModel> {
+        use candle_transformers::models::bert::{BertModel, Config};
+        let device = candle_core::Device::Cpu;
+        let config: Config = serde_json::from_str(
+            &std::fs::read_to_string(dir.join("config.json")).context("reading config.json")?,
+        )
+        .context("parsing config.json")?;
+        let mut tokenizer = tokenizers::Tokenizer::from_file(dir.join("tokenizer.json"))
+            .map_err(|e| anyhow!("loading the tokenizer: {e}"))?;
+        tokenizer
+            .with_truncation(Some(tokenizers::TruncationParams {
+                max_length: MAX_TOKENS,
+                ..Default::default()
+            }))
+            .map_err(|e| anyhow!("tokenizer truncation: {e}"))?;
+        tokenizer.with_padding(Some(tokenizers::PaddingParams::default()));
+        // SAFETY: the file is only read, and not changed while mapped (the
+        // download writes a temporary file and renames it into place).
+        let vb = unsafe {
+            candle_nn::VarBuilder::from_mmaped_safetensors(
+                &[dir.join("model.safetensors")],
+                candle_core::DType::F32,
+                &device,
+            )?
+        };
+        let model = BertModel::load(vb, &config).context("loading the model weights")?;
+        Ok(TransformerModel {
+            tokenizer,
+            model,
+            device,
+            dim: config.hidden_size,
+        })
+    }
+
+    pub fn encode(&self, texts: &[String]) -> Result<Vec<Vec<f32>>> {
+        use candle_core::{IndexOp, Tensor};
+        let mut out = Vec::with_capacity(texts.len());
+        for chunk in texts.chunks(BATCH) {
+            let encs = self
+                .tokenizer
+                .encode_batch(chunk.to_vec(), true)
+                .map_err(|e| anyhow!("tokenizing: {e}"))?;
+            let ids = encs
+                .iter()
+                .map(|e| Tensor::new(e.get_ids(), &self.device))
+                .collect::<candle_core::Result<Vec<_>>>()?;
+            let mask = encs
+                .iter()
+                .map(|e| Tensor::new(e.get_attention_mask(), &self.device))
+                .collect::<candle_core::Result<Vec<_>>>()?;
+            let ids = Tensor::stack(&ids, 0)?;
+            let mask = Tensor::stack(&mask, 0)?;
+            let types = ids.zeros_like()?;
+            let hidden = self.model.forward(&ids, &types, Some(&mask))?;
+            let cls = hidden.i((.., 0))?; // [batch, dim]
+            let norm = cls.sqr()?.sum_keepdim(1)?.sqrt()?;
+            let cls = cls.broadcast_div(&norm)?;
+            out.extend(cls.to_vec2::<f32>()?);
+        }
+        Ok(out)
+    }
+}
 
 pub struct StaticModel {
     tokenizer: tokenizers::Tokenizer,
@@ -137,17 +256,18 @@ pub fn download(dir: &Path, progress: &dyn Fn(&str)) -> Result<()> {
         let resp = ureq::get(&url)
             .call()
             .with_context(|| format!("downloading {url}"))?;
-        let mut body = Vec::new();
-        resp.into_body()
-            .into_reader()
-            .take(512 * 1024 * 1024)
-            .read_to_end(&mut body)?;
+        // Streamed to disk: the weights are hundreds of megabytes.
         let tmp = dir.join(format!("{f}.part"));
-        std::fs::write(&tmp, &body)?;
+        let mut file = std::fs::File::create(&tmp)?;
+        std::io::copy(
+            &mut resp.into_body().into_reader().take(1024 * 1024 * 1024),
+            &mut file,
+        )?;
+        drop(file);
         std::fs::rename(&tmp, dir.join(f))?;
     }
     // Check it loads before calling it installed.
-    StaticModel::load(dir).context("the downloaded model does not load")?;
+    Model::load(dir).context("the downloaded model does not load")?;
     Ok(())
 }
 

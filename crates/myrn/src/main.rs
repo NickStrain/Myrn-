@@ -175,10 +175,13 @@ enum Command {
         /// Consent without the interactive prompt
         #[arg(long, short = 'y')]
         yes: bool,
-        /// Also register the MCP server (off by default with hooks: the hooks
-        /// inject context, and a registered server costs tokens on every call)
+        /// Don't register the MCP server (hooks still inject context; the
+        /// end-of-session record request then uses `myrn record`)
         #[arg(long)]
-        mcp: bool,
+        no_mcp: bool,
+        /// Don't turn on semantic search (it downloads the embedding model once)
+        #[arg(long)]
+        no_embeddings: bool,
     },
     /// Store what this session learned, from JSON on stdin: one item, or
     /// {"items": [...]}. Same fields and checks as the MCP `record` tool.
@@ -214,7 +217,7 @@ enum Command {
 
 #[derive(Subcommand)]
 enum EmbeddingsAction {
-    /// Download the model (about 30 MB, once per machine) and turn semantic search on here
+    /// Download the model (once per machine) and turn semantic search on here
     Enable,
     /// Turn semantic search off here and drop the vectors (the model stays downloaded)
     Disable,
@@ -294,7 +297,8 @@ fn main() -> ExitCode {
             agents,
             pull_only,
             yes,
-            mcp,
+            no_mcp,
+            no_embeddings,
         } => cmd::connect::run(
             &ctx,
             cmd::connect::Args {
@@ -302,7 +306,8 @@ fn main() -> ExitCode {
                 agents,
                 pull_only,
                 yes,
-                mcp,
+                mcp: !no_mcp,
+                embeddings: !no_embeddings,
             },
         ),
         Command::Disconnect { agents } => cmd::disconnect::run(&ctx, agents),

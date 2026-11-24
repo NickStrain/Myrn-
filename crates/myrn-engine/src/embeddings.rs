@@ -76,6 +76,26 @@ impl Engine {
             [],
         )?;
         r.removed = removed;
+        // The map's Behaviour and Terms lines: how people describe the code,
+        // which is what a task repeats (the chosen model ranks best with them).
+        let mut details: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        {
+            let mut d = c.prepare("SELECT id, behaviour, terms FROM summary_search")?;
+            let rows = d.query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                    r.get::<_, Option<String>>(2)?.unwrap_or_default(),
+                ))
+            })?;
+            for row in rows {
+                let (id, b, t) = row?;
+                let text = format!("{} {}", b.replace('\n', " "), t);
+                if !text.trim().is_empty() {
+                    details.insert(id, text.trim().to_string());
+                }
+            }
+        }
         let mut stmt = c.prepare(
             "SELECT n.id, n.type, n.kind, n.title, n.qname, n.path, n.signature, n.summary, n.doc, v.hash
              FROM nodes n LEFT JOIN vectors v ON v.id = n.id
@@ -104,9 +124,10 @@ impl Engine {
             let words =
                 |s: &Option<String>| fts::split_identifier(s.as_deref().unwrap_or("")).join(" ");
             let about = summary.or(doc).unwrap_or_default();
+            let extra = details.get(&id).map(String::as_str).unwrap_or("");
             let text = match ntype.as_str() {
                 "symbol" => format!(
-                    "{} {}. {} {}",
+                    "{} {}. {} {} {extra}",
                     kind.unwrap_or_default(),
                     words(&qname),
                     sig.unwrap_or_default(),
@@ -156,7 +177,8 @@ impl Engine {
             return Ok(Vec::new());
         }
         let cfg = &self.config.embeddings;
-        let Some(q) = self.embed(&[task.to_string()]).and_then(|mut v| v.pop()) else {
+        let query = format!("{}{task}", myrn_embed::QUERY_PREFIX);
+        let Some(q) = self.embed(&[query]).and_then(|mut v| v.pop()) else {
             return Ok(Vec::new());
         };
         if q.iter().all(|x| *x == 0.0) {
@@ -206,8 +228,9 @@ impl Engine {
         let home = self.data_home();
         if !myrn_embed::installed(&home) {
             progress(&format!(
-                "downloading {} (about 30 MB) into {}",
+                "downloading {} ({}) into {}",
                 myrn_embed::MODEL_REPO,
+                myrn_embed::MODEL_SIZE,
                 myrn_embed::model_dir(&home).display()
             ));
             download(&home, progress)?;

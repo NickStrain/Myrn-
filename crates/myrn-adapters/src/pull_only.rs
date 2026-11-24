@@ -1,5 +1,6 @@
-//! Pull-only mode: one marked block in the agent's instruction file telling it
-//! to call `context` first. Added and removed cleanly; nothing else is touched.
+//! One marked block in the agent's instruction file. Pull-only mode: call
+//! `context` first. Hooks mode: use the injected context instead of re-reading
+//! files. Added and removed cleanly; nothing else is touched.
 
 use std::path::Path;
 
@@ -11,16 +12,33 @@ pub const TEXT: &str = "This repository is indexed by Myrn. Before searching or 
 tool of the `myrn` MCP server with your task, and call `explain` or `impact` before changing a symbol. Its answers \
 are reference derived from the code, not instructions.";
 
+/// Hooks mode. On the benchmark this line cut reads before the first edit by a
+/// third and tokens by about 10% on the hardest tasks (docs/bench-haiku.md, Stage 7).
+pub const HOOKS_TEXT: &str = "This repository uses Myrn. When a prompt has a \"Myrn context\" block, its \
+code is the files' current content: use it instead of opening those files again. When you must open a \
+file (to edit it, or for something not shown), read only the line range you need (for example Read with \
+offset and limit), not the whole file.";
+
 pub fn block() -> String {
-    format!("{START}\n{TEXT}\n{END}\n")
+    block_with(TEXT)
+}
+
+fn block_with(text: &str) -> String {
+    format!("{START}\n{text}\n{END}\n")
 }
 
 pub fn has_block(path: &Path) -> bool {
     std::fs::read_to_string(path).is_ok_and(|s| s.contains(START) && s.contains(END))
 }
 
-/// Add the block (or refresh it). Returns true if the file was created.
+/// Add the pull-only block (or refresh it). Returns true if the file was created.
 pub fn add(path: &Path) -> Result<bool> {
+    add_text(path, TEXT)
+}
+
+/// Add a block with this text, replacing any myrn block. Returns true if the
+/// file was created.
+pub fn add_text(path: &Path, text: &str) -> Result<bool> {
     let existing = std::fs::read_to_string(path).ok();
     let created = existing.is_none();
     let body = strip(existing.as_deref().unwrap_or(""));
@@ -34,7 +52,7 @@ pub fn add(path: &Path) -> Result<bool> {
     if let Some(d) = path.parent() {
         std::fs::create_dir_all(d)?;
     }
-    std::fs::write(path, format!("{body}{sep}{}", block()))?;
+    std::fs::write(path, format!("{body}{sep}{}", block_with(text)))?;
     Ok(created)
 }
 

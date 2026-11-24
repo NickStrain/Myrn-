@@ -367,6 +367,24 @@ pub fn asks_about_bug(task: &str) -> bool {
         && !(is_question(&t) && !t.contains("fix"))
 }
 
+/// The task names, in backticks, an identifier that does not exist in the code
+/// yet (`takeEvery` in "Add `takeEvery` ..."): it is about code still to write.
+pub fn names_new_symbol(db: &Db, task: &str) -> Result<bool> {
+    for t in backticked(task) {
+        if find(db, &t)?.is_empty() {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// Asks for new code to be written: "Add a function ...", "Implement ...".
+pub fn asks_for_new_code(task: &str) -> bool {
+    let t = task.trim_start().to_lowercase();
+    let first = t.split_whitespace().next().unwrap_or("");
+    matches!(first, "add" | "implement" | "create" | "introduce" | "write" | "build")
+}
+
 /// Starts like a question about how the code works.
 pub fn is_question(t: &str) -> bool {
     let t = t.trim_start().to_lowercase();
@@ -420,6 +438,15 @@ mod tests {
                 .iter()
                 .any(|w| ["find", "cause", "sure", "still", "pass"].contains(&w.as_str()))
         );
+    }
+
+    #[test]
+    fn new_code_requests_are_told_apart() {
+        assert!(asks_for_new_code("Add a data-first utility `takeEvery(data, n)` to remeda"));
+        assert!(asks_for_new_code("  Implement a cache for lookups"));
+        assert!(!asks_for_new_code("session token handling"));
+        assert!(!asks_for_new_code("`chunk` drops the last, shorter chunk"));
+        assert!(!asks_for_new_code("How does `windowed` work?"));
     }
 
     #[test]

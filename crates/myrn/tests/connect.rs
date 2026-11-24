@@ -108,22 +108,25 @@ fn connect_hooks_doctor_disconnect() {
     );
     assert!(!env.repo.join(".claude").exists());
 
-    // The MCP server is off by default with hooks: nothing to register.
-    let o = env.myrn(&["connect", "--agent", "claude", "--yes"]);
+    // --no-mcp leaves the MCP server out.
+    let o = env.myrn(&["connect", "--agent", "claude", "--yes", "--no-mcp", "--no-embeddings"]);
     assert!(o.status.success(), "{}", text(&o));
     assert!(
         !text(&o).contains("claude mcp add"),
-        "no MCP step by default: {}",
+        "no MCP step with --no-mcp: {}",
         text(&o)
     );
-    // --mcp adds it (here by hand: no `claude` CLI in the test).
-    let o = env.myrn(&["connect", "--agent", "claude", "--yes", "--mcp"]);
+    // By default it is registered (here by hand: no `claude` CLI in the test).
+    let o = env.myrn(&["connect", "--agent", "claude", "--yes", "--no-embeddings"]);
     assert!(o.status.success(), "{}", text(&o));
     assert!(
         text(&o).contains("claude mcp add --scope local myrn"),
-        "manual MCP step shown with --mcp: {}",
+        "manual MCP step shown by default: {}",
         text(&o)
     );
+    // Hooks mode adds one line asking the agent to use the injected context.
+    let md = std::fs::read_to_string(env.repo.join("CLAUDE.md")).unwrap();
+    assert!(md.contains("<!-- myrn:start -->") && md.contains("Myrn context"), "{md}");
     let s = env.settings();
     let h = &s["hooks"]["UserPromptSubmit"][0]["hooks"][0];
     assert_eq!(h["args"], json!(["hook", "claude", "UserPromptSubmit"]));
@@ -211,7 +214,7 @@ fn connect_hooks_doctor_disconnect() {
     assert!(t.contains("FAIL") && t.contains("Stop hook missing"), "{t}");
 
     // Codex, pull-only: MCP config and an AGENTS.md line, no hooks, no prompt.
-    let o = env.myrn(&["connect", "--agent", "codex", "--pull-only"]);
+    let o = env.myrn(&["connect", "--agent", "codex", "--pull-only", "--no-embeddings"]);
     assert!(o.status.success(), "{}", text(&o));
     assert!(std::fs::read_to_string(env.repo.join("AGENTS.md"))
         .unwrap()
@@ -228,6 +231,7 @@ fn connect_hooks_doctor_disconnect() {
     assert!(o.status.success(), "{}", text(&o));
     assert!(env.settings().get("hooks").is_none());
     assert!(!env.repo.join("AGENTS.md").exists());
+    assert!(!env.repo.join("CLAUDE.md").exists(), "myrn created it, so it goes");
     assert!(!env.repo.join(".codex").exists());
     assert!(text(&env.myrn(&["status"])).contains("none connected"));
 }
@@ -244,7 +248,7 @@ fn sessions_are_recorded_redacted_and_listed() {
     std::fs::write(&cfg, toml).unwrap();
 
     // Before consent: hooks record nothing.
-    let o = env.myrn(&["connect", "--agent", "codex", "--pull-only"]);
+    let o = env.myrn(&["connect", "--agent", "codex", "--pull-only", "--no-embeddings"]);
     assert!(o.status.success(), "{}", text(&o));
     let ev = |name: &str, extra: Value| {
         let mut v = json!({"session_id": "sess-42", "cwd": env.repo, "hook_event_name": name});
@@ -261,7 +265,7 @@ fn sessions_are_recorded_redacted_and_listed() {
     );
     assert!(text(&env.myrn(&["log"])).contains("Recording is off"));
 
-    let o = env.myrn(&["connect", "--agent", "claude", "--yes"]);
+    let o = env.myrn(&["connect", "--agent", "claude", "--yes", "--no-embeddings"]);
     assert!(o.status.success(), "{}", text(&o));
     let lib = env.repo.join("src/lib.rs");
     let session = [

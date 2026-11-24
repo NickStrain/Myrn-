@@ -111,6 +111,15 @@ impl Adapter for ClaudeCode {
                     ctx.binary.display()
                 ),
             });
+            let p = instructions_path(root);
+            if pull_only::add_text(&p, pull_only::HOOKS_TEXT)? {
+                out.created.push(rel(root, &p));
+            }
+            out.written.push(rel(root, &p));
+            out.changes.push(Change {
+                path: rel(root, &p),
+                what: "line asking the agent to use the injected context, not re-read files".into(),
+            });
         } else {
             if removed > 0 {
                 write_json(&settings, &doc)?;
@@ -136,7 +145,7 @@ impl Adapter for ClaudeCode {
                 out.changes.push(Change {
                     path: "~/.claude.json (this project)".into(),
                     what:
-                        "removed MCP server `myrn` (off by default; `myrn connect --mcp` adds it)"
+                        "removed MCP server `myrn` (`myrn connect --no-mcp`)"
                             .into(),
                 });
             }
@@ -247,7 +256,7 @@ impl Adapter for ClaudeCode {
         if !ctx.wants_mcp(mode) {
             out.push(Finding {
                 ok: true,
-                what: "MCP server off (hooks inject context; `myrn connect --mcp` adds it)".into(),
+                what: "MCP server off (connected with --no-mcp)".into(),
             });
             return out;
         }
