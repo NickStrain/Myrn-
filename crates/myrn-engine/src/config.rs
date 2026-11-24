@@ -69,9 +69,12 @@ pub struct EmbeddingsConfig {
 impl Default for EmbeddingsConfig {
     fn default() -> Self {
         EmbeddingsConfig {
-            min_similarity: 0.40,
-            margin: 0.08,
-            top_k: 5,
+            // Tuned for the Arctic Embed model on 275 git-history questions:
+            // no floor and up to 10 matches ranked best (the 0.40/0.08 floor
+            // made for the old static model cut off nearly every match).
+            min_similarity: 0.0,
+            margin: 0.0,
+            top_k: 10,
             idle_secs: 600,
         }
     }

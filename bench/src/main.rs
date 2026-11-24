@@ -355,6 +355,7 @@ fn real_main() -> Result<ExitCode> {
                     None
                 },
                 mcp: !no_mcp,
+                runs_dir: cli.bench_dir.join("runs"),
             };
             let results = out.join("results.jsonl");
             let mut n = 0;
@@ -494,7 +495,19 @@ fn real_main() -> Result<ExitCode> {
                     maps.insert(t.repo.clone(), dir);
                 }
                 let map = maps.get(&t.repo).map(PathBuf::as_path);
-                let r = retrieval::one(t, repo, &checkout, &myrn, map, emb.as_deref(), &out)?;
+                let vec_cache = emb
+                    .as_ref()
+                    .map(|_| runner::vector_cache(&cli.bench_dir.join("runs"), repo));
+                let r = retrieval::one(
+                    t,
+                    repo,
+                    &checkout,
+                    &myrn,
+                    map,
+                    emb.as_deref(),
+                    vec_cache.as_deref(),
+                    &out,
+                )?;
                 println!(
                     "{:<48} {:>4} tokens  {:>2} items  {}",
                     r.id,

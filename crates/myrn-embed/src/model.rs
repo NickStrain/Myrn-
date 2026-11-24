@@ -102,11 +102,17 @@ impl TransformerModel {
 
     pub fn encode(&self, texts: &[String]) -> Result<Vec<Vec<f32>>> {
         use candle_core::{IndexOp, Tensor};
-        let mut out = Vec::with_capacity(texts.len());
-        for chunk in texts.chunks(BATCH) {
+        // Batch texts of similar length together: each batch is padded to its
+        // longest text, so mixing a long text with short ones wastes most of
+        // the work.
+        let mut order: Vec<usize> = (0..texts.len()).collect();
+        order.sort_by_key(|&i| texts[i].len());
+        let mut out: Vec<Vec<f32>> = vec![Vec::new(); texts.len()];
+        for chunk in order.chunks(BATCH) {
+            let batch: Vec<String> = chunk.iter().map(|&i| texts[i].clone()).collect();
             let encs = self
                 .tokenizer
-                .encode_batch(chunk.to_vec(), true)
+                .encode_batch(batch, true)
                 .map_err(|e| anyhow!("tokenizing: {e}"))?;
             let ids = encs
                 .iter()
@@ -123,7 +129,9 @@ impl TransformerModel {
             let cls = hidden.i((.., 0))?; // [batch, dim]
             let norm = cls.sqr()?.sum_keepdim(1)?.sqrt()?;
             let cls = cls.broadcast_div(&norm)?;
-            out.extend(cls.to_vec2::<f32>()?);
+            for (&i, v) in chunk.iter().zip(cls.to_vec2::<f32>()?) {
+                out[i] = v;
+            }
         }
         Ok(out)
     }

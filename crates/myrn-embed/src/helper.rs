@@ -42,8 +42,8 @@ pub fn read_info(data_home: &Path) -> Option<Info> {
 /// Serve until no request arrives for `idle`.
 #[cfg(feature = "model")]
 pub fn serve(data_home: &Path, idle: Duration) -> Result<()> {
-    // Another helper already answering: leave it to that one.
-    if crate::client::request(data_home, &[String::from("ping")]).is_some() {
+    // Another helper already listening (perhaps busy): leave it to that one.
+    if crate::client::running(data_home) {
         return Ok(());
     }
     let model = crate::model::Model::load(&crate::model_dir(data_home))?;

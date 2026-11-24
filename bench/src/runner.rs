@@ -124,6 +124,8 @@ pub struct Tools {
     pub embeddings: Option<PathBuf>,
     /// Attach myrn's MCP server to myrn sessions (default, as `myrn connect`).
     pub mcp: bool,
+    /// The bench's runs directory (embedding vectors are cached under it).
+    pub runs_dir: PathBuf,
 }
 
 pub struct Paths {
@@ -393,6 +395,11 @@ fn run_inner(
                 spec.condition == Condition::Fixed,
                 map,
                 tools.embeddings.as_deref(),
+                tools
+                    .embeddings
+                    .as_ref()
+                    .map(|_| vector_cache(&tools.runs_dir, spec.repo))
+                    .as_deref(),
             )?;
             if tools.mcp {
                 serde_json::json!({ "mcpServers": { "myrn": {
@@ -487,6 +494,7 @@ pub fn setup_myrn(
     fixed_ranking: bool,
     map: Option<&Path>,
     embeddings: Option<&Path>,
+    vectors: Option<&Path>,
 ) -> Result<()> {
     let run = |args: &[&str]| -> Result<()> {
         let o = Command::new(myrn)
@@ -548,9 +556,48 @@ pub fn setup_myrn(
             #[cfg(not(unix))]
             copy_dir(model, &dst)?;
         }
+        // Vectors are keyed by node and text hash, so a repository's vectors
+        // from an earlier run are valid here: load them, and `enable` embeds
+        // only what the task's setup changed (minutes per session otherwise).
+        let db = myrn_db(home)?;
+        if let Some(cache) = vectors.filter(|c| c.exists()) {
+            let c = rusqlite::Connection::open(&db)?;
+            c.execute("ATTACH DATABASE ?1 AS cache", [cache.to_string_lossy()])?;
+            c.execute("INSERT OR REPLACE INTO vectors SELECT * FROM cache.vectors", [])?;
+        }
         run(&["embeddings", "enable"])?;
+        if let Some(cache) = vectors.filter(|c| !c.exists()) {
+            std::fs::create_dir_all(cache.parent().expect("has a parent"))?;
+            let c = rusqlite::Connection::open(cache)?;
+            c.execute_batch(
+                "CREATE TABLE vectors (id TEXT PRIMARY KEY, hash TEXT NOT NULL, model TEXT NOT NULL, vec BLOB NOT NULL)",
+            )?;
+            c.execute("ATTACH DATABASE ?1 AS run", [db.to_string_lossy()])?;
+            c.execute("INSERT INTO vectors SELECT * FROM run.vectors", [])?;
+        }
     }
     Ok(())
+}
+
+/// The myrn database under a data directory (one project per run).
+fn myrn_db(home: &Path) -> Result<PathBuf> {
+    for e in std::fs::read_dir(home.join("projects"))? {
+        let p = e?.path().join("memory.db");
+        if p.exists() {
+            return Ok(p);
+        }
+    }
+    bail!("no myrn database under {}", home.display())
+}
+
+/// Where a repository's embedding vectors are cached between runs.
+pub fn vector_cache(bench_runs: &Path, repo: &Repo) -> PathBuf {
+    bench_runs.join("vectors").join(format!(
+        "{}-{}-{}.db",
+        repo.name,
+        &repo.commit[..12],
+        myrn_embed::MODEL_REPO.rsplit('/').next().unwrap_or("model")
+    ))
 }
 
 fn copy_dir(from: &Path, to: &Path) -> Result<()> {

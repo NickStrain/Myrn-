@@ -473,6 +473,47 @@ Findings:
 - These are the 8 hardest tasks, so the numbers are not the overall figure; a
   full 16-task series is needed for that.
 
+## Changes after Stage 7 (2026-11-24)
+
+- **MCP server back on by default** (`myrn connect --no-mcp` leaves it out).
+- **`myrn connect` writes the use-context hint** into CLAUDE.md (Claude Code)
+  or AGENTS.md (Codex) as a marked block; `disconnect` removes it.
+- **No context for a request to add a new function** (named in backticks, not in
+  the code yet) when nothing named or strong matches (best < 7, and less than 1
+  ahead of the third). Both `take-every` tasks now get no context; on the 275
+  git-history questions nothing changes (a looser version emptied 177 packs and
+  dropped right-function-in-top-5 from 48% to 27%, so it was narrowed twice).
+- **New embedding model, on by default.** Larger models compared on the 275
+  questions (embedding alone / fused with myrn's text search, function in top 5,
+  file in top 5):
+
+  | Model (download) | Alone fn / file | Fused fn / file |
+  |---|---|---|
+  | potion-base-8M (30 MB, old) | 40% / 67% | 53% / 75% |
+  | bge-small-en-v1.5 (130 MB) | 49% / 76% | 56% / 78% |
+  | bge-base-en-v1.5 (440 MB) | 49% / 76% | 55% / 76% |
+  | jina-embeddings-v2-base-code (640 MB) | 47% / 76% | 55% / 77% |
+  | **snowflake-arctic-embed-m (440 MB)** | **53% / 80%** | **57% / 80%** |
+
+  myrn now runs `Snowflake/snowflake-arctic-embed-m` (BERT, 110M parameters)
+  on the CPU with candle, embeds each function with its Behaviour and Terms,
+  prefixes queries as the model expects, and `myrn connect` turns it on
+  (`--no-embeddings` skips the download). The old thresholds cut off nearly every
+  match from the new model; new defaults: no floor, up to 10 matches.
+
+  | myrn ranking, 275 questions | Function first | Function in top 5 | File in top 5 | MRR |
+  |---|---|---|---|---|
+  | Embeddings off (old default) | 32% | 48% | 60% | 0.378 |
+  | potion-base-8M on | 35% | 51% | 67% | 0.409 |
+  | **snowflake-arctic-embed-m on** | **38%** | **57%** | **76%** | **0.454** |
+
+  Cost: indexing about 0.1 s per function on this machine's CPU (more-itertools
+  894 vectors 92 s, remeda 1,689 in 4 min; once per repository, then only
+  changed code), and about +130 ms per prompt (185 ms vs 58 ms per context).
+  Fixed on the way: a slow model made every embedding request start another
+  helper process (8 at once); bulk indexing now loads the model once in-process,
+  a listening helper is never duplicated, and batches are sorted by length.
+
 ## Next
 
 - Shrink the SessionStart project map (the real per-call overhead), then check on

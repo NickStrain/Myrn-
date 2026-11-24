@@ -16,6 +16,8 @@ use crate::retrieve::seed::Seed;
 /// Most texts per embedding request.
 const BATCH: usize = 256;
 const MAX_TEXT: usize = 1500;
+/// Most texts sent to the helper at once; more are encoded in this process.
+const HELPER_MAX: usize = 32;
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct VectorReport {
@@ -145,11 +147,21 @@ impl Engine {
             }
         }
         drop(stmt);
+        // Many texts (enabling, a big change): load the model here once and
+        // encode them all; a request to the helper would time out with a large
+        // model. A few (the usual refresh): ask the helper, already loaded.
+        let texts: Vec<String> = todo.iter().map(|(_, _, t)| t.clone()).collect();
+        let all = if texts.len() > HELPER_MAX {
+            myrn_embed::client::local(&self.data_home(), &texts)
+        } else {
+            self.embed(&texts)
+        };
+        let Some(all) = all else {
+            bail!("the embedding model is not available; run `myrn embeddings enable`");
+        };
+        let mut all = all.into_iter();
         for chunk in todo.chunks(BATCH) {
-            let texts: Vec<String> = chunk.iter().map(|(_, _, t)| t.clone()).collect();
-            let Some(vecs) = self.embed(&texts) else {
-                bail!("the embedding model is not available; run `myrn embeddings enable`");
-            };
+            let vecs: Vec<Vec<f32>> = all.by_ref().take(chunk.len()).collect();
             let tx = self.db.conn.transaction()?;
             {
                 let mut ins = tx.prepare(

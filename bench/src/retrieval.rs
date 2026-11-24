@@ -39,6 +39,7 @@ pub fn one(
     myrn: &Path,
     map: Option<&Path>,
     embeddings: Option<&Path>,
+    vectors: Option<&Path>,
     scratch: &Path,
 ) -> Result<Row> {
     let work = scratch.join("work").join(&repo.name);
@@ -47,7 +48,7 @@ pub fn one(
         std::fs::remove_dir_all(&home)?;
     }
     runner::prepare(checkout, repo, task, &work)?;
-    runner::setup_myrn(myrn, &work, &home, true, false, map, embeddings)?;
+    runner::setup_myrn(myrn, &work, &home, true, false, map, embeddings, vectors)?;
     let o = Command::new(myrn)
         .args(["--json", "context", &task.prompt])
         .current_dir(&work)

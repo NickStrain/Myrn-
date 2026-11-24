@@ -1,5 +1,5 @@
 //! myrn embeddings enable|disable|status: optional semantic search with a
-//! small local model. The model is downloaded only by `enable`.
+//! local model (on by default after `myrn connect`). The model is downloaded once per machine.
 
 use std::process::ExitCode;
 

@@ -58,8 +58,23 @@ pub fn embed(
     local(data_home, texts)
 }
 
+/// A helper is listening (it may be busy, or still loading a large model).
+pub fn running(data_home: &Path) -> bool {
+    read_info(data_home).is_some_and(|info| {
+        TcpStream::connect_timeout(
+            &SocketAddr::from(([127, 0, 0, 1], info.port)),
+            Duration::from_millis(200),
+        )
+        .is_ok()
+    })
+}
+
 /// Start the helper in the background and wait (up to 3 s) until it answers.
+/// Never starts a second one while one is listening.
 pub fn start(data_home: &Path, exe: &Path) -> bool {
+    if running(data_home) {
+        return true;
+    }
     let spawned = Command::new(exe)
         .arg("embed-helper")
         .arg("--home")

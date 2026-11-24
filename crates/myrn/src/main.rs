@@ -192,7 +192,7 @@ enum Command {
         #[arg(long = "agent", value_name = "NAME")]
         agents: Vec<String>,
     },
-    /// Semantic search with a small local model: enable (downloads it), disable, status
+    /// Semantic search with a local embedding model: enable (downloads it), disable, status
     Embeddings {
         #[command(subcommand)]
         action: EmbeddingsAction,
