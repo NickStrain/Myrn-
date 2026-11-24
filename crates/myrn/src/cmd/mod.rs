@@ -15,6 +15,7 @@ pub mod mcp;
 pub mod publish;
 pub mod query;
 pub mod rebuild;
+pub mod record;
 pub mod show;
 pub mod status;
 pub mod summarize;

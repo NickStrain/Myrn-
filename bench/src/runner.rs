@@ -31,7 +31,16 @@ pub enum Condition {
     With,
     /// Injection on with the fixed ranking (no learning from past use).
     Fixed,
+    /// Injection on, plus a one-line instruction (as a user would put in
+    /// CLAUDE.md) to use myrn's context instead of re-reading files.
+    Hint,
 }
+
+/// The instruction the `hint` condition adds to the system prompt.
+pub const HINT: &str = "This repository uses myrn. When a prompt has a \"Myrn context\" block, \
+its code is the files' current content: use it instead of opening those files again. When you \
+must open a file (to edit it, or for something not shown), read only the line range you need \
+(Read with offset and limit), not the whole file.";
 
 impl Condition {
     pub fn as_str(self) -> &'static str {
@@ -40,6 +49,7 @@ impl Condition {
             Condition::Off => "off",
             Condition::With => "with",
             Condition::Fixed => "fixed",
+            Condition::Hint => "hint",
         }
     }
     /// Column heading in the report.
@@ -49,6 +59,7 @@ impl Condition {
             Condition::Off => "myrn, inject off",
             Condition::With => "myrn, inject on",
             Condition::Fixed => "myrn, inject on, fixed ranking",
+            Condition::Hint => "myrn, inject on, + use-context hint",
         }
     }
     pub fn uses_myrn(self) -> bool {
@@ -60,7 +71,8 @@ impl Condition {
             "off" => Ok(Condition::Off),
             "with" => Ok(Condition::With),
             "fixed" => Ok(Condition::Fixed),
-            _ => bail!("unknown condition {s}; use without, off, with or fixed"),
+            "hint" => Ok(Condition::Hint),
+            _ => bail!("unknown condition {s}; use without, off, with, fixed or hint"),
         }
     }
 }
@@ -110,6 +122,9 @@ pub struct Tools {
     pub shared_store: bool,
     /// The embedding model's directory, copied into myrn runs to turn semantic search on.
     pub embeddings: Option<PathBuf>,
+    /// Attach myrn's MCP server to myrn sessions. Off by default, as `myrn
+    /// connect` now is: hooks inject the context, and the tools cost tokens.
+    pub mcp: bool,
 }
 
 pub struct Paths {
@@ -369,7 +384,7 @@ fn run_inner(
     let mcp_config = paths.work.join("mcp.json");
     let mcp = match spec.condition {
         Condition::Without => serde_json::json!({ "mcpServers": {} }),
-        Condition::Off | Condition::With | Condition::Fixed => {
+        Condition::Off | Condition::With | Condition::Fixed | Condition::Hint => {
             let map = tools.maps.get(&spec.repo.name).map(PathBuf::as_path);
             setup_myrn(
                 &tools.myrn,
@@ -380,12 +395,16 @@ fn run_inner(
                 map,
                 tools.embeddings.as_deref(),
             )?;
-            serde_json::json!({ "mcpServers": { "myrn": {
-                "type": "stdio",
-                "command": tools.myrn,
-                "args": ["mcp"],
-                "env": { "MYRN_HOME": home }
-            }}})
+            if tools.mcp {
+                serde_json::json!({ "mcpServers": { "myrn": {
+                    "type": "stdio",
+                    "command": tools.myrn,
+                    "args": ["mcp"],
+                    "env": { "MYRN_HOME": home }
+                }}})
+            } else {
+                serde_json::json!({ "mcpServers": {} })
+            }
         }
     };
     std::fs::write(&mcp_config, serde_json::to_string_pretty(&mcp)?)?;
@@ -402,6 +421,9 @@ fn run_inner(
         .arg(&mcp_config);
     if let Some(m) = &tools.model {
         cmd.args(["--model", m]);
+    }
+    if spec.condition == Condition::Hint {
+        cmd.args(["--append-system-prompt", HINT]);
     }
     cmd.current_dir(&work)
         .env("MYRN_HOME", &home)

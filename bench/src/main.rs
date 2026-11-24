@@ -89,6 +89,9 @@ enum Cmd {
         /// `myrn embeddings enable` once on this machine)
         #[arg(long)]
         embeddings: bool,
+        /// Attach myrn's MCP server to myrn sessions (off by default, as in `myrn connect`)
+        #[arg(long)]
+        mcp: bool,
     },
     /// What myrn would inject for each task, and whether it points at the right
     /// code. No agent sessions, no cost.
@@ -111,6 +114,9 @@ enum Cmd {
         /// Keep the prepared checkouts and myrn data (out/work, out/home) for debugging
         #[arg(long)]
         keep: bool,
+        /// Turn on myrn's semantic search (needs `myrn embeddings enable` once)
+        #[arg(long)]
+        embeddings: bool,
     },
     /// Rebuild report.md from a run directory's results.jsonl
     Report {
@@ -258,6 +264,7 @@ fn real_main() -> Result<ExitCode> {
             no_map,
             shared_store,
             embeddings,
+            mcp,
         } => {
             let conds: Vec<Condition> = conditions
                 .split(',')
@@ -347,6 +354,7 @@ fn real_main() -> Result<ExitCode> {
                 } else {
                     None
                 },
+                mcp,
             };
             let results = out.join("results.jsonl");
             let mut n = 0;
@@ -442,6 +450,7 @@ fn real_main() -> Result<ExitCode> {
             no_map,
             show,
             keep,
+            embeddings,
         } => {
             let selected = pick(&task);
             if selected.is_empty() {
@@ -460,6 +469,18 @@ fn real_main() -> Result<ExitCode> {
             let cache = cli.bench_dir.join("runs/maps");
             let mut maps = std::collections::HashMap::new();
             let mut rows = Vec::new();
+            let emb = if embeddings {
+                let dir = myrn_embed::model_dir(&myrn_store::paths::data_home()?);
+                if !dir.join("model.safetensors").exists() {
+                    bail!(
+                        "no embedding model at {}; run `myrn embeddings enable` once first",
+                        dir.display()
+                    );
+                }
+                Some(dir)
+            } else {
+                None
+            };
             for t in &selected {
                 let repo = repos
                     .get(&t.repo)
@@ -473,7 +494,7 @@ fn real_main() -> Result<ExitCode> {
                     maps.insert(t.repo.clone(), dir);
                 }
                 let map = maps.get(&t.repo).map(PathBuf::as_path);
-                let r = retrieval::one(t, repo, &checkout, &myrn, map, &out)?;
+                let r = retrieval::one(t, repo, &checkout, &myrn, map, emb.as_deref(), &out)?;
                 println!(
                     "{:<48} {:>4} tokens  {:>2} items  {}",
                     r.id,

@@ -461,6 +461,9 @@ fn session_end_asks_once_per_batch_of_edits() {
             .unwrap()
             .expect("edited code, so ask");
     assert!(ask.contains("record"), "{ask}");
+    // Connected without the MCP server (the default): record through the CLI.
+    assert!(ask.contains("record <<'EOF'"), "CLI route: {ask}");
+    assert!(!ask.contains("`record` tool"), "{ask}");
     assert!(ask.contains("pkg/recipes.py"), "{ask}");
     assert!(ask.contains("TypeError: unhashable type"), "{ask}");
     assert!(
@@ -499,6 +502,7 @@ fn consent(e: &Engine) {
             connected_time: 0,
             written: vec![],
             created: vec![],
+            mcp: false,
         },
     );
     e.save_state(&st).unwrap();
@@ -553,7 +557,7 @@ fn shell_edits_are_captured_and_lead_to_a_record_request() {
             .unwrap()
             .expect("asked after a shell edit");
     assert!(
-        ask.contains("ONE call") && ask.contains("pkg.more.chunked"),
+        ask.contains("ONE ") && ask.contains("pkg.more.chunked"),
         "{ask}"
     );
 }

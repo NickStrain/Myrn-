@@ -19,7 +19,7 @@ pub fn run(ctx: &Ctx, agents: Vec<String>) -> Result<ExitCode> {
         println!("No agents are connected.");
         return Ok(ExitCode::SUCCESS);
     }
-    let ictx = install_ctx(engine.root())?;
+    let ictx = install_ctx(engine.root(), false)?;
     for name in targets {
         let Some(a) = myrn_adapters::by_name(&name) else {
             println!("unknown agent `{name}`");

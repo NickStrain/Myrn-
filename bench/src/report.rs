@@ -228,11 +228,12 @@ fn diff_cell(g: &Gate) -> String {
     }
 }
 
-const ORDER: [Condition; 4] = [
+const ORDER: [Condition; 5] = [
     Condition::Without,
     Condition::Off,
     Condition::Fixed,
     Condition::With,
+    Condition::Hint,
 ];
 
 /// The Markdown report.
@@ -293,6 +294,8 @@ pub fn render(runs: &[RunRecord], title: &str) -> String {
         (Condition::Off, Condition::With),
         (Condition::Without, Condition::Fixed),
         (Condition::Fixed, Condition::With),
+        (Condition::Without, Condition::Hint),
+        (Condition::With, Condition::Hint),
     ] {
         for (name, f) in measures {
             let c = compare_by(runs, a, b, f);

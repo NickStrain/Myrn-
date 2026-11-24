@@ -1026,8 +1026,19 @@ mod tests {
         // 25 symbols -> 3 parts of at most 9, longest first, small last.
         let sizes: Vec<usize> = out.iter().map(|j| j.symbols.len()).collect();
         assert_eq!(sizes, [9, 9, 7, 3]);
-        assert_eq!(out.iter().filter(|j| j.file == "big" && j.want_file).count(), 1);
-        assert_eq!(out.iter().filter(|j| j.file == "big").map(|j| j.symbols.len()).sum::<usize>(), 25);
+        assert_eq!(
+            out.iter()
+                .filter(|j| j.file == "big" && j.want_file)
+                .count(),
+            1
+        );
+        assert_eq!(
+            out.iter()
+                .filter(|j| j.file == "big")
+                .map(|j| j.symbols.len())
+                .sum::<usize>(),
+            25
+        );
         assert!(out.last().unwrap().want_file);
     }
 

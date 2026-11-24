@@ -36,6 +36,10 @@ pub struct AgentState {
     /// Instruction files myrn created (rather than edited), removed on disconnect if left empty.
     #[serde(default)]
     pub created: Vec<String>,
+    /// MCP server registered in hooks mode (`myrn connect --mcp`). Older
+    /// states without the field had it, but default to off on reconnect.
+    #[serde(default)]
+    pub mcp: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -221,7 +221,13 @@ pub fn tests_summary(tests: &[Link]) -> String {
 impl SymbolCard {
     /// The card injected into a prompt: short relation lists, tests as one
     /// line, commits only when asked for, and the code when it is short.
-    pub fn render_compact(&self, code: Option<&str>, with_commits: bool, with_tests: bool) -> String {
+    pub fn render_compact(
+        &self,
+        code: Option<&str>,
+        with_commits: bool,
+        with_tests: bool,
+        edit_hint: bool,
+    ) -> String {
         let n = &self.node;
         let mut out = String::new();
         let _ = writeln!(
@@ -263,6 +269,28 @@ impl SymbolCard {
         if let Some(code) = code {
             let lang = n.lang.as_deref().unwrap_or("");
             let _ = writeln!(out, "```{lang}\n{}\n```", code.trim_end());
+            // Say plainly that this is all of it, so the agent need not open the
+            // file to check; and, for a change, the exact range an editor must
+            // read first (agents re-read whole files otherwise).
+            if let (Some(a), Some(b)) = (n.start_line, n.end_line) {
+                row(
+                    &mut out,
+                    "shown",
+                    &format!("complete, lines {a}-{b}, as the file is now"),
+                );
+                if edit_hint {
+                    if let Some(p) = n.path.as_deref() {
+                        row(
+                            &mut out,
+                            "to edit",
+                            &format!(
+                                "Read {p} with offset {a} and limit {} covers exactly this code",
+                                b - a + 1
+                            ),
+                        );
+                    }
+                }
+            }
         }
         out
     }

@@ -510,13 +510,32 @@ impl Engine {
             .filter_map(|e| e.command.as_deref())
             .collect();
 
-        let mut out = String::from(
+        // Agents connected without the MCP server (the default with hooks)
+        // record through the CLI instead of the `record` tool.
+        let agent = entries.first().map(|e| e.agent.clone()).unwrap_or_default();
+        let has_tool = self
+            .state()?
+            .agents
+            .get(&agent)
+            .is_some_and(|a| a.mode == "pull_only" || a.mcp);
+        let how = if has_tool {
+            "Make ONE call to the myrn `record` tool with every item in `items`".to_string()
+        } else {
+            let bin = std::env::current_exe()
+                .ok()
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "myrn".into());
+            format!(
+                "Run ONE shell command with every item in `items` as JSON on stdin: \
+                 `\"{bin}\" record <<'EOF'` then {{\"items\": [...]}} then `EOF`"
+            )
+        };
+        let mut out = format!(
             "Before finishing: record what this session learned so later sessions don't \
-             rediscover it. Make ONE call to the myrn `record` tool with every item in \
-             `items`, then reply only \"recorded\". Include a bug (with root cause and fix), a \
-             decision and why, a workflow that worked, or a non-obvious fact; skip anything \
-             plain from the code. If nothing is worth keeping, reply \"nothing to record\" \
-             without calling the tool.\n",
+             rediscover it. {how}, then reply only \"recorded\". Include a bug (with root cause \
+             and fix), a decision and why, a workflow that worked, or a non-obvious fact; skip \
+             anything plain from the code. If nothing is worth keeping, reply \"nothing to \
+             record\" without recording.\n",
         );
         out.push_str(&format!("\nEdited: {}.\n", files.join(", ")));
         if !errors.is_empty() {

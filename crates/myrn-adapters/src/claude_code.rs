@@ -129,7 +129,19 @@ impl Adapter for ClaudeCode {
                 what: "line asking the agent to call `context` first".into(),
             });
         }
-        let _ = claude_cli(ctx, &["mcp", "remove", "--scope", "local", "myrn"]);
+        let had = claude_cli(ctx, &["mcp", "remove", "--scope", "local", "myrn"])
+            .is_some_and(|o| o.status.success());
+        if !ctx.wants_mcp(mode) {
+            if had {
+                out.changes.push(Change {
+                    path: "~/.claude.json (this project)".into(),
+                    what:
+                        "removed MCP server `myrn` (off by default; `myrn connect --mcp` adds it)"
+                            .into(),
+                });
+            }
+            return Ok(out);
+        }
         let bin = ctx.binary.to_string_lossy().to_string();
         match claude_cli(
             ctx,
@@ -232,6 +244,13 @@ impl Adapter for ClaudeCode {
                 }
             });
         }
+        if !ctx.wants_mcp(mode) {
+            out.push(Finding {
+                ok: true,
+                what: "MCP server off (hooks inject context; `myrn connect --mcp` adds it)".into(),
+            });
+            return out;
+        }
         match claude_cli(ctx, &["mcp", "get", "myrn"]) {
             Some(o) if o.status.success() => out.push(Finding {
                 ok: true,
@@ -330,6 +349,7 @@ mod tests {
             repo_root: root.to_path_buf(),
             binary: PathBuf::from("/opt/myrn/bin/myrn"),
             run_agent_cli: false,
+            mcp: false,
         }
     }
 

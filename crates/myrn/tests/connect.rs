@@ -108,11 +108,20 @@ fn connect_hooks_doctor_disconnect() {
     );
     assert!(!env.repo.join(".claude").exists());
 
+    // The MCP server is off by default with hooks: nothing to register.
     let o = env.myrn(&["connect", "--agent", "claude", "--yes"]);
     assert!(o.status.success(), "{}", text(&o));
     assert!(
+        !text(&o).contains("claude mcp add"),
+        "no MCP step by default: {}",
+        text(&o)
+    );
+    // --mcp adds it (here by hand: no `claude` CLI in the test).
+    let o = env.myrn(&["connect", "--agent", "claude", "--yes", "--mcp"]);
+    assert!(o.status.success(), "{}", text(&o));
+    assert!(
         text(&o).contains("claude mcp add --scope local myrn"),
-        "manual MCP step shown: {}",
+        "manual MCP step shown with --mcp: {}",
         text(&o)
     );
     let s = env.settings();

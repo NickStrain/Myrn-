@@ -79,6 +79,25 @@ fn strip_mcp(s: &str) -> String {
     }
 }
 
+/// Remove myrn's block from .codex/config.toml (the file too, if nothing else
+/// is left). Whether there was one.
+fn remove_mcp(root: &Path) -> Result<bool> {
+    let cfg = config_path(root);
+    let Ok(s) = std::fs::read_to_string(&cfg) else {
+        return Ok(false);
+    };
+    if !s.contains(MCP_START) {
+        return Ok(false);
+    }
+    let rest = strip_mcp(&s);
+    if rest.trim().is_empty() {
+        std::fs::remove_file(&cfg)?;
+    } else {
+        std::fs::write(&cfg, rest)?;
+    }
+    Ok(true)
+}
+
 fn write_mcp(root: &Path, binary: &Path) -> Result<()> {
     let p = config_path(root);
     let existing = std::fs::read_to_string(&p).unwrap_or_default();
@@ -213,12 +232,20 @@ impl Adapter for Codex {
                 what: "line asking the agent to call `context` first".into(),
             });
         }
-        write_mcp(root, &ctx.binary)?;
-        out.written.push(rel(root, &config_path(root)));
-        out.changes.push(Change {
-            path: rel(root, &config_path(root)),
-            what: format!("[mcp_servers.myrn] -> `{} mcp`", ctx.binary.display()),
-        });
+        if ctx.wants_mcp(mode) {
+            write_mcp(root, &ctx.binary)?;
+            out.written.push(rel(root, &config_path(root)));
+            out.changes.push(Change {
+                path: rel(root, &config_path(root)),
+                what: format!("[mcp_servers.myrn] -> `{} mcp`", ctx.binary.display()),
+            });
+        } else if remove_mcp(root)? {
+            out.changes.push(Change {
+                path: rel(root, &config_path(root)),
+                what: "removed [mcp_servers.myrn] (off by default; `myrn connect --mcp` adds it)"
+                    .into(),
+            });
+        }
         out.manual.push(
             "Codex reads .codex/ only in trusted projects: open `codex` in this repository and trust it \
              (and review the hooks when Codex asks). .codex/hooks.json and .codex/config.toml contain this \
@@ -253,20 +280,11 @@ impl Adapter for Codex {
                 });
             }
         }
-        let cfg = config_path(root);
-        if let Ok(s) = std::fs::read_to_string(&cfg) {
-            if s.contains(MCP_START) {
-                let rest = strip_mcp(&s);
-                if rest.trim().is_empty() {
-                    std::fs::remove_file(&cfg)?;
-                } else {
-                    std::fs::write(&cfg, rest)?;
-                }
-                changes.push(Change {
-                    path: rel(root, &cfg),
-                    what: "removed [mcp_servers.myrn]".into(),
-                });
-            }
+        if remove_mcp(root)? {
+            changes.push(Change {
+                path: rel(root, &config_path(root)),
+                what: "removed [mcp_servers.myrn]".into(),
+            });
         }
         // Leave .codex/ itself if anything else is in it.
         let _ = std::fs::remove_dir(codex_dir(root));
@@ -304,6 +322,13 @@ impl Adapter for Codex {
                 ok: pull_only::has_block(&p),
                 what: format!("instruction block in {}", rel(root, &p)),
             });
+        }
+        if !ctx.wants_mcp(mode) {
+            out.push(Finding {
+                ok: true,
+                what: "MCP server off (hooks inject context; `myrn connect --mcp` adds it)".into(),
+            });
+            return out;
         }
         let cfg = std::fs::read_to_string(config_path(root)).unwrap_or_default();
         let parsed = toml::from_str::<toml::Table>(&cfg).ok();
@@ -417,7 +442,34 @@ mod tests {
             repo_root: root.to_path_buf(),
             binary: PathBuf::from("/opt/my rn/myrn"),
             run_agent_cli: false,
+            mcp: false,
         }
+    }
+
+    fn ctx_mcp(root: &Path) -> InstallCtx {
+        InstallCtx {
+            mcp: true,
+            ..ctx(root)
+        }
+    }
+
+    #[test]
+    fn mcp_server_is_off_by_default_and_removed_on_reconnect() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = config_path(dir.path());
+        let a = Codex;
+        a.install(&ctx_mcp(dir.path()), Mode::Hooks).unwrap();
+        assert!(std::fs::read_to_string(&cfg).unwrap().contains(MCP_START));
+        // Reconnecting without --mcp takes it out again; hooks stay.
+        a.install(&ctx(dir.path()), Mode::Hooks).unwrap();
+        assert!(!cfg.exists());
+        assert!(a
+            .inspect(&ctx(dir.path()), Mode::Hooks)
+            .iter()
+            .all(|f| f.ok));
+        // Pull-only always has it: it is the only way in.
+        a.install(&ctx(dir.path()), Mode::PullOnly).unwrap();
+        assert!(std::fs::read_to_string(&cfg).unwrap().contains(MCP_START));
     }
 
     #[test]
@@ -428,8 +480,8 @@ mod tests {
         let original = "# my settings\nmodel = \"o5\"\n\n[mcp_servers.other]\ncommand = \"x\"\n";
         std::fs::write(&cfg, original).unwrap();
         let a = Codex;
-        a.install(&ctx(dir.path()), Mode::Hooks).unwrap();
-        a.install(&ctx(dir.path()), Mode::Hooks).unwrap();
+        a.install(&ctx_mcp(dir.path()), Mode::Hooks).unwrap();
+        a.install(&ctx_mcp(dir.path()), Mode::Hooks).unwrap();
         let text = std::fs::read_to_string(&cfg).unwrap();
         assert_eq!(text.matches(MCP_START).count(), 1);
         let t: toml::Table = toml::from_str(&text).unwrap();
@@ -446,7 +498,7 @@ mod tests {
             "\"/opt/my rn/myrn\" hook codex UserPromptSubmit"
         );
         assert!(a
-            .inspect(&ctx(dir.path()), Mode::Hooks)
+            .inspect(&ctx_mcp(dir.path()), Mode::Hooks)
             .iter()
             .all(|f| f.ok));
 

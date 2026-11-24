@@ -45,7 +45,7 @@ fn agent_checks(engine: &Engine) -> Result<Vec<Check>> {
         });
         return Ok(out);
     }
-    let ictx = install_ctx(engine.root())?;
+    let ictx = install_ctx(engine.root(), false)?;
     for (name, s) in &state.agents {
         let Some(a) = myrn_adapters::by_name(name) else {
             continue;
@@ -60,6 +60,10 @@ fn agent_checks(engine: &Engine) -> Result<Vec<Check>> {
                 s.written.join(", ")
             ),
         });
+        let ictx = myrn_adapters::InstallCtx {
+            mcp: s.mcp,
+            ..ictx.clone()
+        };
         for f in a.inspect(&ictx, mode) {
             out.push(Check {
                 name: a.name().into(),

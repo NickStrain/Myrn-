@@ -91,7 +91,9 @@ pub fn drop_shadowed_stubs(nodes: &mut Vec<Node>) {
         .iter()
         .map(|n| {
             n.path.as_deref().is_some_and(is_stub)
-                && n.qname.as_deref().is_some_and(|q| real.contains(without_suffix(q)))
+                && n.qname
+                    .as_deref()
+                    .is_some_and(|q| real.contains(without_suffix(q)))
         })
         .collect();
     let mut i = 0;
@@ -366,7 +368,8 @@ pub fn asks_about_bug(task: &str) -> bool {
 }
 
 /// Starts like a question about how the code works.
-fn is_question(t: &str) -> bool {
+pub fn is_question(t: &str) -> bool {
+    let t = t.trim_start().to_lowercase();
     let first = t.split_whitespace().next().unwrap_or("");
     matches!(
         first,

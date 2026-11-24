@@ -14,15 +14,18 @@ pub struct Args {
     pub agents: Vec<String>,
     pub pull_only: bool,
     pub yes: bool,
+    /// Also register the MCP server in hooks mode.
+    pub mcp: bool,
 }
 
 /// The install context for this repository and this binary.
-pub fn install_ctx(root: &std::path::Path) -> Result<InstallCtx> {
+pub fn install_ctx(root: &std::path::Path, mcp: bool) -> Result<InstallCtx> {
     let exe = std::env::current_exe()?;
     Ok(InstallCtx {
         repo_root: root.to_path_buf(),
         binary: exe.canonicalize().unwrap_or(exe),
         run_agent_cli: std::env::var_os("MYRN_NO_AGENT_CLI").is_none(),
+        mcp,
     })
 }
 
@@ -102,7 +105,7 @@ pub fn run(ctx: &Ctx, args: Args) -> Result<ExitCode> {
         state.consent_time = Some(now());
     }
 
-    let ictx = install_ctx(engine.root())?;
+    let ictx = install_ctx(engine.root(), args.mcp)?;
     for a in &adapters {
         let r = a.install(&ictx, mode)?;
         println!(
@@ -131,6 +134,7 @@ pub fn run(ctx: &Ctx, args: Args) -> Result<ExitCode> {
                 connected_time: now(),
                 written: r.written,
                 created,
+                mcp: ictx.wants_mcp(mode),
             },
         );
     }

@@ -758,7 +758,12 @@ impl Engine {
         if bug && confident {
             items.truncate(BUG_MAX_ITEMS);
         }
+        // A question is answered from code: its best match keeps its code even
+        // when not certain (the pointer-only pack lost the answer on the
+        // benchmark's questions). The rule above stays for bug reports and changes.
+        let question = !bug && seed::is_question(task);
         let max_cards = match (confident, bug) {
+            (false, _) if question => 1,
             (false, _) => 0,
             (true, true) => 1,
             (true, false) => 2,
@@ -784,7 +789,7 @@ impl Engine {
                 let with_tests = tests || !bug;
                 cards.push((
                     n.id.clone(),
-                    card.render_compact(code.as_deref(), history, with_tests),
+                    card.render_compact(code.as_deref(), history, with_tests, !question),
                 ));
             } else {
                 rest.push(n);
@@ -1394,7 +1399,9 @@ mod pack_rule_tests {
         assert!(!asks_about_tests(
             "`unique_everseen` returns duplicates. Find the cause and fix it. Make sure the test suite still passes\n(`python3 -m unittest discover -s tests -t .`)."
         ));
-        assert!(!asks_about_tests("Fix it. Make sure the ignore crate's tests still pass."));
+        assert!(!asks_about_tests(
+            "Fix it. Make sure the ignore crate's tests still pass."
+        ));
         assert!(asks_about_tests("Which tests cover `clamp`?"));
         assert!(asks_about_tests("Add a test for chunk with a zero size."));
     }

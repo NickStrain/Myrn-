@@ -309,6 +309,170 @@ Findings while running (fixes kept out of the release build until the series end
   `remeda-utility` skill docs), without it copies `take.ts`. Lead: drop
   low-relevance packs entirely.
 
+## Stage 6 analysis: where the tokens go (2026-11-24)
+
+Method: every API call re-reads the whole conversation, so a session's tokens
+are the sum over calls of that call's context, plus output. Split per session
+(script kept outside the repo): first-call context × calls, each tool result ×
+the calls after it, and the rest (the agent's own messages re-read, and output).
+
+| 48 pairs | Without | With myrn |
+|---|---|---|
+| First-call context × calls | 68% | 68% |
+| Tool results re-read | 15% | 15% |
+| Own messages and output | 17% | 17% |
+| Calls per session | 7.6 | **6.9** |
+| First-call context | 17.3k | **18.8k** |
+
+**The whole result in one line:** myrn's information saves about 9% of calls,
+and its fixed overhead adds about 9% to every call, so they cancel (−1%).
+
+The +1.5k per call is:
+- **~590 tokens, first attributed to the MCP server registration.** myrn's tools
+  were called **0 times in 48 sessions**. Correction (Stage 7): turning the server
+  off did not shrink the first call; this part is hook wrapper text (~350, fixed)
+  and the prompt pack being ~25% larger in real tokens than myrn's estimate.
+- **~490 tokens: the SessionStart project map** (about 1,800 characters).
+- **~430 tokens: the prompt's injected context** (the part that saves calls).
+
+Worst pairs, decomposed:
+
+| Pair | Without → with | Extra calls | Cause |
+|---|---|---|---|
+| `remeda/feature/take-every` #2 | 263k → 558k | +5 | The pack's pointers are unrelated (`swapArray`, an error helper, configs). The agent's first command opened `swapIndices.ts`, modelled its work on it, then read remeda's `.agents/skills` docs (3 of 3 runs with myrn, 0 of 3 without). |
+| `ripgrep/bugfix/gitignore-negation-order` #3 | 276k → 509k | +7 | Five pointers into `dir.rs`, none to the buggy `gitignore.rs`; the agent searched more and read `gitignore.rs` whole. |
+| `more-itertools/feature/take-every` #2 | 361k → 572k | +4 | More exploration of tests and docs; no single cause. |
+| `ripgrep/question/binary-detection` #3 | 111k → 181k | +2 | Its pack shrank from 723 to 175 tokens (the confidence rule dropped the code), so the answer was no longer in it. |
+| `more-itertools/bugfix/collapse-levels` #1 | 104k → 162k | +2 | Overhead only: no extra reading. |
+
+Questions fell from −41% to −26% mostly because the confidence rule (made for bug
+reports) also took code out of question packs: `binary-detection` 723 → 175
+tokens (−26% → +2%), `gitignore-matcher` 891 → 272, plus the `.pyi` stub bug on
+`windowed-step` (−50% → +21%).
+
+Tool results: `cat`/`sed -n` dumps are 11% of all tokens (380 results, 5.6k each
+on average); `Read` 2%.
+
+Improvements, with estimates from this data (each still needs a benchmark):
+
+| Change | Quality risk | Estimated effect |
+|---|---|---|
+| Don't register the MCP server unless asked (or only when recording) | None measured: never used | Done; no measurable token saving in Claude Code (Stage 7) |
+| Drop the SessionStart map, or put only the relevant directory line in the prompt pack | Possible: may orient the agent | −490 tokens per call, about −2% |
+| Questions keep the top match's code even when not confident (rule stays for bug reports) | Low: restores stage 1–3 behaviour | Questions back towards −40% (about −2.5% overall) |
+| No pointers when nothing scores well (feature tasks especially) | Medium: pointers help when right (`glob-multi-dot-extension` −23%) | The two worst tasks lost 1.08M tokens (about 11% of all) |
+| Stub fix (`windowed-step`) | None | Already done |
+
+## Changes after Stage 6 (2026-11-24, not yet benchmarked)
+
+1. **MCP server off by default with hooks.** `myrn connect` registers it only
+   with `--mcp` (pull-only mode always has it); reconnecting without `--mcp`
+   removes an old registration. The end-of-session record request then asks for
+   one `myrn record` shell command (new: JSON on stdin, same checks as the tool)
+   instead of the `record` tool. Expected: about −590 tokens per API call.
+2. **Questions keep the best match's code** even when myrn is not confident;
+   the confidence rule stays for bug reports and changes.
+5. **Stub overloads** (`windowed#2` in a `.pyi`) no longer make a named function
+   look ambiguous.
+
+Free retrieval check (`bench/runs/retrieval-fix125`): only the three intended
+question packs changed; every bug-fix and feature pack is identical to stage 6.
+
+| Question | Stages 1–3 | Stage 6 | Now |
+|---|---|---|---|
+| `windowed-step` | 839 tokens, 3/3 terms | 275, 3/3 (no code) | 845, 3/3 (code) |
+| `binary-detection` | 723, 1/3 | 175, 0/3 | 277, 1/3 (only the 3-line getter's code) |
+| `gitignore-matcher` | 891, 2/3 | 272, 2/3 | 590, 2/3 (`GitignoreBuilder::build`) |
+
+Right file first: 7 of 10 code tasks (unchanged). Answer terms in the pack:
+13 of 16 (stage 6: 12). The MCP saving cannot show here; it needs agent sessions.
+
+## Ranking test from git history (2026-11-24, no agent sessions)
+
+275 questions from the three repositories' own commits (120 more-itertools,
+35 remeda, 120 ripgrep): the commit subject is the question, and the functions
+named in its diff hunks, in the source files it changed, are the answer. Commits
+touching 1–3 source files with a descriptive subject only. Scripts outside the
+repo (`evalset.py`, `rank_eval.py`).
+
+| Method | Function first | Function in top 5 | File in top 5 | MRR |
+|---|---|---|---|---|
+| myrn now (embeddings off, the default) | 32% | 48% | 60% | 0.378 |
+| **myrn with its embeddings on** (`potion-base-8M`, as shipped) | **35%** | **51%** | **67%** | **0.409** |
+| Embeddings alone: `potion-base-8M` | 23% | 40% | 67% | 0.310 |
+| Embeddings alone: `potion-retrieval-32M` | 27% | 43% | 72% | 0.345 |
+| Embeddings alone: `bge-small-en-v1.5` | 29% | 49% | 74% | 0.375 |
+| Embeddings alone: `snowflake-arctic-embed-xs` | 29% | 49% | 72% | 0.374 |
+| myrn list + embedding list, fused (offline, best: `bge-small`) | 38% | 56% | 78% | 0.454 |
+
+Findings:
+- **Turning on the embeddings myrn already has improves every measure** (+3
+  points function top 5, +7 file top 5). A bigger model adds only about 3 more
+  points even when fused, and would need an ONNX runtime in myrn.
+- Adding Behaviour and Terms to the embedded text does not help.
+- Scoring vector matches by rank instead of similarity was tried and was no
+  better than the shipped scoring; reverted.
+- Embeddings do not fix the two benchmark misses (`remeda/feature/take-every`,
+  `gitignore-negation-order`); the 16 benchmark packs barely change with them.
+
+## Context wording (2026-11-24)
+
+Code cards now say `shown: complete, lines A-B, as the file is now`, and for bug
+fixes and changes (not questions) `to edit: Read <path> with offset A and limit N
+covers exactly this code`. Retrieval unchanged (7/10, 13/16); packs +23 tokens.
+
+## Stage 7: overhead off, question code, wording, and a use-context hint (2026-11-24)
+
+8 tasks × 3 runs × 3 conditions: without myrn, myrn (MCP off, question code, stub
+fix, new wording), and myrn plus a one-line instruction in the system prompt
+(standing in for a CLAUDE.md line; the benchmark does not load project
+CLAUDE.md files):
+
+> This repository uses myrn. When a prompt has a "Myrn context" block, its code
+> is the files' current content: use it instead of opening those files again. When
+> you must open a file (to edit it, or for something not shown), read only the
+> line range you need (Read with offset and limit), not the whole file.
+
+Tasks: `windowed-step`, `binary-detection`, `gitignore-matcher`,
+`unique-everseen-key`, `collapse-levels`, `remeda/feature/take-every`,
+`gitignore-negation-order`, `glob-multi-dot-extension`. Run: `bench/runs/cheap-s7`.
+
+72 sessions, $0.47. Passed: without 23/24, myrn 23/24 (`collapse-levels` run 3),
+myrn + hint 24/24.
+
+| 24 pairs (8 hard tasks × 3 runs) | Change vs without myrn | Mean per pair (95% CI) | Cheaper in |
+|---|---|---|---|
+| Stage 6 version, same tasks and runs | +23% | +40.9k ± 40.8k | 6/24 |
+| **myrn now** | **+3%** | +5.9k ± 34.3k | 12/24 |
+| **myrn now + hint** | **−8%** | −16.5k ± 37.8k | 17/24 |
+
+Reads and searches before the first correct edit: without 4.7, myrn 4.4,
+myrn + hint **2.9**. Turns 8.8, 8.4, 7.8.
+
+| Task | Stage 6 | Now | Now + hint | Calls (without, myrn, hint) |
+|---|---|---|---|---|
+| `collapse-levels` | +3% | −6% | +6% | 6.3, 5.7, 6.3 |
+| `unique-everseen-key` | +27% | **−34%** | −27% | 5.0, 3.3, 3.7 |
+| `windowed-step` | +21% | −26% | **−40%** | 2.0, 1.3, 1.0 |
+| `remeda/feature/take-every` | +65% | +30% | +52% | 9.3, 10.3, 11.7 |
+| `gitignore-negation-order` | +37% | −3% | **−27%** | 18.7, 17.7, 14.0 |
+| `glob-multi-dot-extension` | −23% | +12% | **−28%** | 11.7, 13.7, 9.3 |
+| `binary-detection` | +2% | −9% | −21% | 6.0, 5.7, 5.0 |
+| `gitignore-matcher` | +10% | −1% | −1% | 3.3, 3.0, 3.0 |
+
+Findings:
+- **The fixes remove the regressions**: these 8 tasks went from +23% to +3%
+  (the stub fix and question code on `windowed-step` and `binary-detection`, no
+  test pointers and the edit range on `unique-everseen-key`).
+- **The hint is the biggest single lever**: −8% vs without and −11% vs myrn
+  alone, mostly through fewer calls on long tasks (`gitignore-negation-order`
+  18.7 → 14.0) and a third fewer reads before the first edit. Not yet conclusive
+  (the interval includes zero), and it makes `remeda/feature/take-every` worse.
+- `remeda/feature/take-every` is still the main loss: the unrelated pointers.
+- Turning the MCP server off saved no tokens (see the correction above).
+- These are the 8 hardest tasks, so the numbers are not the overall figure; a
+  full 16-task series is needed for that.
+
 ## Next
 
 - Shrink the SessionStart project map (the real per-call overhead), then check on

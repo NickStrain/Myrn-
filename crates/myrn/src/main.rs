@@ -175,7 +175,14 @@ enum Command {
         /// Consent without the interactive prompt
         #[arg(long, short = 'y')]
         yes: bool,
+        /// Also register the MCP server (off by default with hooks: the hooks
+        /// inject context, and a registered server costs tokens on every call)
+        #[arg(long)]
+        mcp: bool,
     },
+    /// Store what this session learned, from JSON on stdin: one item, or
+    /// {"items": [...]}. Same fields and checks as the MCP `record` tool.
+    Record,
     /// Remove everything `connect` installed
     Disconnect {
         /// A specific agent (default: all connected)
@@ -287,6 +294,7 @@ fn main() -> ExitCode {
             agents,
             pull_only,
             yes,
+            mcp,
         } => cmd::connect::run(
             &ctx,
             cmd::connect::Args {
@@ -294,9 +302,11 @@ fn main() -> ExitCode {
                 agents,
                 pull_only,
                 yes,
+                mcp,
             },
         ),
         Command::Disconnect { agents } => cmd::disconnect::run(&ctx, agents),
+        Command::Record => cmd::record::run(&ctx),
         Command::Hook { agent, event } => cmd::hook::run(&ctx, &agent, &event),
         Command::Embeddings { action } => match action {
             EmbeddingsAction::Enable => cmd::embeddings::enable(&ctx),
