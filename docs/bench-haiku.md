@@ -4,16 +4,71 @@ A cheap paired benchmark of myrn on Claude Haiku, kept separate from the Opus
 Gate 1 runs in [gate1.md](gate1.md). The two series use different models, so
 their numbers are not directly comparable.
 
-Method: [bench/README.md](../bench/README.md). Conditions: without myrn vs myrn
-with injection on (`--conditions without,with`, the default), `--model haiku`.
-Raw data is in `bench/runs/cheap-*` (not committed).
+Method: [bench/README.md](../bench/README.md), `--model haiku`. Each pair runs
+the same task twice, without myrn and with it; tokens are input + cache + output
+for the whole session; success is the task's hidden check. Every stage's
+per-session results are kept in [`bench/results/`](../bench/results/) (the full
+transcripts and checkouts stay in `bench/runs/`, not committed).
 
-| Stage | Run directory | Sessions | Status |
-|---|---|---|---|
-| 1. Smoke test | `cheap-smoke` | 2 | Done 2026-11-22 |
-| 2. Pilot (16 tasks × 1 run) | `cheap-pilot` | 32 | Done 2026-11-22 |
-| 3. Runs 2 and 3 | `cheap-r23` | 64 | Done 2026-11-22 |
-| Combined (48 pairs) | `cheap-all` | 96 | Pilot + stage 3, runs renumbered 1–3 |
+## Current result (2026-11-25)
+
+myrn as shipped (Arctic Embed embeddings, the use-context hint in CLAUDE.md,
+targeted context) against no myrn, on Claude Haiku:
+
+| Task kind | Pairs | Tokens | Billed cost | Cheaper in | Passed (without → with) | Source |
+|---|---|---|---|---|---|---|
+| Questions | 18 | **−35%** | −26% | 13/18 | 18 → 18 | Stage 8 |
+| Bug fixes | 18 | **−19%** | −19% | 14/18 | 17 → 18 | Stage 8 |
+| Features | 32 | **−17%** | −13% | 22/32 | 27 → 28 | Stage 10 |
+| All 16 original tasks | 48 | −10% | −11% | 31/48 | 47 → 48 | Stage 8 |
+
+Question and bug-fix savings are clearly real (95% interval below zero); the
+feature saving is too (−66k ± 50k tokens per pair); the overall Stage 8 figure
+just touches zero. myrn never passed fewer tasks than no myrn.
+
+## Every benchmark run
+
+| Stage | Date | Run directory | What it tested | Sessions | Cost | Result |
+|---|---|---|---|---|---|---|
+| 1 | 11-22 | `cheap-smoke` | Harness check, 1 task | 2 | $0.01 | ran end to end |
+| 2 | 11-22 | `cheap-pilot` | Original myrn, 16 tasks × 1 | 32 | $0.20 | −3%, inconclusive |
+| 3 | 11-22 | `cheap-r23` (+ pilot = `cheap-all`) | Runs 2–3 | 64 | $0.42 | 48 pairs: −4%; questions −41%, bug fixes +1%, features +7% |
+| 4 | 11-22 | `cheap-v2` | Behaviour/Terms map, targeted bug context; 8 tasks × 3 | 44 | $0.25 | bug fixes −17% (not replicated in Stage 6) |
+| 5 | 11-23 | `cheap-v3` | No test pointers in bug context; 4 tasks × 3 | 24 | $0.08 | `unique-everseen-key` +36% → −21% |
+| 6 | 11-23 | `cheap-s6` | Full re-run of stages 4–5 | 96 | $0.61 | −1% overall; regressions found (stub bug, junk pointers) |
+| 7 | 11-24 | `cheap-s7` | Fixes + use-context hint; 8 hard tasks × 3 × 3 conditions | 72 | $0.47 | myrn +3%, myrn + hint −8% |
+| **8** | 11-24 | `cheap-s8` | **myrn as shipped**: embeddings, hint, all fixes; 16 × 3 | 96 | $0.58 | **−10%**; questions −35%, bug fixes −19%, features +10% |
+| 9 | 11-25 | `cheap-s9-old`, `cheap-s9-new` (+ `-broken`) | File checklist + narrow hint on 16 feature tasks × 1 | 65 | $0.76 | checklist +25% (agents widened the job); not continued |
+| 9b | 11-25 | `cheap-s9-sel` | No context for new functions; 16 feature tasks × 1 | 16 | $0.23 | +58%, untrusted (not interleaved) |
+| **10** | 11-25 | `cheap-s10` | Hint wording, interleaved; 16 feature tasks × 2 × 3 conditions | 96 | $1.20 | **Stage 8 hint −17% on features**; narrow hint +19% |
+| | | | **Total** | **607** | **$4.81** | |
+
+The Opus series (Gate 1) is separate: [gate1.md](gate1.md).
+
+## Free tests (no agent sessions)
+
+- **Retrieval check** (`myrn-bench retrieval`): what myrn would inject for each
+  task and whether the right file comes first. Runs `bench/runs/retrieval-*`.
+- **Ranking test from git history**: 275 commit subjects as questions, the
+  functions they changed as answers. Arctic Embed took right-function-in-top-5
+  from 48% to 57% (section below).
+- **Feature-task validation**: the 12 generated feature tasks fail before and
+  pass with their reference solution.
+
+## Tried and dropped
+
+| Idea | Why dropped | Where |
+|---|---|---|
+| MCP server off by default | Saved no tokens in Claude Code (tools are deferred); turned back on | Stage 7 |
+| Rank-based embedding scores | No better than the shipped scoring | Ranking test |
+| "How code is added here" file checklist | Agents updated every listed file: +34% billed on features. Kept as an option, off by default (`[context] addition_checklist`) | Stage 9 |
+| No context for any new-function request | Untrusted single run; not needed once Stage 10 showed Stage 8 already saves | Stage 9b |
+| Narrow hint ("when you edit that code, read only its range") | +43% tokens against the Stage 8 wording (p = 0.01); the Stage 8 hint stays | Stage 10 |
+
+Lessons: compare only conditions run back to back (interleaved); a single
+feature session can vary 2–3× by chance, so judge features on several runs;
+small spot checks (Stages 4, 5, 7) overstated gains that full series did not
+confirm.
 
 ## Stage 1: smoke test (2026-11-22)
 
@@ -689,17 +744,10 @@ Findings:
 
 ## Next
 
-- Feature tasks: test injecting nothing for requests that add new code
-  (selective retrieval), with the scoped hint; keep the checklist out or make it
-  name only the registration point (`index.ts`, `__all__`).
-- Haiku run on the 16 feature tasks: without myrn, Stage 8 myrn, and the
-  checklist + scoped hint; compare tokens, billed cost, turns and success.
-- Features: test a narrower hint and stricter new-function rule.
-- Shrink the SessionStart project map (the real per-call overhead), then check on
-  short questions.
-- Trim injection for small questions where the answer is cheap to find (the
-  `gitignore-matcher` pattern).
-- Check whether the project map's wording steers feature work toward complex
-  internals.
-- Optionally confirm on Opus with a few tasks; Haiku numbers are not comparable
-  with `gate1.md`.
+- Optional: a full 16-task series with the Stage 10 setup on all task kinds
+  (questions, bug fixes and features together, interleaved) for one headline
+  number.
+- Two generated tasks (`gen-split-at`, `gen-take-last`) test fractional counts
+  the prompt never mentions; fix their prompts or checks before the next run.
+- Short questions (`gitignore-matcher`, `binary-detection`) still lose a little
+  to myrn's fixed overhead (session map + hook wrapper).
