@@ -1,0 +1,650 @@
+id: more-itertools/feature/gen-extract
+repo: more-itertools
+kind: feature
+prompt: |
+    Add a function `extract(iterable, indices, *, monotonic=False)` to more-itertools, in `more_itertools/more.py`,
+    exported and documented like the neighbouring functions. Its documentation:
+
+        Yield values at the specified indices.
+
+        Example:
+
+            >>> data = 'abcdefghijklmnopqrstuvwxyz'
+            >>> list(extract(data, [7, 4, 11, 11, 14]))
+            ['h', 'e', 'l', 'l', 'o']
+
+        The *iterable* is consumed lazily and can be infinite.
+
+        When *monotonic* is false, the *indices* are consumed immediately
+        and must be finite. When *monotonic* is true, *indices* are consumed
+        lazily and can be infinite but must be non-decreasing.
+
+        Raises ``IndexError`` if an index lies beyond the iterable.
+        Raises ``ValueError`` for a negative index or for a decreasing
+        index when *monotonic* is true.
+setup:
+  patch: |
+    diff --git a/docs/api.rst b/docs/api.rst
+    index 7b40a8e..a1de73a 100644
+    --- a/docs/api.rst
+    +++ b/docs/api.rst
+    @@ -206,7 +206,6 @@ These tools yield certain items from an iterable.
+     .. autofunction:: filter_map
+     .. autofunction:: iter_suppress
+     .. autofunction:: nth_or_last(iterable, n[, default])
+    -.. autofunction:: extract
+     .. autofunction:: unique_in_window
+     .. autofunction:: duplicates_everseen
+     .. autofunction:: duplicates_justseen
+    diff --git a/more_itertools/more.py b/more_itertools/more.py
+    index 068ed68..b074386 100755
+    --- a/more_itertools/more.py
+    +++ b/more_itertools/more.py
+    @@ -93,7 +93,6 @@ __all__ = [
+         'duplicates_everseen',
+         'duplicates_justseen',
+         'exactly_n',
+    -    'extract',
+         'filter_except',
+         'filter_map',
+         'first',
+    @@ -5438,38 +5437,6 @@ def _extract_buffered(iterator, index_and_position):
+                 next_to_emit += 1
+ 
+ 
+    -def extract(iterable, indices, *, monotonic=False):
+    -    """Yield values at the specified indices.
+    -
+    -    Example:
+    -
+    -        >>> data = 'abcdefghijklmnopqrstuvwxyz'
+    -        >>> list(extract(data, [7, 4, 11, 11, 14]))
+    -        ['h', 'e', 'l', 'l', 'o']
+    -
+    -    The *iterable* is consumed lazily and can be infinite.
+    -
+    -    When *monotonic* is false, the *indices* are consumed immediately
+    -    and must be finite. When *monotonic* is true, *indices* are consumed
+    -    lazily and can be infinite but must be non-decreasing.
+    -
+    -    Raises ``IndexError`` if an index lies beyond the iterable.
+    -    Raises ``ValueError`` for a negative index or for a decreasing
+    -    index when *monotonic* is true.
+    -    """
+    -
+    -    iterator = iter(iterable)
+    -    indices = iter(indices)
+    -
+    -    if monotonic:
+    -        return _extract_monotonic(iterator, indices)
+    -
+    -    index_and_position = sorted(zip(indices, count()))
+    -    if index_and_position and index_and_position[0][0] < 0:
+    -        raise ValueError('Indices must be non-negative')
+    -    return _extract_buffered(iterator, index_and_position)
+    -
+    -
+     class serialize:
+         """Wrap a non-concurrent iterator with a lock to enforce sequential access.
+ 
+    diff --git a/more_itertools/more.pyi b/more_itertools/more.pyi
+    index ca5cf57..e7c9e49 100644
+    --- a/more_itertools/more.pyi
+    +++ b/more_itertools/more.pyi
+    @@ -995,11 +995,7 @@ def argmin(
+     def argmax(
+         iterable: Iterable[_T], *, key: Callable[[_T], _U] | None = ...
+     ) -> int: ...
+    -def extract(
+    -    iterable: Iterable[_T],
+    -    indices: Iterable[int],
+    -    *,
+    -    monotonic: bool = ...,
+    +
+     ) -> Iterator[_T]: ...
+     def subfactorial(n: int) -> int: ...
+ 
+    diff --git a/tests/test_more.py b/tests/test_more.py
+    index a0c4f1f..e82ebc1 100644
+    --- a/tests/test_more.py
+    +++ b/tests/test_more.py
+    @@ -6878,137 +6878,6 @@ class ArgMinArgMaxTests(TestCase):
+                     self.assertEqual(mi.argmax(iterable, key=key), expected_max)
+ 
+ 
+    -class ExtractTests(TestCase):
+    -    def test_basics(self):
+    -        extract = mi.extract
+    -        data = 'abcdefghijklmnopqrstuvwxyz'
+    -
+    -        # Test iterator inputs, increasing and decreasing indices, and repeats.
+    -        self.assertEqual(
+    -            list(extract(iter(data), iter([7, 4, 11, 11, 14]))),
+    -            ['h', 'e', 'l', 'l', 'o'],
+    -        )
+    -
+    -        # Empty indices
+    -        self.assertEqual(list(extract(iter(data), iter([]))), [])
+    -
+    -        # Result is an iterator
+    -        iterator = extract('abc', [0, 1, 2])
+    -        self.assertTrue(hasattr(iterator, '__next__'))
+    -
+    -        # Error cases
+    -
+    -        with self.assertRaises(TypeError):
+    -            list(extract(None, []))  # Non-iterable data source
+    -        with self.assertRaises(TypeError):
+    -            list(extract(data, None))  # Non-iterable indices
+    -        with self.assertRaises(ValueError):
+    -            list(extract(data, [0.0, 1.0, 2.0]))  # Non-integer indices
+    -        with self.assertRaises(ValueError):
+    -            list(extract(data, [1, 2, -3]))  # Negative indices
+    -        with self.assertRaises(IndexError):
+    -            list(extract(data, [1, 2, len(data)]))  # Indices out of range
+    -
+    -    def test_negative_one_bug(self):
+    -        # When the lowest index was exactly -1, it matched the initial
+    -        # iterator_position of -1 giving a zero advance step.
+    -        extract = mi.extract
+    -
+    -        with self.assertRaises(ValueError):
+    -            list(extract('abcdefg', [1, 2, -1]))
+    -
+    -    def test_none_value_bug(self):
+    -        # The buffer used to be a list with unused slots marked with None.
+    -        # The mark got conflated with None values in the data stream.
+    -        extract = mi.extract
+    -        data = ['a', 'b', 'None', 'c', 'd']
+    -        self.assertEqual(list(extract(data, range(5))), data)
+    -
+    -    def test_all_orderings(self):
+    -        # Thorough test for all cases of five indices to detect
+    -        # obscure corner case bugs.
+    -        extract = mi.extract
+    -
+    -        data = 'abcdefg'
+    -        for indices in product(range(6), repeat=5):
+    -            with self.subTest(indices=indices):
+    -                actual = tuple(extract(data, indices))
+    -                expected = itemgetter(*indices)(data)
+    -                self.assertEqual(actual, expected)
+    -
+    -    def test_early_free(self):
+    -        # No references are held for skipped values or for previously
+    -        # emitted values regardless of how long they were in the buffer.
+    -
+    -        extract = mi.extract
+    -
+    -        class TrackDels(str):
+    -            def __del__(self):
+    -                dead.add(str(self))
+    -
+    -        dead = set()
+    -        iterator = extract(map(TrackDels, 'ABCDEF'), [3, 2, 4, 5])
+    -
+    -        value = next(iterator)
+    -        gc.collect()  # Force collection on PyPy.
+    -        self.assertEqual(value, 'D')  #  Returns D.  Buffered C is alive.
+    -        self.assertEqual(dead, {'A', 'B'})  # A and B are dead.
+    -
+    -        value = next(iterator)
+    -        gc.collect()  # Force collection on PyPy
+    -        self.assertEqual(value, 'C')  #  Returns C.
+    -
+    -        value = next(iterator)
+    -        gc.collect()  # Force collection on PyPy
+    -        self.assertEqual(value, 'E')  #  Returns E.
+    -        self.assertEqual(dead, {'A', 'B', 'D', 'C'})  # D and C are now dead.
+    -
+    -    def test_monotonic(self):
+    -        collatz = mi.iterate(lambda x: 3 * x + 1 if x % 2 == 1 else x // 2, 42)
+    -        indices = count(0, 2)
+    -        self.assertEqual(
+    -            mi.take(3, mi.extract(collatz, indices, monotonic=True)),
+    -            [42, 64, 16],
+    -        )
+    -        self.assertEqual(next(collatz), 8)
+    -        self.assertEqual(next(indices), 6)
+    -
+    -        # Finite Inputs
+    -        self.assertEqual(
+    -            list(mi.extract('abcdefgh', [0, 2, 4], monotonic=True)),
+    -            ['a', 'c', 'e'],
+    -        )
+    -        with self.assertRaises(IndexError):
+    -            list(mi.extract('abcdefgh', [0, 2, 40], monotonic=True))
+    -
+    -        # Error cases
+    -        with self.assertRaises(ValueError):
+    -            list(
+    -                mi.extract('abcdefg', [2, 4, 3], monotonic=True)
+    -            )  # decreasing index
+    -        with self.assertRaises(ValueError):
+    -            list(
+    -                mi.extract('abcdefg', [-1, 0, 1], monotonic=True)
+    -            )  # negative index
+    -
+    -    def test_lazy_consumption(self):
+    -        extract = mi.extract
+    -
+    -        input_stream = mi.peekable(iter('ABCDEFGHIJKLM'))
+    -        iterator = extract(input_stream, [4, 2, 10])
+    -
+    -        self.assertEqual(next(iterator), 'E')  # C is still buffered
+    -        self.assertEqual(input_stream.peek(), 'F')
+    -
+    -        self.assertEqual(next(iterator), 'C')
+    -        self.assertEqual(input_stream.peek(), 'F')
+    -
+    -        # Infinite input
+    -        self.assertEqual(
+    -            list(extract(count(), [5, 7, 3, 9, 4])), [5, 7, 3, 9, 4]
+    -        )
+    -
+    -
+     class TestSerialize(TestCase):
+         def test_concurrent_calls(self):
+             result = 0
+solution:
+  patch: |
+    diff --git b/docs/api.rst a/docs/api.rst
+    index a1de73a..7b40a8e 100644
+    --- b/docs/api.rst
+    +++ a/docs/api.rst
+    @@ -206,6 +206,7 @@ These tools yield certain items from an iterable.
+     .. autofunction:: filter_map
+     .. autofunction:: iter_suppress
+     .. autofunction:: nth_or_last(iterable, n[, default])
+    +.. autofunction:: extract
+     .. autofunction:: unique_in_window
+     .. autofunction:: duplicates_everseen
+     .. autofunction:: duplicates_justseen
+    diff --git b/more_itertools/more.py a/more_itertools/more.py
+    index b074386..068ed68 100755
+    --- b/more_itertools/more.py
+    +++ a/more_itertools/more.py
+    @@ -93,6 +93,7 @@ __all__ = [
+         'duplicates_everseen',
+         'duplicates_justseen',
+         'exactly_n',
+    +    'extract',
+         'filter_except',
+         'filter_map',
+         'first',
+    @@ -5437,6 +5438,38 @@ def _extract_buffered(iterator, index_and_position):
+                 next_to_emit += 1
+ 
+ 
+    +def extract(iterable, indices, *, monotonic=False):
+    +    """Yield values at the specified indices.
+    +
+    +    Example:
+    +
+    +        >>> data = 'abcdefghijklmnopqrstuvwxyz'
+    +        >>> list(extract(data, [7, 4, 11, 11, 14]))
+    +        ['h', 'e', 'l', 'l', 'o']
+    +
+    +    The *iterable* is consumed lazily and can be infinite.
+    +
+    +    When *monotonic* is false, the *indices* are consumed immediately
+    +    and must be finite. When *monotonic* is true, *indices* are consumed
+    +    lazily and can be infinite but must be non-decreasing.
+    +
+    +    Raises ``IndexError`` if an index lies beyond the iterable.
+    +    Raises ``ValueError`` for a negative index or for a decreasing
+    +    index when *monotonic* is true.
+    +    """
+    +
+    +    iterator = iter(iterable)
+    +    indices = iter(indices)
+    +
+    +    if monotonic:
+    +        return _extract_monotonic(iterator, indices)
+    +
+    +    index_and_position = sorted(zip(indices, count()))
+    +    if index_and_position and index_and_position[0][0] < 0:
+    +        raise ValueError('Indices must be non-negative')
+    +    return _extract_buffered(iterator, index_and_position)
+    +
+    +
+     class serialize:
+         """Wrap a non-concurrent iterator with a lock to enforce sequential access.
+ 
+    diff --git b/more_itertools/more.pyi a/more_itertools/more.pyi
+    index e7c9e49..ca5cf57 100644
+    --- b/more_itertools/more.pyi
+    +++ a/more_itertools/more.pyi
+    @@ -995,7 +995,11 @@ def argmin(
+     def argmax(
+         iterable: Iterable[_T], *, key: Callable[[_T], _U] | None = ...
+     ) -> int: ...
+    -
+    +def extract(
+    +    iterable: Iterable[_T],
+    +    indices: Iterable[int],
+    +    *,
+    +    monotonic: bool = ...,
+     ) -> Iterator[_T]: ...
+     def subfactorial(n: int) -> int: ...
+ 
+    diff --git b/tests/test_more.py a/tests/test_more.py
+    index e82ebc1..a0c4f1f 100644
+    --- b/tests/test_more.py
+    +++ a/tests/test_more.py
+    @@ -6878,6 +6878,137 @@ class ArgMinArgMaxTests(TestCase):
+                     self.assertEqual(mi.argmax(iterable, key=key), expected_max)
+ 
+ 
+    +class ExtractTests(TestCase):
+    +    def test_basics(self):
+    +        extract = mi.extract
+    +        data = 'abcdefghijklmnopqrstuvwxyz'
+    +
+    +        # Test iterator inputs, increasing and decreasing indices, and repeats.
+    +        self.assertEqual(
+    +            list(extract(iter(data), iter([7, 4, 11, 11, 14]))),
+    +            ['h', 'e', 'l', 'l', 'o'],
+    +        )
+    +
+    +        # Empty indices
+    +        self.assertEqual(list(extract(iter(data), iter([]))), [])
+    +
+    +        # Result is an iterator
+    +        iterator = extract('abc', [0, 1, 2])
+    +        self.assertTrue(hasattr(iterator, '__next__'))
+    +
+    +        # Error cases
+    +
+    +        with self.assertRaises(TypeError):
+    +            list(extract(None, []))  # Non-iterable data source
+    +        with self.assertRaises(TypeError):
+    +            list(extract(data, None))  # Non-iterable indices
+    +        with self.assertRaises(ValueError):
+    +            list(extract(data, [0.0, 1.0, 2.0]))  # Non-integer indices
+    +        with self.assertRaises(ValueError):
+    +            list(extract(data, [1, 2, -3]))  # Negative indices
+    +        with self.assertRaises(IndexError):
+    +            list(extract(data, [1, 2, len(data)]))  # Indices out of range
+    +
+    +    def test_negative_one_bug(self):
+    +        # When the lowest index was exactly -1, it matched the initial
+    +        # iterator_position of -1 giving a zero advance step.
+    +        extract = mi.extract
+    +
+    +        with self.assertRaises(ValueError):
+    +            list(extract('abcdefg', [1, 2, -1]))
+    +
+    +    def test_none_value_bug(self):
+    +        # The buffer used to be a list with unused slots marked with None.
+    +        # The mark got conflated with None values in the data stream.
+    +        extract = mi.extract
+    +        data = ['a', 'b', 'None', 'c', 'd']
+    +        self.assertEqual(list(extract(data, range(5))), data)
+    +
+    +    def test_all_orderings(self):
+    +        # Thorough test for all cases of five indices to detect
+    +        # obscure corner case bugs.
+    +        extract = mi.extract
+    +
+    +        data = 'abcdefg'
+    +        for indices in product(range(6), repeat=5):
+    +            with self.subTest(indices=indices):
+    +                actual = tuple(extract(data, indices))
+    +                expected = itemgetter(*indices)(data)
+    +                self.assertEqual(actual, expected)
+    +
+    +    def test_early_free(self):
+    +        # No references are held for skipped values or for previously
+    +        # emitted values regardless of how long they were in the buffer.
+    +
+    +        extract = mi.extract
+    +
+    +        class TrackDels(str):
+    +            def __del__(self):
+    +                dead.add(str(self))
+    +
+    +        dead = set()
+    +        iterator = extract(map(TrackDels, 'ABCDEF'), [3, 2, 4, 5])
+    +
+    +        value = next(iterator)
+    +        gc.collect()  # Force collection on PyPy.
+    +        self.assertEqual(value, 'D')  #  Returns D.  Buffered C is alive.
+    +        self.assertEqual(dead, {'A', 'B'})  # A and B are dead.
+    +
+    +        value = next(iterator)
+    +        gc.collect()  # Force collection on PyPy
+    +        self.assertEqual(value, 'C')  #  Returns C.
+    +
+    +        value = next(iterator)
+    +        gc.collect()  # Force collection on PyPy
+    +        self.assertEqual(value, 'E')  #  Returns E.
+    +        self.assertEqual(dead, {'A', 'B', 'D', 'C'})  # D and C are now dead.
+    +
+    +    def test_monotonic(self):
+    +        collatz = mi.iterate(lambda x: 3 * x + 1 if x % 2 == 1 else x // 2, 42)
+    +        indices = count(0, 2)
+    +        self.assertEqual(
+    +            mi.take(3, mi.extract(collatz, indices, monotonic=True)),
+    +            [42, 64, 16],
+    +        )
+    +        self.assertEqual(next(collatz), 8)
+    +        self.assertEqual(next(indices), 6)
+    +
+    +        # Finite Inputs
+    +        self.assertEqual(
+    +            list(mi.extract('abcdefgh', [0, 2, 4], monotonic=True)),
+    +            ['a', 'c', 'e'],
+    +        )
+    +        with self.assertRaises(IndexError):
+    +            list(mi.extract('abcdefgh', [0, 2, 40], monotonic=True))
+    +
+    +        # Error cases
+    +        with self.assertRaises(ValueError):
+    +            list(
+    +                mi.extract('abcdefg', [2, 4, 3], monotonic=True)
+    +            )  # decreasing index
+    +        with self.assertRaises(ValueError):
+    +            list(
+    +                mi.extract('abcdefg', [-1, 0, 1], monotonic=True)
+    +            )  # negative index
+    +
+    +    def test_lazy_consumption(self):
+    +        extract = mi.extract
+    +
+    +        input_stream = mi.peekable(iter('ABCDEFGHIJKLM'))
+    +        iterator = extract(input_stream, [4, 2, 10])
+    +
+    +        self.assertEqual(next(iterator), 'E')  # C is still buffered
+    +        self.assertEqual(input_stream.peek(), 'F')
+    +
+    +        self.assertEqual(next(iterator), 'C')
+    +        self.assertEqual(input_stream.peek(), 'F')
+    +
+    +        # Infinite input
+    +        self.assertEqual(
+    +            list(extract(count(), [5, 7, 3, 9, 4])), [5, 7, 3, 9, 4]
+    +        )
+    +
+    +
+     class TestSerialize(TestCase):
+         def test_concurrent_calls(self):
+             result = 0
+check:
+  files:
+    tests/test_bench_check.py: |
+      from __future__ import annotations
+
+      import cmath
+      import gc
+      import platform
+      import types
+      import weakref
+
+      from collections import Counter, deque
+      from collections.abc import Set, Sequence, Iterable, Iterator, Hashable
+      from datetime import datetime, timedelta
+      from decimal import Decimal
+      from doctest import DocTestSuite
+      from fractions import Fraction
+      from functools import partial, reduce
+      from io import StringIO
+      from itertools import (
+          accumulate,
+          chain,
+          combinations,
+          combinations_with_replacement,
+          count,
+          cycle,
+          groupby,
+          islice,
+          permutations,
+          product,
+          repeat,
+      )
+      from math import factorial
+      from operator import add, mul, itemgetter, not_
+      from pickle import loads, dumps
+      from random import Random, choices, random, randrange, seed
+      from statistics import mean, median
+      from string import ascii_letters
+      from threading import Event, Thread, Lock
+      from time import sleep
+      from typing import NamedTuple
+      from unittest import TestCase, mock, skipUnless
+
+      import more_itertools as mi
+
+
+      class ExtractTests(TestCase):
+          def test_basics(self):
+              extract = mi.extract
+              data = 'abcdefghijklmnopqrstuvwxyz'
+
+              # Test iterator inputs, increasing and decreasing indices, and repeats.
+              self.assertEqual(
+                  list(extract(iter(data), iter([7, 4, 11, 11, 14]))),
+                  ['h', 'e', 'l', 'l', 'o'],
+              )
+
+              # Empty indices
+              self.assertEqual(list(extract(iter(data), iter([]))), [])
+
+              # Result is an iterator
+              iterator = extract('abc', [0, 1, 2])
+              self.assertTrue(hasattr(iterator, '__next__'))
+
+              # Error cases
+
+              with self.assertRaises(TypeError):
+                  list(extract(None, []))  # Non-iterable data source
+              with self.assertRaises(TypeError):
+                  list(extract(data, None))  # Non-iterable indices
+              with self.assertRaises(ValueError):
+                  list(extract(data, [0.0, 1.0, 2.0]))  # Non-integer indices
+              with self.assertRaises(ValueError):
+                  list(extract(data, [1, 2, -3]))  # Negative indices
+              with self.assertRaises(IndexError):
+                  list(extract(data, [1, 2, len(data)]))  # Indices out of range
+
+          def test_negative_one_bug(self):
+              # When the lowest index was exactly -1, it matched the initial
+              # iterator_position of -1 giving a zero advance step.
+              extract = mi.extract
+
+              with self.assertRaises(ValueError):
+                  list(extract('abcdefg', [1, 2, -1]))
+
+          def test_none_value_bug(self):
+              # The buffer used to be a list with unused slots marked with None.
+              # The mark got conflated with None values in the data stream.
+              extract = mi.extract
+              data = ['a', 'b', 'None', 'c', 'd']
+              self.assertEqual(list(extract(data, range(5))), data)
+
+          def test_all_orderings(self):
+              # Thorough test for all cases of five indices to detect
+              # obscure corner case bugs.
+              extract = mi.extract
+
+              data = 'abcdefg'
+              for indices in product(range(6), repeat=5):
+                  with self.subTest(indices=indices):
+                      actual = tuple(extract(data, indices))
+                      expected = itemgetter(*indices)(data)
+                      self.assertEqual(actual, expected)
+
+          def test_early_free(self):
+              # No references are held for skipped values or for previously
+              # emitted values regardless of how long they were in the buffer.
+
+              extract = mi.extract
+
+              class TrackDels(str):
+                  def __del__(self):
+                      dead.add(str(self))
+
+              dead = set()
+              iterator = extract(map(TrackDels, 'ABCDEF'), [3, 2, 4, 5])
+
+              value = next(iterator)
+              gc.collect()  # Force collection on PyPy.
+              self.assertEqual(value, 'D')  #  Returns D.  Buffered C is alive.
+              self.assertEqual(dead, {'A', 'B'})  # A and B are dead.
+
+              value = next(iterator)
+              gc.collect()  # Force collection on PyPy
+              self.assertEqual(value, 'C')  #  Returns C.
+
+              value = next(iterator)
+              gc.collect()  # Force collection on PyPy
+              self.assertEqual(value, 'E')  #  Returns E.
+              self.assertEqual(dead, {'A', 'B', 'D', 'C'})  # D and C are now dead.
+
+          def test_monotonic(self):
+              collatz = mi.iterate(lambda x: 3 * x + 1 if x % 2 == 1 else x // 2, 42)
+              indices = count(0, 2)
+              self.assertEqual(
+                  mi.take(3, mi.extract(collatz, indices, monotonic=True)),
+                  [42, 64, 16],
+              )
+              self.assertEqual(next(collatz), 8)
+              self.assertEqual(next(indices), 6)
+
+              # Finite Inputs
+              self.assertEqual(
+                  list(mi.extract('abcdefgh', [0, 2, 4], monotonic=True)),
+                  ['a', 'c', 'e'],
+              )
+              with self.assertRaises(IndexError):
+                  list(mi.extract('abcdefgh', [0, 2, 40], monotonic=True))
+
+              # Error cases
+              with self.assertRaises(ValueError):
+                  list(
+                      mi.extract('abcdefg', [2, 4, 3], monotonic=True)
+                  )  # decreasing index
+              with self.assertRaises(ValueError):
+                  list(
+                      mi.extract('abcdefg', [-1, 0, 1], monotonic=True)
+                  )  # negative index
+
+          def test_lazy_consumption(self):
+              extract = mi.extract
+
+              input_stream = mi.peekable(iter('ABCDEFGHIJKLM'))
+              iterator = extract(input_stream, [4, 2, 10])
+
+              self.assertEqual(next(iterator), 'E')  # C is still buffered
+              self.assertEqual(input_stream.peek(), 'F')
+
+              self.assertEqual(next(iterator), 'C')
+              self.assertEqual(input_stream.peek(), 'F')
+
+              # Infinite input
+              self.assertEqual(
+                  list(extract(count(), [5, 7, 3, 9, 4])), [5, 7, 3, 9, 4]
+              )
+  run: python3 -m unittest -q tests.test_bench_check
+touches:
+  - more_itertools/more.py

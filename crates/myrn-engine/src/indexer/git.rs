@@ -44,12 +44,14 @@ pub fn index_history(conn: &Connection, root: &Path, depth: usize) -> Result<usi
         .as_deref()
         == Some(head.as_str())
     {
+        backfill_adds(conn, &repo, &mut FileParser::new())?;
         return Ok(0);
     }
+    let mut parser = FileParser::new();
+    backfill_adds(conn, &repo, &mut parser)?;
     let mut walk = repo.revwalk()?;
     walk.push_head()?;
     walk.set_sorting(Sort::TIME)?;
-    let mut parser = FileParser::new();
     let mut added = 0;
     let tx = conn.unchecked_transaction()?;
     for oid in walk.take(depth) {
@@ -195,6 +197,114 @@ fn index_commit(
                 symbol_id(&path, &d.qname)
             };
             graph::insert_edge(conn, &id, "touches", &dst, None)?;
+        }
+    }
+    record_adds(conn, repo, oid, parser)?;
+    Ok(())
+}
+
+/// Commits indexed before `commit_adds` existed: fill it once.
+fn backfill_adds(conn: &Connection, repo: &Repository, parser: &mut FileParser) -> Result<()> {
+    const KEY: &str = "commit_adds_filled";
+    if conn
+        .query_row("SELECT 1 FROM meta WHERE key = ?1", [KEY], |_| Ok(()))
+        .is_ok()
+    {
+        return Ok(());
+    }
+    let shas: Vec<String> = {
+        let mut stmt = conn.prepare("SELECT DISTINCT sha FROM commit_files")?;
+        let rows = stmt.query_map([], |r| r.get(0))?;
+        rows.collect::<rusqlite::Result<_>>()?
+    };
+    let tx = conn.unchecked_transaction()?;
+    for sha in shas {
+        if let Ok(oid) = Oid::from_str(&sha) {
+            record_adds(&tx, repo, oid, parser)?;
+        }
+    }
+    tx.execute(
+        "INSERT OR REPLACE INTO meta(key, value) VALUES (?1, '1')",
+        [KEY],
+    )?;
+    tx.commit()?;
+    Ok(())
+}
+
+/// Most files a commit may change and still count as adding code: larger ones
+/// are moves, renames and sweeping edits.
+const ADDS_MAX_FILES: usize = 12;
+
+/// Record the files this commit added, or added a whole new definition to.
+fn record_adds(conn: &Connection, repo: &Repository, oid: Oid, parser: &mut FileParser) -> Result<()> {
+    let Ok(commit) = repo.find_commit(oid) else {
+        return Ok(());
+    };
+    if commit.parent_count() > 1 {
+        return Ok(());
+    }
+    let tree = commit.tree()?;
+    let parent_tree = match commit.parent(0) {
+        Ok(p) => Some(p.tree()?),
+        Err(_) => return Ok(()), // the first commit adds everything
+    };
+    let mut opts = DiffOptions::new();
+    opts.context_lines(0);
+    let mut diff = repo.diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), Some(&mut opts))?;
+    diff.find_similar(Some(DiffFindOptions::new().renames(true)))?;
+    if diff.deltas().len() > ADDS_MAX_FILES {
+        return Ok(());
+    }
+    let sha = oid.to_string();
+    for (idx, delta) in diff.deltas().enumerate() {
+        let Some(path) = delta
+            .new_file()
+            .path()
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+        else {
+            continue;
+        };
+        let adds = match delta.status() {
+            Delta::Added | Delta::Copied => true,
+            Delta::Modified => {
+                let Some(lang) = Lang::from_path(&path) else {
+                    continue;
+                };
+                let Ok(Some(patch)) = git2::Patch::from_diff(&diff, idx) else {
+                    continue;
+                };
+                // Hunks that only insert lines: a definition wholly inside one is new.
+                let mut inserted = Vec::new();
+                for h in 0..patch.num_hunks() {
+                    let (hunk, _) = patch.hunk(h)?;
+                    if hunk.old_lines() == 0 && hunk.new_lines() > 0 {
+                        let start = hunk.new_start() as i64;
+                        inserted.push((start, start + hunk.new_lines() as i64 - 1));
+                    }
+                }
+                if inserted.is_empty() {
+                    continue;
+                }
+                let Ok(blob) = repo.find_blob(delta.new_file().id()) else {
+                    continue;
+                };
+                let Ok(parsed) = parser.parse(lang, &path, blob.content()) else {
+                    continue;
+                };
+                parsed.defs.iter().any(|d| {
+                    !d.is_test
+                        && inserted
+                            .iter()
+                            .any(|&(s, e)| s <= d.start_line && e >= d.end_line)
+                })
+            }
+            _ => false,
+        };
+        if adds {
+            conn.execute(
+                "INSERT OR IGNORE INTO commit_adds (sha, path) VALUES (?1, ?2)",
+                params![sha, path],
+            )?;
         }
     }
     Ok(())

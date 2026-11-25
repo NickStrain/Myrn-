@@ -1,0 +1,741 @@
+id: remeda/feature/gen-take-last
+repo: remeda
+kind: feature
+prompt: |
+    Add a utility `takeLast` to remeda in `packages/remeda/src/takeLast.ts`, exported from the
+    package index like the other utilities, with the calling styles and types its
+    documentation shows. Its documentation:
+
+        Takes the last `n` elements from `data`.
+
+        Related operations:
+        - `dropLast` - to skip past the last `n` instead.
+        - `splice` - to remove or insert at an arbitrary index.
+        - `take` - same, but from the start of the array.
+
+        @param data - The target array.
+        @param n - The number of elements to take.
+        @signature
+           takeLast(data, n)
+        @example
+           takeLast([1, 2, 3, 4, 5], 2) // => [4, 5]
+        @dataFirst
+        @category Array
+
+        Take the last `n` elements from `data`.
+
+        Related operations:
+        - `dropLast` - to skip past the last `n` instead.
+        - `splice` - to remove or insert at an arbitrary index.
+        - `take` - same, but from the start of the array.
+
+        @param n - The number of elements to take.
+        @signature
+           takeLast(n)(data)
+        @example
+           takeLast(2)([1, 2, 3, 4, 5]) // => [4, 5]
+        @dataLast
+        @category Array
+
+    npm dependencies are not installed and there is no network access. Node 24 is
+    available and can run TypeScript files directly.
+setup:
+  patch: |
+    diff --git a/packages/remeda/src/index.ts b/packages/remeda/src/index.ts
+    index ed5b86a..1f21d79 100644
+    --- a/packages/remeda/src/index.ts
+    +++ b/packages/remeda/src/index.ts
+    @@ -141,7 +141,6 @@ export * from "./swapIndices";
+     export * from "./swapProps";
+     export * from "./take";
+     export * from "./takeFirstBy";
+    -export * from "./takeLast";
+     export * from "./takeLastWhile";
+     export * from "./takeWhile";
+     export * from "./tap";
+    diff --git a/packages/remeda/src/takeLast.test-d.ts b/packages/remeda/src/takeLast.test-d.ts
+    deleted file mode 100644
+    index 79cdc8e..0000000
+    --- a/packages/remeda/src/takeLast.test-d.ts
+    +++ /dev/null
+    @@ -1,106 +0,0 @@
+    -import { describe, expectTypeOf, test } from "vitest";
+    -import { pipe } from "./pipe";
+    -import { takeLast } from "./takeLast";
+    -
+    -describe("data-first", () => {
+    -  test("empty array", () => {
+    -    const result = takeLast([] as [], 2);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<never[]>();
+    -  });
+    -
+    -  test("regular array", () => {
+    -    const result = takeLast([] as number[], 2);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<number[]>();
+    -  });
+    -
+    -  test("regular array with union type", () => {
+    -    const result = takeLast([] as (number | string)[], 2);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+    -  });
+    -
+    -  test("prefix array", () => {
+    -    const result = takeLast([1] as [number, ...boolean[]], 2);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+    -  });
+    -
+    -  test("suffix array", () => {
+    -    const result = takeLast([1] as [...boolean[], number], 2);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+    -  });
+    -
+    -  test("array with suffix and prefix", () => {
+    -    const result = takeLast([1, "a"] as [number, ...boolean[], string], 2);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(boolean | number | string)[]>();
+    -  });
+    -
+    -  test("tuple", () => {
+    -    const result = takeLast([1, "a", true] as const, 2);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<("a" | 1 | true)[]>();
+    -  });
+    -
+    -  test("union of arrays", () => {
+    -    const result = takeLast([] as boolean[] | string[], 2);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(boolean | string)[]>();
+    -  });
+    -});
+    -
+    -describe("data-last", () => {
+    -  test("empty array", () => {
+    -    const result = pipe([] as [], takeLast(2));
+    -
+    -    expectTypeOf(result).toEqualTypeOf<never[]>();
+    -  });
+    -
+    -  test("regular array", () => {
+    -    const result = pipe([] as number[], takeLast(2));
+    -
+    -    expectTypeOf(result).toEqualTypeOf<number[]>();
+    -  });
+    -
+    -  test("regular array with union type", () => {
+    -    const result = pipe([] as (number | string)[], takeLast(2));
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+    -  });
+    -
+    -  test("prefix array", () => {
+    -    const result = pipe([1] as [number, ...boolean[]], takeLast(2));
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+    -  });
+    -
+    -  test("suffix array", () => {
+    -    const result = pipe([1] as [...boolean[], number], takeLast(2));
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+    -  });
+    -
+    -  test("array with suffix and prefix", () => {
+    -    const result = pipe(
+    -      [1, "a"] as [number, ...boolean[], string],
+    -      takeLast(2),
+    -    );
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(boolean | number | string)[]>();
+    -  });
+    -
+    -  test("tuple", () => {
+    -    const result = pipe([1, "a", true] as const, takeLast(2));
+    -
+    -    expectTypeOf(result).toEqualTypeOf<("a" | 1 | true)[]>();
+    -  });
+    -
+    -  test("union of arrays", () => {
+    -    const result = pipe([] as boolean[] | string[], takeLast(2));
+    -
+    -    expectTypeOf(result).toEqualTypeOf<(boolean | string)[]>();
+    -  });
+    -});
+    diff --git a/packages/remeda/src/takeLast.test.ts b/packages/remeda/src/takeLast.test.ts
+    deleted file mode 100644
+    index bc6adde..0000000
+    --- a/packages/remeda/src/takeLast.test.ts
+    +++ /dev/null
+    @@ -1,72 +0,0 @@
+    -import { expect, test } from "vitest";
+    -import { pipe } from "./pipe";
+    -import { takeLast } from "./takeLast";
+    -
+    -test("empty array", () => {
+    -  expect(takeLast([], 2)).toStrictEqual([]);
+    -});
+    -
+    -test("n < 0", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], -1)).toStrictEqual([]);
+    -});
+    -
+    -test("n === 0", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], 0)).toStrictEqual([]);
+    -});
+    -
+    -test("n < length", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], 2)).toStrictEqual([4, 5]);
+    -});
+    -
+    -test("n === length", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], 5)).toStrictEqual([1, 2, 3, 4, 5]);
+    -});
+    -
+    -test("n > length", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], 10)).toStrictEqual([1, 2, 3, 4, 5]);
+    -});
+    -
+    -test("should return a new array even if everything was taken", () => {
+    -  const data = [1, 2, 3, 4, 5];
+    -  const result = takeLast(data, data.length);
+    -
+    -  expect(result).not.toBe(data);
+    -  expect(result).toStrictEqual(data);
+    -});
+    -
+    -test("a single item", () => {
+    -  expect(takeLast([1], 1)).toStrictEqual([1]);
+    -});
+    -
+    -test("rounds a fractional n up", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], 2.5)).toStrictEqual([3, 4, 5]);
+    -});
+    -
+    -test("a fraction below 1 takes one item", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], 0.5)).toStrictEqual([5]);
+    -});
+    -
+    -test("a fraction too small to subtract from the length takes nothing", () => {
+    -  // `length - n` rounds back to `length`, so the slice starts at the end.
+    -  expect(takeLast([1, 2, 3, 4, 5], Number.MIN_VALUE)).toStrictEqual([]);
+    -});
+    -
+    -test("n is NaN", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], NaN)).toStrictEqual([]);
+    -});
+    -
+    -test("n is Infinity", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], Infinity)).toStrictEqual([1, 2, 3, 4, 5]);
+    -});
+    -
+    -test("n is -Infinity", () => {
+    -  expect(takeLast([1, 2, 3, 4, 5], -Infinity)).toStrictEqual([]);
+    -});
+    -
+    -test("data-last on an empty array", () => {
+    -  expect(pipe([], takeLast(2))).toStrictEqual([]);
+    -});
+    -
+    -test("data-last", () => {
+    -  expect(pipe([1, 2, 3, 4, 5], takeLast(2))).toStrictEqual([4, 5]);
+    -});
+    diff --git a/packages/remeda/src/takeLast.ts b/packages/remeda/src/takeLast.ts
+    deleted file mode 100644
+    index f16d104..0000000
+    --- a/packages/remeda/src/takeLast.ts
+    +++ /dev/null
+    @@ -1,56 +0,0 @@
+    -import { purry2 } from "./internal/purryByArity";
+    -import type { IterableContainer } from "./internal/types/IterableContainer";
+    -
+    -/**
+    - * Takes the last `n` elements from `data`.
+    - *
+    - * Related operations:
+    - * - `dropLast` - to skip past the last `n` instead.
+    - * - `splice` - to remove or insert at an arbitrary index.
+    - * - `take` - same, but from the start of the array.
+    - *
+    - * @param data - The target array.
+    - * @param n - The number of elements to take.
+    - * @signature
+    - *    takeLast(data, n)
+    - * @example
+    - *    takeLast([1, 2, 3, 4, 5], 2) // => [4, 5]
+    - * @dataFirst
+    - * @category Array
+    - */
+    -export function takeLast<T extends IterableContainer>(
+    -  data: T,
+    -  n: number,
+    -): T[number][];
+    -
+    -/**
+    - * Take the last `n` elements from `data`.
+    - *
+    - * Related operations:
+    - * - `dropLast` - to skip past the last `n` instead.
+    - * - `splice` - to remove or insert at an arbitrary index.
+    - * - `take` - same, but from the start of the array.
+    - *
+    - * @param n - The number of elements to take.
+    - * @signature
+    - *    takeLast(n)(data)
+    - * @example
+    - *    takeLast(2)([1, 2, 3, 4, 5]) // => [4, 5]
+    - * @dataLast
+    - * @category Array
+    - */
+    -export function takeLast<T extends IterableContainer>(
+    -  n: number,
+    -): (data: T) => T[number][];
+    -
+    -export function takeLast(
+    -  dataOrN: IterableContainer | number,
+    -  n?: number,
+    -): unknown {
+    -  return purry2(takeLastImplementation, arguments.length, dataOrN, n);
+    -}
+    -
+    -const takeLastImplementation = <T extends IterableContainer>(
+    -  data: T,
+    -  n: number,
+    -): T[number][] => (n > 0 ? data.slice(Math.max(0, data.length - n)) : []);
+solution:
+  patch: |
+    diff --git b/packages/remeda/src/index.ts a/packages/remeda/src/index.ts
+    index 1f21d79..ed5b86a 100644
+    --- b/packages/remeda/src/index.ts
+    +++ a/packages/remeda/src/index.ts
+    @@ -141,6 +141,7 @@ export * from "./swapIndices";
+     export * from "./swapProps";
+     export * from "./take";
+     export * from "./takeFirstBy";
+    +export * from "./takeLast";
+     export * from "./takeLastWhile";
+     export * from "./takeWhile";
+     export * from "./tap";
+    diff --git b/packages/remeda/src/takeLast.test-d.ts a/packages/remeda/src/takeLast.test-d.ts
+    new file mode 100644
+    index 0000000..79cdc8e
+    --- /dev/null
+    +++ a/packages/remeda/src/takeLast.test-d.ts
+    @@ -0,0 +1,106 @@
+    +import { describe, expectTypeOf, test } from "vitest";
+    +import { pipe } from "./pipe";
+    +import { takeLast } from "./takeLast";
+    +
+    +describe("data-first", () => {
+    +  test("empty array", () => {
+    +    const result = takeLast([] as [], 2);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<never[]>();
+    +  });
+    +
+    +  test("regular array", () => {
+    +    const result = takeLast([] as number[], 2);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<number[]>();
+    +  });
+    +
+    +  test("regular array with union type", () => {
+    +    const result = takeLast([] as (number | string)[], 2);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+    +  });
+    +
+    +  test("prefix array", () => {
+    +    const result = takeLast([1] as [number, ...boolean[]], 2);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+    +  });
+    +
+    +  test("suffix array", () => {
+    +    const result = takeLast([1] as [...boolean[], number], 2);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+    +  });
+    +
+    +  test("array with suffix and prefix", () => {
+    +    const result = takeLast([1, "a"] as [number, ...boolean[], string], 2);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(boolean | number | string)[]>();
+    +  });
+    +
+    +  test("tuple", () => {
+    +    const result = takeLast([1, "a", true] as const, 2);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<("a" | 1 | true)[]>();
+    +  });
+    +
+    +  test("union of arrays", () => {
+    +    const result = takeLast([] as boolean[] | string[], 2);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(boolean | string)[]>();
+    +  });
+    +});
+    +
+    +describe("data-last", () => {
+    +  test("empty array", () => {
+    +    const result = pipe([] as [], takeLast(2));
+    +
+    +    expectTypeOf(result).toEqualTypeOf<never[]>();
+    +  });
+    +
+    +  test("regular array", () => {
+    +    const result = pipe([] as number[], takeLast(2));
+    +
+    +    expectTypeOf(result).toEqualTypeOf<number[]>();
+    +  });
+    +
+    +  test("regular array with union type", () => {
+    +    const result = pipe([] as (number | string)[], takeLast(2));
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+    +  });
+    +
+    +  test("prefix array", () => {
+    +    const result = pipe([1] as [number, ...boolean[]], takeLast(2));
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+    +  });
+    +
+    +  test("suffix array", () => {
+    +    const result = pipe([1] as [...boolean[], number], takeLast(2));
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+    +  });
+    +
+    +  test("array with suffix and prefix", () => {
+    +    const result = pipe(
+    +      [1, "a"] as [number, ...boolean[], string],
+    +      takeLast(2),
+    +    );
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(boolean | number | string)[]>();
+    +  });
+    +
+    +  test("tuple", () => {
+    +    const result = pipe([1, "a", true] as const, takeLast(2));
+    +
+    +    expectTypeOf(result).toEqualTypeOf<("a" | 1 | true)[]>();
+    +  });
+    +
+    +  test("union of arrays", () => {
+    +    const result = pipe([] as boolean[] | string[], takeLast(2));
+    +
+    +    expectTypeOf(result).toEqualTypeOf<(boolean | string)[]>();
+    +  });
+    +});
+    diff --git b/packages/remeda/src/takeLast.test.ts a/packages/remeda/src/takeLast.test.ts
+    new file mode 100644
+    index 0000000..bc6adde
+    --- /dev/null
+    +++ a/packages/remeda/src/takeLast.test.ts
+    @@ -0,0 +1,72 @@
+    +import { expect, test } from "vitest";
+    +import { pipe } from "./pipe";
+    +import { takeLast } from "./takeLast";
+    +
+    +test("empty array", () => {
+    +  expect(takeLast([], 2)).toStrictEqual([]);
+    +});
+    +
+    +test("n < 0", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], -1)).toStrictEqual([]);
+    +});
+    +
+    +test("n === 0", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], 0)).toStrictEqual([]);
+    +});
+    +
+    +test("n < length", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], 2)).toStrictEqual([4, 5]);
+    +});
+    +
+    +test("n === length", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], 5)).toStrictEqual([1, 2, 3, 4, 5]);
+    +});
+    +
+    +test("n > length", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], 10)).toStrictEqual([1, 2, 3, 4, 5]);
+    +});
+    +
+    +test("should return a new array even if everything was taken", () => {
+    +  const data = [1, 2, 3, 4, 5];
+    +  const result = takeLast(data, data.length);
+    +
+    +  expect(result).not.toBe(data);
+    +  expect(result).toStrictEqual(data);
+    +});
+    +
+    +test("a single item", () => {
+    +  expect(takeLast([1], 1)).toStrictEqual([1]);
+    +});
+    +
+    +test("rounds a fractional n up", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], 2.5)).toStrictEqual([3, 4, 5]);
+    +});
+    +
+    +test("a fraction below 1 takes one item", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], 0.5)).toStrictEqual([5]);
+    +});
+    +
+    +test("a fraction too small to subtract from the length takes nothing", () => {
+    +  // `length - n` rounds back to `length`, so the slice starts at the end.
+    +  expect(takeLast([1, 2, 3, 4, 5], Number.MIN_VALUE)).toStrictEqual([]);
+    +});
+    +
+    +test("n is NaN", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], NaN)).toStrictEqual([]);
+    +});
+    +
+    +test("n is Infinity", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], Infinity)).toStrictEqual([1, 2, 3, 4, 5]);
+    +});
+    +
+    +test("n is -Infinity", () => {
+    +  expect(takeLast([1, 2, 3, 4, 5], -Infinity)).toStrictEqual([]);
+    +});
+    +
+    +test("data-last on an empty array", () => {
+    +  expect(pipe([], takeLast(2))).toStrictEqual([]);
+    +});
+    +
+    +test("data-last", () => {
+    +  expect(pipe([1, 2, 3, 4, 5], takeLast(2))).toStrictEqual([4, 5]);
+    +});
+    diff --git b/packages/remeda/src/takeLast.ts a/packages/remeda/src/takeLast.ts
+    new file mode 100644
+    index 0000000..f16d104
+    --- /dev/null
+    +++ a/packages/remeda/src/takeLast.ts
+    @@ -0,0 +1,56 @@
+    +import { purry2 } from "./internal/purryByArity";
+    +import type { IterableContainer } from "./internal/types/IterableContainer";
+    +
+    +/**
+    + * Takes the last `n` elements from `data`.
+    + *
+    + * Related operations:
+    + * - `dropLast` - to skip past the last `n` instead.
+    + * - `splice` - to remove or insert at an arbitrary index.
+    + * - `take` - same, but from the start of the array.
+    + *
+    + * @param data - The target array.
+    + * @param n - The number of elements to take.
+    + * @signature
+    + *    takeLast(data, n)
+    + * @example
+    + *    takeLast([1, 2, 3, 4, 5], 2) // => [4, 5]
+    + * @dataFirst
+    + * @category Array
+    + */
+    +export function takeLast<T extends IterableContainer>(
+    +  data: T,
+    +  n: number,
+    +): T[number][];
+    +
+    +/**
+    + * Take the last `n` elements from `data`.
+    + *
+    + * Related operations:
+    + * - `dropLast` - to skip past the last `n` instead.
+    + * - `splice` - to remove or insert at an arbitrary index.
+    + * - `take` - same, but from the start of the array.
+    + *
+    + * @param n - The number of elements to take.
+    + * @signature
+    + *    takeLast(n)(data)
+    + * @example
+    + *    takeLast(2)([1, 2, 3, 4, 5]) // => [4, 5]
+    + * @dataLast
+    + * @category Array
+    + */
+    +export function takeLast<T extends IterableContainer>(
+    +  n: number,
+    +): (data: T) => T[number][];
+    +
+    +export function takeLast(
+    +  dataOrN: IterableContainer | number,
+    +  n?: number,
+    +): unknown {
+    +  return purry2(takeLastImplementation, arguments.length, dataOrN, n);
+    +}
+    +
+    +const takeLastImplementation = <T extends IterableContainer>(
+    +  data: T,
+    +  n: number,
+    +): T[number][] => (n > 0 ? data.slice(Math.max(0, data.length - n)) : []);
+check:
+  files:
+    packages/remeda/test/bench-loader.mjs: |
+      // Resolve remeda's extensionless relative imports to .ts files, and `vitest`
+      // to a small stand-in, so Node 24 runs the tests without npm install.
+      import { registerHooks } from "node:module";
+
+      const shim = new URL("./vitest-shim.mjs", import.meta.url).href;
+      registerHooks({
+        resolve(specifier, context, nextResolve) {
+          if (specifier === "vitest") return { url: shim, shortCircuit: true };
+          try {
+            return nextResolve(specifier, context);
+          } catch (error) {
+            if (!specifier.startsWith(".")) throw error;
+            try {
+              return nextResolve(`${specifier}.ts`, context);
+            } catch {
+              return nextResolve(`${specifier}/index.ts`, context);
+            }
+          }
+        },
+      });
+    packages/remeda/test/vitest-shim.mjs: |
+      // The part of vitest's API remeda's simple tests use, on node:test.
+      import assert from "node:assert/strict";
+      import { describe as nodeDescribe, test as nodeTest } from "node:test";
+
+      export const describe = (name, fn) => nodeDescribe(name, fn);
+      export const test = (name, fn) => nodeTest(name, fn);
+      export const it = test;
+
+      const deep = (a, b, strict) => {
+        try {
+          (strict ? assert.deepStrictEqual : assert.deepEqual)(a, b);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      function matchers(actual, negate) {
+        const check = (ok, what) => {
+          if (negate ? ok : !ok) {
+            throw new assert.AssertionError({ message: `expected ${negate ? "not " : ""}${what}`, actual });
+          }
+        };
+        const throws = (expected) => {
+          let threw = false;
+          let error;
+          try {
+            actual();
+          } catch (e) {
+            threw = true;
+            error = e;
+          }
+          const ok =
+            threw &&
+            (expected === undefined ||
+              (typeof expected === "string" && String(error?.message).includes(expected)) ||
+              (expected instanceof RegExp && expected.test(String(error?.message))) ||
+              (typeof expected === "function" && error instanceof expected) ||
+              (typeof expected === "object" && expected !== null && !(expected instanceof RegExp) && String(error?.message) === String(expected.message)));
+          check(ok, "to throw");
+        };
+        return {
+          toBe: (e) => check(Object.is(actual, e), `${String(actual)} to be ${String(e)}`),
+          toStrictEqual: (e) => check(deep(actual, e, true), "strict equality"),
+          toEqual: (e) => check(deep(actual, e, false), "equality"),
+          toHaveLength: (n) => check(actual?.length === n, `length ${n}`),
+          toBeUndefined: () => check(actual === undefined, "undefined"),
+          toBeNull: () => check(actual === null, "null"),
+          toBeTruthy: () => check(Boolean(actual), "truthy"),
+          toBeFalsy: () => check(!actual, "falsy"),
+          toBeNaN: () => check(Number.isNaN(actual), "NaN"),
+          toBeLessThan: (n) => check(actual < n, `< ${n}`),
+          toBeLessThanOrEqual: (n) => check(actual <= n, `<= ${n}`),
+          toBeGreaterThan: (n) => check(actual > n, `> ${n}`),
+          toBeGreaterThanOrEqual: (n) => check(actual >= n, `>= ${n}`),
+          toContain: (x) => check(actual.includes(x), "to contain"),
+          toBeTypeOf: (t) => check(typeof actual === t, `type ${t}`),
+          toThrow: throws,
+          toThrowError: throws,
+        };
+      }
+
+      export function expect(actual) {
+        const m = matchers(actual, false);
+        m.not = matchers(actual, true);
+        return m;
+      }
+    packages/remeda/src/bench-check.test.ts: |
+      import { expect, test } from "vitest";
+      import { pipe } from "./pipe";
+      import { takeLast } from "./takeLast";
+
+      test("empty array", () => {
+        expect(takeLast([], 2)).toStrictEqual([]);
+      });
+
+      test("n < 0", () => {
+        expect(takeLast([1, 2, 3, 4, 5], -1)).toStrictEqual([]);
+      });
+
+      test("n === 0", () => {
+        expect(takeLast([1, 2, 3, 4, 5], 0)).toStrictEqual([]);
+      });
+
+      test("n < length", () => {
+        expect(takeLast([1, 2, 3, 4, 5], 2)).toStrictEqual([4, 5]);
+      });
+
+      test("n === length", () => {
+        expect(takeLast([1, 2, 3, 4, 5], 5)).toStrictEqual([1, 2, 3, 4, 5]);
+      });
+
+      test("n > length", () => {
+        expect(takeLast([1, 2, 3, 4, 5], 10)).toStrictEqual([1, 2, 3, 4, 5]);
+      });
+
+      test("should return a new array even if everything was taken", () => {
+        const data = [1, 2, 3, 4, 5];
+        const result = takeLast(data, data.length);
+
+        expect(result).not.toBe(data);
+        expect(result).toStrictEqual(data);
+      });
+
+      test("a single item", () => {
+        expect(takeLast([1], 1)).toStrictEqual([1]);
+      });
+
+      test("rounds a fractional n up", () => {
+        expect(takeLast([1, 2, 3, 4, 5], 2.5)).toStrictEqual([3, 4, 5]);
+      });
+
+      test("a fraction below 1 takes one item", () => {
+        expect(takeLast([1, 2, 3, 4, 5], 0.5)).toStrictEqual([5]);
+      });
+
+      test("a fraction too small to subtract from the length takes nothing", () => {
+        // `length - n` rounds back to `length`, so the slice starts at the end.
+        expect(takeLast([1, 2, 3, 4, 5], Number.MIN_VALUE)).toStrictEqual([]);
+      });
+
+      test("n is NaN", () => {
+        expect(takeLast([1, 2, 3, 4, 5], NaN)).toStrictEqual([]);
+      });
+
+      test("n is Infinity", () => {
+        expect(takeLast([1, 2, 3, 4, 5], Infinity)).toStrictEqual([1, 2, 3, 4, 5]);
+      });
+
+      test("n is -Infinity", () => {
+        expect(takeLast([1, 2, 3, 4, 5], -Infinity)).toStrictEqual([]);
+      });
+
+      test("data-last on an empty array", () => {
+        expect(pipe([], takeLast(2))).toStrictEqual([]);
+      });
+
+      test("data-last", () => {
+        expect(pipe([1, 2, 3, 4, 5], takeLast(2))).toStrictEqual([4, 5]);
+      });
+  run: cd packages/remeda && node --no-warnings --import ./test/bench-loader.mjs --test src/bench-check.test.ts
+touches:
+  - packages/remeda/src/takeLast.ts
+  - packages/remeda/src/index.ts

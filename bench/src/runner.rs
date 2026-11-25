@@ -36,8 +36,9 @@ pub enum Condition {
     Hint,
 }
 
-/// The instruction the `hint` condition adds to the system prompt.
-pub const HINT: &str = "This repository uses myrn. When a prompt has a \"Myrn context\" block, \
+/// The first hint wording (Stages 7-8), kept for comparisons via MYRN_BENCH_HINT.
+#[allow(dead_code)]
+pub const HINT_V1: &str = "This repository uses myrn. When a prompt has a \"Myrn context\" block, \
 its code is the files' current content: use it instead of opening those files again. When you \
 must open a file (to edit it, or for something not shown), read only the line range you need \
 (Read with offset and limit), not the whole file.";
@@ -429,7 +430,12 @@ fn run_inner(
         cmd.args(["--model", m]);
     }
     if spec.condition == Condition::Hint {
-        cmd.args(["--append-system-prompt", HINT]);
+        // The shipped hint is myrn's own (written to CLAUDE.md by `connect`,
+        // which the benchmark does not load); MYRN_BENCH_HINT overrides it to
+        // compare wordings.
+        let hint = std::env::var("MYRN_BENCH_HINT")
+            .unwrap_or_else(|_| myrn_adapters::pull_only::HOOKS_TEXT.to_string());
+        cmd.args(["--append-system-prompt", &hint]);
     }
     cmd.current_dir(&work)
         .env("MYRN_HOME", &home)

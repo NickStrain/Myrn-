@@ -706,8 +706,14 @@ impl Engine {
         let mut seeds = seed::seeds(&self.db, task)?;
         seeds.extend(self.vector_seeds(task)?);
         let ranked = rank::rank(&self.db, seeds, &self.config.ranking)?;
+        // A request to add code also gets "how code is added here" from history.
+        let recipe = if seed::asks_for_new_code(task) {
+            crate::retrieve::recipe::addition_recipe(&self.db, task)?
+        } else {
+            None
+        };
         let Some(top) = ranked.first() else {
-            return Ok(Pack::empty());
+            return Ok(Pack::empty().with_recipe(recipe));
         };
         // A request to add a new function (named in backticks, not in the code
         // yet) with no strong, standout match: pointers would be guesses at a
@@ -726,7 +732,7 @@ impl Engine {
             && seed::asks_for_new_code(task)
             && seed::names_new_symbol(&self.db, task)?
         {
-            return Ok(Pack::empty());
+            return Ok(Pack::empty().with_recipe(recipe));
         }
         let question = !seed::asks_about_bug(task) && seed::is_question(task);
         // Only items close to the best match; never pad to fill the budget.
@@ -819,7 +825,8 @@ impl Engine {
             tokens: budget::tokens(&text),
             text,
             items: ids,
-        })
+        }
+        .with_recipe(recipe))
     }
 
     /// The symbol's current source, when it is short enough to inject whole.
@@ -1328,6 +1335,19 @@ impl Pack {
             items: Vec::new(),
             tokens: 0,
         }
+    }
+
+    /// Append the "how code is added here" checklist (with the header when the
+    /// pack was otherwise empty).
+    fn with_recipe(mut self, recipe: Option<String>) -> Pack {
+        let Some(r) = recipe else { return self };
+        self.text = if self.text.trim().is_empty() {
+            format!("{}\n\n{r}", render::HEADER.trim_end())
+        } else {
+            format!("{}\n\n{r}", self.text.trim_end())
+        };
+        self.tokens = budget::tokens(&self.text);
+        self
     }
 }
 

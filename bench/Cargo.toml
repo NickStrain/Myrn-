@@ -16,6 +16,7 @@ path = "src/main.rs"
 myrn-engine.workspace = true
 myrn-store.workspace = true
 myrn-embed.workspace = true
+myrn-adapters.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 rusqlite.workspace = true

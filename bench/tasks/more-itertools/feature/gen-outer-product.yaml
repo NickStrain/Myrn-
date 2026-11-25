@@ -1,0 +1,310 @@
+id: more-itertools/feature/gen-outer-product
+repo: more-itertools
+kind: feature
+prompt: |
+    Add a function `outer_product(func, xs, ys, *args, **kwargs)` to more-itertools, in `more_itertools/more.py`,
+    exported and documented like the neighbouring functions. Its documentation:
+
+        A generalized outer product that applies a binary function to all
+        pairs of items. Returns a 2D matrix with ``len(xs)`` rows and ``len(ys)``
+        columns.
+        Also accepts ``*args`` and ``**kwargs`` that are passed to ``func``.
+
+        Multiplication table:
+
+        >>> from operator import mul
+        >>> list(outer_product(mul, range(1, 4), range(1, 6)))
+        [(1, 2, 3, 4, 5), (2, 4, 6, 8, 10), (3, 6, 9, 12, 15)]
+
+        Cross tabulation:
+
+        >>> xs = ['A', 'B', 'A', 'A', 'B', 'B', 'A', 'A', 'B', 'B']
+        >>> ys = ['X', 'X', 'X', 'Y', 'Z', 'Z', 'Y', 'Y', 'Z', 'Z']
+        >>> pair_counts = Counter(zip(xs, ys))
+        >>> count_rows = lambda x, y: pair_counts[x, y]
+        >>> list(outer_product(count_rows, sorted(set(xs)), sorted(set(ys))))
+        [(2, 3, 0), (1, 0, 4)]
+
+        Usage with ``*args`` and ``**kwargs``:
+
+        >>> animals = ['cat', 'wolf', 'mouse']
+        >>> list(outer_product(min, animals, animals, key=len))
+        [('cat', 'cat', 'cat'), ('cat', 'wolf', 'wolf'), ('cat', 'wolf', 'mouse')]
+setup:
+  patch: |
+    diff --git a/docs/api.rst b/docs/api.rst
+    index 7b40a8e..eb0c859 100644
+    --- a/docs/api.rst
+    +++ b/docs/api.rst
+    @@ -248,7 +248,6 @@ These tools yield combinatorial arrangements of items from iterables.
+     .. autofunction:: combination_with_replacement_index
+     .. autofunction:: derangements
+     .. autofunction:: gray_product
+    -.. autofunction:: outer_product
+     .. autofunction:: powerset_of_sets
+ 
+     ----
+    diff --git a/more_itertools/more.py b/more_itertools/more.py
+    index 068ed68..247954c 100755
+    --- a/more_itertools/more.py
+    +++ b/more_itertools/more.py
+    @@ -131,7 +131,6 @@ __all__ = [
+         'numeric_range',
+         'one',
+         'only',
+    -    'outer_product',
+         'padded',
+         'partial_product',
+         'partitions',
+    @@ -5103,40 +5102,6 @@ def takewhile_inclusive(predicate, iterable):
+                 break
+ 
+ 
+    -def outer_product(func, xs, ys, *args, **kwargs):
+    -    """A generalized outer product that applies a binary function to all
+    -    pairs of items. Returns a 2D matrix with ``len(xs)`` rows and ``len(ys)``
+    -    columns.
+    -    Also accepts ``*args`` and ``**kwargs`` that are passed to ``func``.
+    -
+    -    Multiplication table:
+    -
+    -    >>> from operator import mul
+    -    >>> list(outer_product(mul, range(1, 4), range(1, 6)))
+    -    [(1, 2, 3, 4, 5), (2, 4, 6, 8, 10), (3, 6, 9, 12, 15)]
+    -
+    -    Cross tabulation:
+    -
+    -    >>> xs = ['A', 'B', 'A', 'A', 'B', 'B', 'A', 'A', 'B', 'B']
+    -    >>> ys = ['X', 'X', 'X', 'Y', 'Z', 'Z', 'Y', 'Y', 'Z', 'Z']
+    -    >>> pair_counts = Counter(zip(xs, ys))
+    -    >>> count_rows = lambda x, y: pair_counts[x, y]
+    -    >>> list(outer_product(count_rows, sorted(set(xs)), sorted(set(ys))))
+    -    [(2, 3, 0), (1, 0, 4)]
+    -
+    -    Usage with ``*args`` and ``**kwargs``:
+    -
+    -    >>> animals = ['cat', 'wolf', 'mouse']
+    -    >>> list(outer_product(min, animals, animals, key=len))
+    -    [('cat', 'cat', 'cat'), ('cat', 'wolf', 'wolf'), ('cat', 'wolf', 'mouse')]
+    -    """
+    -    ys = tuple(ys)
+    -    return batched(
+    -        starmap(lambda x, y: func(x, y, *args, **kwargs), product(xs, ys)),
+    -        n=len(ys),
+    -    )
+    -
+    -
+     def iter_suppress(iterable, *exceptions):
+         """Yield each of the items from *iterable*. If the iteration raises one of
+         the specified *exceptions*, that exception will be suppressed and iteration
+    diff --git a/more_itertools/more.pyi b/more_itertools/more.pyi
+    index ca5cf57..e2d39fe 100644
+    --- a/more_itertools/more.pyi
+    +++ b/more_itertools/more.pyi
+    @@ -960,12 +960,7 @@ def partial_product(
+     def takewhile_inclusive(
+         predicate: Callable[[_T], bool], iterable: Iterable[_T]
+     ) -> Iterator[_T]: ...
+    -def outer_product(
+    -    func: Callable[[_T, _U], _V],
+    -    xs: Iterable[_T],
+    -    ys: Iterable[_U],
+    -    *args: Any,
+    -    **kwargs: Any,
+    +
+     ) -> Iterator[tuple[_V, ...]]: ...
+     def iter_suppress(
+         iterable: Iterable[_T],
+    diff --git a/tests/test_more.py b/tests/test_more.py
+    index a0c4f1f..1453af4 100644
+    --- a/tests/test_more.py
+    +++ b/tests/test_more.py
+    @@ -6647,19 +6647,6 @@ class TakewhileInclusiveTests(TestCase):
+             self.assertEqual(result, expected)
+ 
+ 
+    -class OuterProductTests(TestCase):
+    -    def test_basic(self) -> None:
+    -        greetings = ['Hello', 'Goodbye']
+    -        names = ['Alice', 'Bob', 'Carol']
+    -        greet = lambda greeting, name: f'{greeting}, {name}!'
+    -        result = list(mi.outer_product(greet, greetings, names))
+    -        expected = [
+    -            ('Hello, Alice!', 'Hello, Bob!', 'Hello, Carol!'),
+    -            ('Goodbye, Alice!', 'Goodbye, Bob!', 'Goodbye, Carol!'),
+    -        ]
+    -        self.assertEqual(result, expected)
+    -
+    -
+     class IterSuppressTests(TestCase):
+         class Producer:
+             def __init__(self, exc, die_early=False):
+solution:
+  patch: |
+    diff --git b/docs/api.rst a/docs/api.rst
+    index eb0c859..7b40a8e 100644
+    --- b/docs/api.rst
+    +++ a/docs/api.rst
+    @@ -248,6 +248,7 @@ These tools yield combinatorial arrangements of items from iterables.
+     .. autofunction:: combination_with_replacement_index
+     .. autofunction:: derangements
+     .. autofunction:: gray_product
+    +.. autofunction:: outer_product
+     .. autofunction:: powerset_of_sets
+ 
+     ----
+    diff --git b/more_itertools/more.py a/more_itertools/more.py
+    index 247954c..068ed68 100755
+    --- b/more_itertools/more.py
+    +++ a/more_itertools/more.py
+    @@ -131,6 +131,7 @@ __all__ = [
+         'numeric_range',
+         'one',
+         'only',
+    +    'outer_product',
+         'padded',
+         'partial_product',
+         'partitions',
+    @@ -5102,6 +5103,40 @@ def takewhile_inclusive(predicate, iterable):
+                 break
+ 
+ 
+    +def outer_product(func, xs, ys, *args, **kwargs):
+    +    """A generalized outer product that applies a binary function to all
+    +    pairs of items. Returns a 2D matrix with ``len(xs)`` rows and ``len(ys)``
+    +    columns.
+    +    Also accepts ``*args`` and ``**kwargs`` that are passed to ``func``.
+    +
+    +    Multiplication table:
+    +
+    +    >>> from operator import mul
+    +    >>> list(outer_product(mul, range(1, 4), range(1, 6)))
+    +    [(1, 2, 3, 4, 5), (2, 4, 6, 8, 10), (3, 6, 9, 12, 15)]
+    +
+    +    Cross tabulation:
+    +
+    +    >>> xs = ['A', 'B', 'A', 'A', 'B', 'B', 'A', 'A', 'B', 'B']
+    +    >>> ys = ['X', 'X', 'X', 'Y', 'Z', 'Z', 'Y', 'Y', 'Z', 'Z']
+    +    >>> pair_counts = Counter(zip(xs, ys))
+    +    >>> count_rows = lambda x, y: pair_counts[x, y]
+    +    >>> list(outer_product(count_rows, sorted(set(xs)), sorted(set(ys))))
+    +    [(2, 3, 0), (1, 0, 4)]
+    +
+    +    Usage with ``*args`` and ``**kwargs``:
+    +
+    +    >>> animals = ['cat', 'wolf', 'mouse']
+    +    >>> list(outer_product(min, animals, animals, key=len))
+    +    [('cat', 'cat', 'cat'), ('cat', 'wolf', 'wolf'), ('cat', 'wolf', 'mouse')]
+    +    """
+    +    ys = tuple(ys)
+    +    return batched(
+    +        starmap(lambda x, y: func(x, y, *args, **kwargs), product(xs, ys)),
+    +        n=len(ys),
+    +    )
+    +
+    +
+     def iter_suppress(iterable, *exceptions):
+         """Yield each of the items from *iterable*. If the iteration raises one of
+         the specified *exceptions*, that exception will be suppressed and iteration
+    diff --git b/more_itertools/more.pyi a/more_itertools/more.pyi
+    index e2d39fe..ca5cf57 100644
+    --- b/more_itertools/more.pyi
+    +++ a/more_itertools/more.pyi
+    @@ -960,7 +960,12 @@ def partial_product(
+     def takewhile_inclusive(
+         predicate: Callable[[_T], bool], iterable: Iterable[_T]
+     ) -> Iterator[_T]: ...
+    -
+    +def outer_product(
+    +    func: Callable[[_T, _U], _V],
+    +    xs: Iterable[_T],
+    +    ys: Iterable[_U],
+    +    *args: Any,
+    +    **kwargs: Any,
+     ) -> Iterator[tuple[_V, ...]]: ...
+     def iter_suppress(
+         iterable: Iterable[_T],
+    diff --git b/tests/test_more.py a/tests/test_more.py
+    index 1453af4..a0c4f1f 100644
+    --- b/tests/test_more.py
+    +++ a/tests/test_more.py
+    @@ -6647,6 +6647,19 @@ class TakewhileInclusiveTests(TestCase):
+             self.assertEqual(result, expected)
+ 
+ 
+    +class OuterProductTests(TestCase):
+    +    def test_basic(self) -> None:
+    +        greetings = ['Hello', 'Goodbye']
+    +        names = ['Alice', 'Bob', 'Carol']
+    +        greet = lambda greeting, name: f'{greeting}, {name}!'
+    +        result = list(mi.outer_product(greet, greetings, names))
+    +        expected = [
+    +            ('Hello, Alice!', 'Hello, Bob!', 'Hello, Carol!'),
+    +            ('Goodbye, Alice!', 'Goodbye, Bob!', 'Goodbye, Carol!'),
+    +        ]
+    +        self.assertEqual(result, expected)
+    +
+    +
+     class IterSuppressTests(TestCase):
+         class Producer:
+             def __init__(self, exc, die_early=False):
+check:
+  files:
+    tests/test_bench_check.py: |
+      from __future__ import annotations
+
+      import cmath
+      import gc
+      import platform
+      import types
+      import weakref
+
+      from collections import Counter, deque
+      from collections.abc import Set, Sequence, Iterable, Iterator, Hashable
+      from datetime import datetime, timedelta
+      from decimal import Decimal
+      from doctest import DocTestSuite
+      from fractions import Fraction
+      from functools import partial, reduce
+      from io import StringIO
+      from itertools import (
+          accumulate,
+          chain,
+          combinations,
+          combinations_with_replacement,
+          count,
+          cycle,
+          groupby,
+          islice,
+          permutations,
+          product,
+          repeat,
+      )
+      from math import factorial
+      from operator import add, mul, itemgetter, not_
+      from pickle import loads, dumps
+      from random import Random, choices, random, randrange, seed
+      from statistics import mean, median
+      from string import ascii_letters
+      from threading import Event, Thread, Lock
+      from time import sleep
+      from typing import NamedTuple
+      from unittest import TestCase, mock, skipUnless
+
+      import more_itertools as mi
+
+
+      class OuterProductTests(TestCase):
+          def test_basic(self) -> None:
+              greetings = ['Hello', 'Goodbye']
+              names = ['Alice', 'Bob', 'Carol']
+              greet = lambda greeting, name: f'{greeting}, {name}!'
+              result = list(mi.outer_product(greet, greetings, names))
+              expected = [
+                  ('Hello, Alice!', 'Hello, Bob!', 'Hello, Carol!'),
+                  ('Goodbye, Alice!', 'Goodbye, Bob!', 'Goodbye, Carol!'),
+              ]
+              self.assertEqual(result, expected)
+  run: python3 -m unittest -q tests.test_bench_check
+touches:
+  - more_itertools/more.py

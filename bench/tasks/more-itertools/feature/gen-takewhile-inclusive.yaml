@@ -1,0 +1,282 @@
+id: more-itertools/feature/gen-takewhile-inclusive
+repo: more-itertools
+kind: feature
+prompt: |
+    Add a function `takewhile_inclusive(predicate, iterable)` to more-itertools, in `more_itertools/more.py`,
+    exported and documented like the neighbouring functions. Its documentation:
+
+        A variant of :func:`takewhile` that yields one additional element.
+
+            >>> list(takewhile_inclusive(lambda x: x < 5, [1, 4, 6, 4, 1]))
+            [1, 4, 6]
+
+        :func:`takewhile` would return ``[1, 4]``.
+setup:
+  patch: |
+    diff --git a/docs/api.rst b/docs/api.rst
+    index 7b40a8e..4c8cc69 100644
+    --- a/docs/api.rst
+    +++ b/docs/api.rst
+    @@ -212,7 +212,6 @@ These tools yield certain items from an iterable.
+     .. autofunction:: duplicates_justseen
+     .. autofunction:: classify_unique
+     .. autofunction:: longest_common_prefix
+    -.. autofunction:: takewhile_inclusive
+ 
+     ----
+ 
+    diff --git a/more_itertools/more.py b/more_itertools/more.py
+    index 068ed68..5c4c51a 100755
+    --- a/more_itertools/more.py
+    +++ b/more_itertools/more.py
+    @@ -168,7 +168,6 @@ __all__ = [
+         'substrings',
+         'substrings_indexes',
+         'synchronized',
+    -    'takewhile_inclusive',
+         'time_limited',
+         'unique_in_window',
+         'unique_to_each',
+    @@ -5089,20 +5088,6 @@ def partial_product(*iterables, repeat=1):
+                 yield tuple(prod)
+ 
+ 
+    -def takewhile_inclusive(predicate, iterable):
+    -    """A variant of :func:`takewhile` that yields one additional element.
+    -
+    -        >>> list(takewhile_inclusive(lambda x: x < 5, [1, 4, 6, 4, 1]))
+    -        [1, 4, 6]
+    -
+    -    :func:`takewhile` would return ``[1, 4]``.
+    -    """
+    -    for x in iterable:
+    -        yield x
+    -        if not predicate(x):
+    -            break
+    -
+    -
+     def outer_product(func, xs, ys, *args, **kwargs):
+         """A generalized outer product that applies a binary function to all
+         pairs of items. Returns a 2D matrix with ``len(xs)`` rows and ``len(ys)``
+    diff --git a/more_itertools/more.pyi b/more_itertools/more.pyi
+    index ca5cf57..1f7e1db 100644
+    --- a/more_itertools/more.pyi
+    +++ b/more_itertools/more.pyi
+    @@ -957,8 +957,7 @@ def gray_product(
+     def partial_product(
+         *iterables: Iterable[_T], repeat: int = ...
+     ) -> Iterator[tuple[_T, ...]]: ...
+    -def takewhile_inclusive(
+    -    predicate: Callable[[_T], bool], iterable: Iterable[_T]
+    +
+     ) -> Iterator[_T]: ...
+     def outer_product(
+         func: Callable[[_T, _U], _V],
+    diff --git a/tests/test_more.py b/tests/test_more.py
+    index a0c4f1f..fa7053b 100644
+    --- a/tests/test_more.py
+    +++ b/tests/test_more.py
+    @@ -6621,32 +6621,6 @@ class IterateTests(TestCase):
+             self.assertEqual(result, expected)
+ 
+ 
+    -class TakewhileInclusiveTests(TestCase):
+    -    def test_basic(self) -> None:
+    -        result = list(mi.takewhile_inclusive(lambda x: x < 5, [1, 4, 6, 4, 1]))
+    -        expected = [1, 4, 6]
+    -        self.assertEqual(result, expected)
+    -
+    -    def test_empty_iterator(self) -> None:
+    -        result = list(mi.takewhile_inclusive(lambda x: True, []))
+    -        expected = []
+    -        self.assertEqual(result, expected)
+    -
+    -    def test_collatz_sequence(self) -> None:
+    -        is_even = lambda n: n % 2 == 0
+    -        start = 11
+    -        result = list(
+    -            mi.takewhile_inclusive(
+    -                lambda n: n != 1,
+    -                mi.iterate(
+    -                    lambda n: n // 2 if is_even(n) else 3 * n + 1, start
+    -                ),
+    -            )
+    -        )
+    -        expected = [11, 34, 17, 52, 26, 13, 40, 20, 10, 5, 16, 8, 4, 2, 1]
+    -        self.assertEqual(result, expected)
+    -
+    -
+     class OuterProductTests(TestCase):
+         def test_basic(self) -> None:
+             greetings = ['Hello', 'Goodbye']
+solution:
+  patch: |
+    diff --git b/docs/api.rst a/docs/api.rst
+    index 4c8cc69..7b40a8e 100644
+    --- b/docs/api.rst
+    +++ a/docs/api.rst
+    @@ -212,6 +212,7 @@ These tools yield certain items from an iterable.
+     .. autofunction:: duplicates_justseen
+     .. autofunction:: classify_unique
+     .. autofunction:: longest_common_prefix
+    +.. autofunction:: takewhile_inclusive
+ 
+     ----
+ 
+    diff --git b/more_itertools/more.py a/more_itertools/more.py
+    index 5c4c51a..068ed68 100755
+    --- b/more_itertools/more.py
+    +++ a/more_itertools/more.py
+    @@ -168,6 +168,7 @@ __all__ = [
+         'substrings',
+         'substrings_indexes',
+         'synchronized',
+    +    'takewhile_inclusive',
+         'time_limited',
+         'unique_in_window',
+         'unique_to_each',
+    @@ -5088,6 +5089,20 @@ def partial_product(*iterables, repeat=1):
+                 yield tuple(prod)
+ 
+ 
+    +def takewhile_inclusive(predicate, iterable):
+    +    """A variant of :func:`takewhile` that yields one additional element.
+    +
+    +        >>> list(takewhile_inclusive(lambda x: x < 5, [1, 4, 6, 4, 1]))
+    +        [1, 4, 6]
+    +
+    +    :func:`takewhile` would return ``[1, 4]``.
+    +    """
+    +    for x in iterable:
+    +        yield x
+    +        if not predicate(x):
+    +            break
+    +
+    +
+     def outer_product(func, xs, ys, *args, **kwargs):
+         """A generalized outer product that applies a binary function to all
+         pairs of items. Returns a 2D matrix with ``len(xs)`` rows and ``len(ys)``
+    diff --git b/more_itertools/more.pyi a/more_itertools/more.pyi
+    index 1f7e1db..ca5cf57 100644
+    --- b/more_itertools/more.pyi
+    +++ a/more_itertools/more.pyi
+    @@ -957,7 +957,8 @@ def gray_product(
+     def partial_product(
+         *iterables: Iterable[_T], repeat: int = ...
+     ) -> Iterator[tuple[_T, ...]]: ...
+    -
+    +def takewhile_inclusive(
+    +    predicate: Callable[[_T], bool], iterable: Iterable[_T]
+     ) -> Iterator[_T]: ...
+     def outer_product(
+         func: Callable[[_T, _U], _V],
+    diff --git b/tests/test_more.py a/tests/test_more.py
+    index fa7053b..a0c4f1f 100644
+    --- b/tests/test_more.py
+    +++ a/tests/test_more.py
+    @@ -6621,6 +6621,32 @@ class IterateTests(TestCase):
+             self.assertEqual(result, expected)
+ 
+ 
+    +class TakewhileInclusiveTests(TestCase):
+    +    def test_basic(self) -> None:
+    +        result = list(mi.takewhile_inclusive(lambda x: x < 5, [1, 4, 6, 4, 1]))
+    +        expected = [1, 4, 6]
+    +        self.assertEqual(result, expected)
+    +
+    +    def test_empty_iterator(self) -> None:
+    +        result = list(mi.takewhile_inclusive(lambda x: True, []))
+    +        expected = []
+    +        self.assertEqual(result, expected)
+    +
+    +    def test_collatz_sequence(self) -> None:
+    +        is_even = lambda n: n % 2 == 0
+    +        start = 11
+    +        result = list(
+    +            mi.takewhile_inclusive(
+    +                lambda n: n != 1,
+    +                mi.iterate(
+    +                    lambda n: n // 2 if is_even(n) else 3 * n + 1, start
+    +                ),
+    +            )
+    +        )
+    +        expected = [11, 34, 17, 52, 26, 13, 40, 20, 10, 5, 16, 8, 4, 2, 1]
+    +        self.assertEqual(result, expected)
+    +
+    +
+     class OuterProductTests(TestCase):
+         def test_basic(self) -> None:
+             greetings = ['Hello', 'Goodbye']
+check:
+  files:
+    tests/test_bench_check.py: |
+      from __future__ import annotations
+
+      import cmath
+      import gc
+      import platform
+      import types
+      import weakref
+
+      from collections import Counter, deque
+      from collections.abc import Set, Sequence, Iterable, Iterator, Hashable
+      from datetime import datetime, timedelta
+      from decimal import Decimal
+      from doctest import DocTestSuite
+      from fractions import Fraction
+      from functools import partial, reduce
+      from io import StringIO
+      from itertools import (
+          accumulate,
+          chain,
+          combinations,
+          combinations_with_replacement,
+          count,
+          cycle,
+          groupby,
+          islice,
+          permutations,
+          product,
+          repeat,
+      )
+      from math import factorial
+      from operator import add, mul, itemgetter, not_
+      from pickle import loads, dumps
+      from random import Random, choices, random, randrange, seed
+      from statistics import mean, median
+      from string import ascii_letters
+      from threading import Event, Thread, Lock
+      from time import sleep
+      from typing import NamedTuple
+      from unittest import TestCase, mock, skipUnless
+
+      import more_itertools as mi
+
+
+      class TakewhileInclusiveTests(TestCase):
+          def test_basic(self) -> None:
+              result = list(mi.takewhile_inclusive(lambda x: x < 5, [1, 4, 6, 4, 1]))
+              expected = [1, 4, 6]
+              self.assertEqual(result, expected)
+
+          def test_empty_iterator(self) -> None:
+              result = list(mi.takewhile_inclusive(lambda x: True, []))
+              expected = []
+              self.assertEqual(result, expected)
+
+          def test_collatz_sequence(self) -> None:
+              is_even = lambda n: n % 2 == 0
+              start = 11
+              result = list(
+                  mi.takewhile_inclusive(
+                      lambda n: n != 1,
+                      mi.iterate(
+                          lambda n: n // 2 if is_even(n) else 3 * n + 1, start
+                      ),
+                  )
+              )
+              expected = [11, 34, 17, 52, 26, 13, 40, 20, 10, 5, 16, 8, 4, 2, 1]
+              self.assertEqual(result, expected)
+  run: python3 -m unittest -q tests.test_bench_check
+touches:
+  - more_itertools/more.py

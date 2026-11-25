@@ -1,0 +1,199 @@
+id: more-itertools/feature/gen-loops
+repo: more-itertools
+kind: feature
+prompt: |
+    Add a function `loops(n)` to more-itertools, in `more_itertools/recipes.py`,
+    exported and documented like the neighbouring functions. Its documentation:
+
+        Returns an iterable with *n* elements for efficient looping.
+        Like ``range(n)`` but doesn't create integers.
+
+        >>> i = 0
+        >>> for _ in loops(5):
+        ...     i += 1
+        >>> i
+        5
+setup:
+  patch: |
+    diff --git a/docs/api.rst b/docs/api.rst
+    index 7b40a8e..b20d5fc 100644
+    --- a/docs/api.rst
+    +++ b/docs/api.rst
+    @@ -380,4 +380,3 @@ Others
+     .. autofunction:: tabulate
+     .. autofunction:: repeatfunc
+     .. autofunction:: reshape
+    -.. autofunction:: loops
+    diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+    index 4ab1721..d7dd760 100644
+    --- a/more_itertools/recipes.py
+    +++ b/more_itertools/recipes.py
+    @@ -54,7 +54,6 @@ __all__ = [
+         'is_prime',
+         'iter_except',
+         'iter_index',
+    -    'loops',
+         'matmul',
+         'multinomial',
+         'ncycles',
+    @@ -1275,20 +1274,6 @@ def is_prime(n):
+         return all(_strong_probable_prime(n, base) for base in bases)
+ 
+ 
+    -def loops(n):
+    -    """Returns an iterable with *n* elements for efficient looping.
+    -    Like ``range(n)`` but doesn't create integers.
+    -
+    -    >>> i = 0
+    -    >>> for _ in loops(5):
+    -    ...     i += 1
+    -    >>> i
+    -    5
+    -
+    -    """
+    -    return repeat(None, n)
+    -
+    -
+     def multinomial(*counts):
+         """Number of distinct arrangements of a multiset.
+ 
+    diff --git a/more_itertools/recipes.pyi b/more_itertools/recipes.pyi
+    index d492309..b01e39d 100644
+    --- a/more_itertools/recipes.pyi
+    +++ b/more_itertools/recipes.pyi
+    @@ -203,7 +203,7 @@ def totient(n: int) -> int: ...
+     def _shift_to_odd(n: int) -> tuple[int, int]: ...
+     def _strong_probable_prime(n: int, base: int) -> bool: ...
+     def is_prime(n: int) -> bool: ...
+    -def loops(n: int) -> Iterator[None]: ...
+    +
+     def multinomial(*counts: int) -> int: ...
+     def random_derangement(iterable: Iterable[_T]) -> tuple[_T, ...]: ...
+     def running_mean(
+    diff --git a/tests/test_recipes.py b/tests/test_recipes.py
+    index 1b95479..e9ab219 100644
+    --- a/tests/test_recipes.py
+    +++ b/tests/test_recipes.py
+    @@ -1493,13 +1493,6 @@ class PrimeFunctionTests(TestCase):
+                     self.assertTrue(mi.is_prime(n))
+ 
+ 
+    -class LoopsTests(TestCase):
+    -    def test_basic(self):
+    -        self.assertTrue(
+    -            all(list(mi.loops(n)) == [None] * n for n in range(-10, 10))
+    -        )
+    -
+    -
+     class MultinomialTests(TestCase):
+         def test_basic(self):
+             multinomial = mi.multinomial
+solution:
+  patch: |
+    diff --git b/docs/api.rst a/docs/api.rst
+    index b20d5fc..7b40a8e 100644
+    --- b/docs/api.rst
+    +++ a/docs/api.rst
+    @@ -380,3 +380,4 @@ Others
+     .. autofunction:: tabulate
+     .. autofunction:: repeatfunc
+     .. autofunction:: reshape
+    +.. autofunction:: loops
+    diff --git b/more_itertools/recipes.py a/more_itertools/recipes.py
+    index d7dd760..4ab1721 100644
+    --- b/more_itertools/recipes.py
+    +++ a/more_itertools/recipes.py
+    @@ -54,6 +54,7 @@ __all__ = [
+         'is_prime',
+         'iter_except',
+         'iter_index',
+    +    'loops',
+         'matmul',
+         'multinomial',
+         'ncycles',
+    @@ -1274,6 +1275,20 @@ def is_prime(n):
+         return all(_strong_probable_prime(n, base) for base in bases)
+ 
+ 
+    +def loops(n):
+    +    """Returns an iterable with *n* elements for efficient looping.
+    +    Like ``range(n)`` but doesn't create integers.
+    +
+    +    >>> i = 0
+    +    >>> for _ in loops(5):
+    +    ...     i += 1
+    +    >>> i
+    +    5
+    +
+    +    """
+    +    return repeat(None, n)
+    +
+    +
+     def multinomial(*counts):
+         """Number of distinct arrangements of a multiset.
+ 
+    diff --git b/more_itertools/recipes.pyi a/more_itertools/recipes.pyi
+    index b01e39d..d492309 100644
+    --- b/more_itertools/recipes.pyi
+    +++ a/more_itertools/recipes.pyi
+    @@ -203,7 +203,7 @@ def totient(n: int) -> int: ...
+     def _shift_to_odd(n: int) -> tuple[int, int]: ...
+     def _strong_probable_prime(n: int, base: int) -> bool: ...
+     def is_prime(n: int) -> bool: ...
+    -
+    +def loops(n: int) -> Iterator[None]: ...
+     def multinomial(*counts: int) -> int: ...
+     def random_derangement(iterable: Iterable[_T]) -> tuple[_T, ...]: ...
+     def running_mean(
+    diff --git b/tests/test_recipes.py a/tests/test_recipes.py
+    index e9ab219..1b95479 100644
+    --- b/tests/test_recipes.py
+    +++ a/tests/test_recipes.py
+    @@ -1493,6 +1493,13 @@ class PrimeFunctionTests(TestCase):
+                     self.assertTrue(mi.is_prime(n))
+ 
+ 
+    +class LoopsTests(TestCase):
+    +    def test_basic(self):
+    +        self.assertTrue(
+    +            all(list(mi.loops(n)) == [None] * n for n in range(-10, 10))
+    +        )
+    +
+    +
+     class MultinomialTests(TestCase):
+         def test_basic(self):
+             multinomial = mi.multinomial
+check:
+  files:
+    tests/test_bench_check.py: |
+      from collections import Counter
+      from decimal import Decimal
+      from doctest import DocTestSuite
+      from fractions import Fraction
+      from functools import reduce
+      from itertools import (
+          combinations,
+          count,
+          groupby,
+          permutations,
+          islice,
+      )
+      from operator import mul, eq
+      from math import comb, prod, factorial
+      from statistics import mean
+      from unittest import TestCase
+      from unittest.mock import patch
+
+      import more_itertools as mi
+      import statistics
+      import random
+
+
+      class LoopsTests(TestCase):
+          def test_basic(self):
+              self.assertTrue(
+                  all(list(mi.loops(n)) == [None] * n for n in range(-10, 10))
+              )
+  run: python3 -m unittest -q tests.test_bench_check
+touches:
+  - more_itertools/recipes.py

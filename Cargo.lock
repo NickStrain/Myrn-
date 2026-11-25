@@ -1178,6 +1178,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "myrn-adapters",
  "myrn-embed",
  "myrn-engine",
  "myrn-store",

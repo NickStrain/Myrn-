@@ -1,0 +1,433 @@
+id: more-itertools/feature/gen-multinomial
+repo: more-itertools
+kind: feature
+prompt: |
+    Add a function `multinomial(*counts)` to more-itertools, in `more_itertools/recipes.py`,
+    exported and documented like the neighbouring functions. Its documentation:
+
+        Number of distinct arrangements of a multiset.
+
+        The expression ``multinomial(3, 4, 2)`` has several equivalent
+        interpretations:
+
+        * In the expansion of ``(a + b + c)⁹``, the coefficient of the
+          ``a³b⁴c²`` term is 1260.
+
+        * There are 1260 distinct ways to arrange 9 balls consisting of 3 reds, 4
+          greens, and 2 blues.
+
+        * There are 1260 unique ways to place 9 distinct objects into three bins
+          with sizes 3, 4, and 2.
+
+        The :func:`multinomial` function computes the length of
+        :func:`distinct_permutations`.  For example, there are 83,160 distinct
+        anagrams of the word "abracadabra":
+
+            >>> from more_itertools import distinct_permutations, ilen
+            >>> ilen(distinct_permutations('abracadabra'))
+            83160
+
+        This can be computed directly from the letter counts, 5a 2b 2r 1c 1d:
+
+            >>> from collections import Counter
+            >>> list(Counter('abracadabra').values())
+            [5, 2, 2, 1, 1]
+            >>> multinomial(5, 2, 2, 1, 1)
+            83160
+
+        A binomial coefficient is a special case of multinomial where there are
+        only two categories.  For example, the number of ways to arrange 12 balls
+        with 5 reds and 7 blues is ``multinomial(5, 7)`` or ``math.comb(12, 5)``.
+
+        Likewise, factorial is a special case of multinomial where
+        the multiplicities are all just 1 so that
+        ``multinomial(1, 1, 1, 1, 1, 1, 1) == math.factorial(7)``.
+
+        Reference:  https://en.wikipedia.org/wiki/Multinomial_theorem
+setup:
+  patch: |
+    diff --git a/docs/api.rst b/docs/api.rst
+    index 7b40a8e..dfafc52 100644
+    --- a/docs/api.rst
+    +++ b/docs/api.rst
+    @@ -332,7 +332,6 @@ The tools focus on math with integers.
+ 
+     .. autofunction:: factor
+     .. autofunction:: is_prime
+    -.. autofunction:: multinomial
+     .. autofunction:: sieve
+     .. autofunction:: totient
+ 
+    diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+    index 4ab1721..e1ba7ac 100644
+    --- a/more_itertools/recipes.py
+    +++ b/more_itertools/recipes.py
+    @@ -56,7 +56,6 @@ __all__ = [
+         'iter_index',
+         'loops',
+         'matmul',
+    -    'multinomial',
+         'ncycles',
+         'nth',
+         'nth_combination',
+    @@ -1289,51 +1288,6 @@ def loops(n):
+         return repeat(None, n)
+ 
+ 
+    -def multinomial(*counts):
+    -    """Number of distinct arrangements of a multiset.
+    -
+    -    The expression ``multinomial(3, 4, 2)`` has several equivalent
+    -    interpretations:
+    -
+    -    * In the expansion of ``(a + b + c)⁹``, the coefficient of the
+    -      ``a³b⁴c²`` term is 1260.
+    -
+    -    * There are 1260 distinct ways to arrange 9 balls consisting of 3 reds, 4
+    -      greens, and 2 blues.
+    -
+    -    * There are 1260 unique ways to place 9 distinct objects into three bins
+    -      with sizes 3, 4, and 2.
+    -
+    -    The :func:`multinomial` function computes the length of
+    -    :func:`distinct_permutations`.  For example, there are 83,160 distinct
+    -    anagrams of the word "abracadabra":
+    -
+    -        >>> from more_itertools import distinct_permutations, ilen
+    -        >>> ilen(distinct_permutations('abracadabra'))
+    -        83160
+    -
+    -    This can be computed directly from the letter counts, 5a 2b 2r 1c 1d:
+    -
+    -        >>> from collections import Counter
+    -        >>> list(Counter('abracadabra').values())
+    -        [5, 2, 2, 1, 1]
+    -        >>> multinomial(5, 2, 2, 1, 1)
+    -        83160
+    -
+    -    A binomial coefficient is a special case of multinomial where there are
+    -    only two categories.  For example, the number of ways to arrange 12 balls
+    -    with 5 reds and 7 blues is ``multinomial(5, 7)`` or ``math.comb(12, 5)``.
+    -
+    -    Likewise, factorial is a special case of multinomial where
+    -    the multiplicities are all just 1 so that
+    -    ``multinomial(1, 1, 1, 1, 1, 1, 1) == math.factorial(7)``.
+    -
+    -    Reference:  https://en.wikipedia.org/wiki/Multinomial_theorem
+    -
+    -    """
+    -    return prod(map(comb, accumulate(counts), counts))
+    -
+    -
+     def _running_median_minheap_and_maxheap(iterator):  # pragma: no cover
+         "Non-windowed running_median() for Python 3.14+"
+ 
+    diff --git a/more_itertools/recipes.pyi b/more_itertools/recipes.pyi
+    index d492309..65bc8f0 100644
+    --- a/more_itertools/recipes.pyi
+    +++ b/more_itertools/recipes.pyi
+    @@ -204,7 +204,7 @@ def _shift_to_odd(n: int) -> tuple[int, int]: ...
+     def _strong_probable_prime(n: int, base: int) -> bool: ...
+     def is_prime(n: int) -> bool: ...
+     def loops(n: int) -> Iterator[None]: ...
+    -def multinomial(*counts: int) -> int: ...
+    +
+     def random_derangement(iterable: Iterable[_T]) -> tuple[_T, ...]: ...
+     def running_mean(
+         iterable: Iterable[_NumberT], *, maxlen: int | None = ...
+    diff --git a/tests/test_recipes.py b/tests/test_recipes.py
+    index 1b95479..8136d55 100644
+    --- a/tests/test_recipes.py
+    +++ b/tests/test_recipes.py
+    @@ -1500,58 +1500,6 @@ class LoopsTests(TestCase):
+             )
+ 
+ 
+    -class MultinomialTests(TestCase):
+    -    def test_basic(self):
+    -        multinomial = mi.multinomial
+    -
+    -        # Case M(11; 5, 2, 1, 1, 2) = 83160
+    -        # https://www.wolframalpha.com/input?i=Multinomia%285%2C+2%2C+1%2C+1%2C+2%29
+    -        self.assertEqual(multinomial(5, 2, 1, 1, 2), 83160)
+    -
+    -        # Commutative
+    -        self.assertEqual(multinomial(2, 1, 1, 2, 5), 83160)
+    -
+    -        # Unaffected by zero-sized bins
+    -        self.assertEqual(multinomial(2, 0, 1, 0, 1, 2, 5, 0), 83160)
+    -
+    -        # Matches definition
+    -        self.assertEqual(
+    -            multinomial(5, 2, 1, 1, 2),
+    -            (
+    -                factorial(sum([5, 2, 1, 1, 2]))
+    -                // prod(map(factorial, [5, 2, 1, 1, 2]))
+    -            ),
+    -        )
+    -
+    -        # Corner cases and identities
+    -        self.assertEqual(multinomial(), 1)
+    -        self.assertEqual(multinomial(5), 1)
+    -        self.assertEqual(multinomial(5, 7), comb(12, 5))
+    -        self.assertEqual(multinomial(1, 1, 1, 1, 1, 1, 1), factorial(7))
+    -
+    -        # Relationship to distinct_permuations() and permutations()
+    -        for word in ['plain', 'pizza', 'coffee', 'honolulu', 'assists']:
+    -            with self.subTest(word=word):
+    -                self.assertEqual(
+    -                    multinomial(*Counter(word).values()),
+    -                    mi.ilen(mi.distinct_permutations(word)),
+    -                )
+    -                self.assertEqual(
+    -                    multinomial(*Counter(word).values()),
+    -                    len(set(permutations(word))),
+    -                )
+    -
+    -        # Error cases
+    -        with self.assertRaises(ValueError):
+    -            multinomial(-5, 7)  # No negative inputs
+    -        with self.assertRaises(TypeError):
+    -            multinomial(5, 7.25)  # No float inputs
+    -        with self.assertRaises(TypeError):
+    -            multinomial(5, 'x')  # No non-numeric inputs
+    -        with self.assertRaises(TypeError):
+    -            multinomial([5, 7])  # No sequence inputs
+    -
+    -
+     def grow_to_window(data, maxlen):
+         "Return growing window views upto maxlen."
+         for j in range(1, len(data) + 1):
+solution:
+  patch: |
+    diff --git b/docs/api.rst a/docs/api.rst
+    index dfafc52..7b40a8e 100644
+    --- b/docs/api.rst
+    +++ a/docs/api.rst
+    @@ -332,6 +332,7 @@ The tools focus on math with integers.
+ 
+     .. autofunction:: factor
+     .. autofunction:: is_prime
+    +.. autofunction:: multinomial
+     .. autofunction:: sieve
+     .. autofunction:: totient
+ 
+    diff --git b/more_itertools/recipes.py a/more_itertools/recipes.py
+    index e1ba7ac..4ab1721 100644
+    --- b/more_itertools/recipes.py
+    +++ a/more_itertools/recipes.py
+    @@ -56,6 +56,7 @@ __all__ = [
+         'iter_index',
+         'loops',
+         'matmul',
+    +    'multinomial',
+         'ncycles',
+         'nth',
+         'nth_combination',
+    @@ -1288,6 +1289,51 @@ def loops(n):
+         return repeat(None, n)
+ 
+ 
+    +def multinomial(*counts):
+    +    """Number of distinct arrangements of a multiset.
+    +
+    +    The expression ``multinomial(3, 4, 2)`` has several equivalent
+    +    interpretations:
+    +
+    +    * In the expansion of ``(a + b + c)⁹``, the coefficient of the
+    +      ``a³b⁴c²`` term is 1260.
+    +
+    +    * There are 1260 distinct ways to arrange 9 balls consisting of 3 reds, 4
+    +      greens, and 2 blues.
+    +
+    +    * There are 1260 unique ways to place 9 distinct objects into three bins
+    +      with sizes 3, 4, and 2.
+    +
+    +    The :func:`multinomial` function computes the length of
+    +    :func:`distinct_permutations`.  For example, there are 83,160 distinct
+    +    anagrams of the word "abracadabra":
+    +
+    +        >>> from more_itertools import distinct_permutations, ilen
+    +        >>> ilen(distinct_permutations('abracadabra'))
+    +        83160
+    +
+    +    This can be computed directly from the letter counts, 5a 2b 2r 1c 1d:
+    +
+    +        >>> from collections import Counter
+    +        >>> list(Counter('abracadabra').values())
+    +        [5, 2, 2, 1, 1]
+    +        >>> multinomial(5, 2, 2, 1, 1)
+    +        83160
+    +
+    +    A binomial coefficient is a special case of multinomial where there are
+    +    only two categories.  For example, the number of ways to arrange 12 balls
+    +    with 5 reds and 7 blues is ``multinomial(5, 7)`` or ``math.comb(12, 5)``.
+    +
+    +    Likewise, factorial is a special case of multinomial where
+    +    the multiplicities are all just 1 so that
+    +    ``multinomial(1, 1, 1, 1, 1, 1, 1) == math.factorial(7)``.
+    +
+    +    Reference:  https://en.wikipedia.org/wiki/Multinomial_theorem
+    +
+    +    """
+    +    return prod(map(comb, accumulate(counts), counts))
+    +
+    +
+     def _running_median_minheap_and_maxheap(iterator):  # pragma: no cover
+         "Non-windowed running_median() for Python 3.14+"
+ 
+    diff --git b/more_itertools/recipes.pyi a/more_itertools/recipes.pyi
+    index 65bc8f0..d492309 100644
+    --- b/more_itertools/recipes.pyi
+    +++ a/more_itertools/recipes.pyi
+    @@ -204,7 +204,7 @@ def _shift_to_odd(n: int) -> tuple[int, int]: ...
+     def _strong_probable_prime(n: int, base: int) -> bool: ...
+     def is_prime(n: int) -> bool: ...
+     def loops(n: int) -> Iterator[None]: ...
+    -
+    +def multinomial(*counts: int) -> int: ...
+     def random_derangement(iterable: Iterable[_T]) -> tuple[_T, ...]: ...
+     def running_mean(
+         iterable: Iterable[_NumberT], *, maxlen: int | None = ...
+    diff --git b/tests/test_recipes.py a/tests/test_recipes.py
+    index 8136d55..1b95479 100644
+    --- b/tests/test_recipes.py
+    +++ a/tests/test_recipes.py
+    @@ -1500,6 +1500,58 @@ class LoopsTests(TestCase):
+             )
+ 
+ 
+    +class MultinomialTests(TestCase):
+    +    def test_basic(self):
+    +        multinomial = mi.multinomial
+    +
+    +        # Case M(11; 5, 2, 1, 1, 2) = 83160
+    +        # https://www.wolframalpha.com/input?i=Multinomia%285%2C+2%2C+1%2C+1%2C+2%29
+    +        self.assertEqual(multinomial(5, 2, 1, 1, 2), 83160)
+    +
+    +        # Commutative
+    +        self.assertEqual(multinomial(2, 1, 1, 2, 5), 83160)
+    +
+    +        # Unaffected by zero-sized bins
+    +        self.assertEqual(multinomial(2, 0, 1, 0, 1, 2, 5, 0), 83160)
+    +
+    +        # Matches definition
+    +        self.assertEqual(
+    +            multinomial(5, 2, 1, 1, 2),
+    +            (
+    +                factorial(sum([5, 2, 1, 1, 2]))
+    +                // prod(map(factorial, [5, 2, 1, 1, 2]))
+    +            ),
+    +        )
+    +
+    +        # Corner cases and identities
+    +        self.assertEqual(multinomial(), 1)
+    +        self.assertEqual(multinomial(5), 1)
+    +        self.assertEqual(multinomial(5, 7), comb(12, 5))
+    +        self.assertEqual(multinomial(1, 1, 1, 1, 1, 1, 1), factorial(7))
+    +
+    +        # Relationship to distinct_permuations() and permutations()
+    +        for word in ['plain', 'pizza', 'coffee', 'honolulu', 'assists']:
+    +            with self.subTest(word=word):
+    +                self.assertEqual(
+    +                    multinomial(*Counter(word).values()),
+    +                    mi.ilen(mi.distinct_permutations(word)),
+    +                )
+    +                self.assertEqual(
+    +                    multinomial(*Counter(word).values()),
+    +                    len(set(permutations(word))),
+    +                )
+    +
+    +        # Error cases
+    +        with self.assertRaises(ValueError):
+    +            multinomial(-5, 7)  # No negative inputs
+    +        with self.assertRaises(TypeError):
+    +            multinomial(5, 7.25)  # No float inputs
+    +        with self.assertRaises(TypeError):
+    +            multinomial(5, 'x')  # No non-numeric inputs
+    +        with self.assertRaises(TypeError):
+    +            multinomial([5, 7])  # No sequence inputs
+    +
+    +
+     def grow_to_window(data, maxlen):
+         "Return growing window views upto maxlen."
+         for j in range(1, len(data) + 1):
+check:
+  files:
+    tests/test_bench_check.py: |
+      from collections import Counter
+      from decimal import Decimal
+      from doctest import DocTestSuite
+      from fractions import Fraction
+      from functools import reduce
+      from itertools import (
+          combinations,
+          count,
+          groupby,
+          permutations,
+          islice,
+      )
+      from operator import mul, eq
+      from math import comb, prod, factorial
+      from statistics import mean
+      from unittest import TestCase
+      from unittest.mock import patch
+
+      import more_itertools as mi
+      import statistics
+      import random
+
+
+      class MultinomialTests(TestCase):
+          def test_basic(self):
+              multinomial = mi.multinomial
+
+              # Case M(11; 5, 2, 1, 1, 2) = 83160
+              # https://www.wolframalpha.com/input?i=Multinomia%285%2C+2%2C+1%2C+1%2C+2%29
+              self.assertEqual(multinomial(5, 2, 1, 1, 2), 83160)
+
+              # Commutative
+              self.assertEqual(multinomial(2, 1, 1, 2, 5), 83160)
+
+              # Unaffected by zero-sized bins
+              self.assertEqual(multinomial(2, 0, 1, 0, 1, 2, 5, 0), 83160)
+
+              # Matches definition
+              self.assertEqual(
+                  multinomial(5, 2, 1, 1, 2),
+                  (
+                      factorial(sum([5, 2, 1, 1, 2]))
+                      // prod(map(factorial, [5, 2, 1, 1, 2]))
+                  ),
+              )
+
+              # Corner cases and identities
+              self.assertEqual(multinomial(), 1)
+              self.assertEqual(multinomial(5), 1)
+              self.assertEqual(multinomial(5, 7), comb(12, 5))
+              self.assertEqual(multinomial(1, 1, 1, 1, 1, 1, 1), factorial(7))
+
+              # Relationship to distinct_permuations() and permutations()
+              for word in ['plain', 'pizza', 'coffee', 'honolulu', 'assists']:
+                  with self.subTest(word=word):
+                      self.assertEqual(
+                          multinomial(*Counter(word).values()),
+                          mi.ilen(mi.distinct_permutations(word)),
+                      )
+                      self.assertEqual(
+                          multinomial(*Counter(word).values()),
+                          len(set(permutations(word))),
+                      )
+
+              # Error cases
+              with self.assertRaises(ValueError):
+                  multinomial(-5, 7)  # No negative inputs
+              with self.assertRaises(TypeError):
+                  multinomial(5, 7.25)  # No float inputs
+              with self.assertRaises(TypeError):
+                  multinomial(5, 'x')  # No non-numeric inputs
+              with self.assertRaises(TypeError):
+                  multinomial([5, 7])  # No sequence inputs
+  run: python3 -m unittest -q tests.test_bench_check
+touches:
+  - more_itertools/recipes.py

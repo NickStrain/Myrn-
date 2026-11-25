@@ -1,0 +1,766 @@
+id: remeda/feature/gen-uncapitalize
+repo: remeda
+kind: feature
+prompt: |
+    Add a utility `uncapitalize` to remeda in `packages/remeda/src/uncapitalize.ts`, exported from the
+    package index like the other utilities, with the calling styles and types its
+    documentation shows. Its documentation:
+
+        Makes the first character of a string lowercase while leaving the rest
+        unchanged.
+
+        It uses the built-in [`String.prototype.toLowerCase`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLowerCase)
+        for the runtime and the built-in [`Uncapitalize`](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html#Uncapitalizestringtype)
+        utility type for typing and thus shares their _[locale inaccuracies](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLocaleLowerCase#description)_.
+
+        For display purposes, prefer using the CSS pseudo-element [`::first-letter`](https://developer.mozilla.org/en-US/docs/Web/CSS/::first-letter) to target
+        just the first letter of the word, and [`text-transform: lowercase`](https://developer.mozilla.org/en-US/docs/Web/CSS/text-transform#lowercase)
+        to lowercase it. This transformation **is** locale-aware.
+
+        For other case manipulations see: `toUpperCase`, `toLowerCase`, `capitalize`,
+        `toCamelCase`, `toKebabCase`, `toSnakeCase`, and `toTitleCase`.
+
+        @param data - A string.
+        @signature
+          uncapitalize(data);
+        @example
+          uncapitalize("HELLO WORLD"); // "hELLO WORLD"
+        @dataFirst
+        @category String
+
+        Makes the first character of a string lowercase while leaving the rest
+        unchanged.
+
+        It uses the built-in [`String.prototype.toLowerCase`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLowerCase)
+        for the runtime and the built-in [`Uncapitalize`](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html#Uncapitalizestringtype)
+        utility type for typing and thus shares their _[locale inaccuracies](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLocaleLowerCase#description)_.
+
+        For display purposes, prefer using the CSS pseudo-element [`::first-letter`](https://developer.mozilla.org/en-US/docs/Web/CSS/::first-letter) to target
+        just the first letter of the word, and [`text-transform: lowercase`](https://developer.mozilla.org/en-US/docs/Web/CSS/text-transform#lowercase)
+        to lowercase it. This transformation **is** locale-aware.
+
+        For other case manipulations see: `toUpperCase`, `toLowerCase`, `capitalize`,
+        `toCamelCase`, `toKebabCase`, `toSnakeCase`, and `toTitleCase`.
+
+        @signature
+          uncapitalize()(data);
+        @example
+          pipe("HELLO WORLD", uncapitalize()); // "hELLO WORLD"
+        @dataLast
+        @category String
+
+    npm dependencies are not installed and there is no network access. Node 24 is
+    available and can run TypeScript files directly.
+setup:
+  patch: |
+    diff --git a/packages/remeda/src/index.ts b/packages/remeda/src/index.ts
+    index ed5b86a..388dc27 100644
+    --- a/packages/remeda/src/index.ts
+    +++ b/packages/remeda/src/index.ts
+    @@ -153,7 +153,6 @@ export * from "./toSnakeCase";
+     export * from "./toTitleCase";
+     export * from "./toUpperCase";
+     export * from "./truncate";
+    -export * from "./uncapitalize";
+     export * from "./unique";
+     export * from "./uniqueBy";
+     export * from "./uniqueWith";
+    diff --git a/packages/remeda/src/uncapitalize.test-d.ts b/packages/remeda/src/uncapitalize.test-d.ts
+    deleted file mode 100644
+    index dbe6700..0000000
+    --- a/packages/remeda/src/uncapitalize.test-d.ts
+    +++ /dev/null
+    @@ -1,111 +0,0 @@
+    -import { describe, expectTypeOf, test } from "vitest";
+    -import { pipe } from "./pipe";
+    -import { uncapitalize } from "./uncapitalize";
+    -
+    -describe("data-first", () => {
+    -  test("on lower case", () => {
+    -    const result = uncapitalize("hello world");
+    -
+    -    expectTypeOf(result).toEqualTypeOf<"hello world">();
+    -  });
+    -
+    -  test("on upper case", () => {
+    -    const result = uncapitalize("HELLO WORLD");
+    -
+    -    expectTypeOf(result).toEqualTypeOf<"hELLO WORLD">();
+    -  });
+    -
+    -  test("on mixed case", () => {
+    -    const result = uncapitalize("HeLlO WoRlD");
+    -
+    -    expectTypeOf(result).toEqualTypeOf<"heLlO WoRlD">();
+    -  });
+    -
+    -  test("on empty string", () => {
+    -    const result = uncapitalize("");
+    -
+    -    expectTypeOf(result).toEqualTypeOf<"">();
+    -  });
+    -
+    -  test("on non-literal string", () => {
+    -    const result = uncapitalize("hello world" as string);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<Uncapitalize<string>>();
+    -  });
+    -
+    -  test("on template literal type", () => {
+    -    const result = uncapitalize("PREFIX_123" as `PREFIX_${number}`);
+    -
+    -    expectTypeOf(result).toEqualTypeOf<`pREFIX_${number}`>();
+    -  });
+    -});
+    -
+    -describe("data-last", () => {
+    -  test("on lower case", () => {
+    -    const result = pipe("hello world" as const, uncapitalize());
+    -
+    -    expectTypeOf(result).toEqualTypeOf<"hello world">();
+    -  });
+    -
+    -  test("on upper case", () => {
+    -    const result = pipe("HELLO WORLD" as const, uncapitalize());
+    -
+    -    expectTypeOf(result).toEqualTypeOf<"hELLO WORLD">();
+    -  });
+    -
+    -  test("on mixed case", () => {
+    -    const result = pipe("HeLlO WoRlD" as const, uncapitalize());
+    -
+    -    expectTypeOf(result).toEqualTypeOf<"heLlO WoRlD">();
+    -  });
+    -
+    -  test("on empty string", () => {
+    -    const result = pipe("" as const, uncapitalize());
+    -
+    -    expectTypeOf(result).toEqualTypeOf<"">();
+    -  });
+    -
+    -  test("on non-literal string", () => {
+    -    const result = pipe("hello world" as string, uncapitalize());
+    -
+    -    expectTypeOf(result).toEqualTypeOf<Uncapitalize<string>>();
+    -  });
+    -
+    -  test("on template literal type", () => {
+    -    const result = pipe("PREFIX_123" as `PREFIX_${number}`, uncapitalize());
+    -
+    -    expectTypeOf(result).toEqualTypeOf<`pREFIX_${number}`>();
+    -  });
+    -});
+    -
+    -describe("unicode", () => {
+    -  test("maintains diacritics in rest of word", () => {
+    -    expectTypeOf(uncapitalize("Café Naïve")).toEqualTypeOf<"café Naïve">();
+    -    expectTypeOf(uncapitalize("CAFÉ NAÏVE")).toEqualTypeOf<"cAFÉ NAÏVE">();
+    -  });
+    -
+    -  test("handles non-Latin scripts", () => {
+    -    expectTypeOf(uncapitalize("Москва")).toEqualTypeOf<"москва">();
+    -    expectTypeOf(uncapitalize("Ελλάδα")).toEqualTypeOf<"ελλάδα">();
+    -  });
+    -
+    -  test("handles surrogate pairs (astral plane)", () => {
+    -    expectTypeOf(uncapitalize("𝒽Ello World")).toEqualTypeOf<"𝒽Ello World">();
+    -  });
+    -
+    -  test("doesn't explode on emojis", () => {
+    -    expectTypeOf(uncapitalize("🎉Party Time")).toEqualTypeOf<"🎉Party Time">();
+    -  });
+    -
+    -  test("handles combining characters", () => {
+    -    expectTypeOf(uncapitalize("É\u{301}llo")).toEqualTypeOf<"é\u{301}llo">();
+    -  });
+    -
+    -  test("single surrogate pair", () => {
+    -    expectTypeOf(uncapitalize("𝒽")).toEqualTypeOf<"𝒽">();
+    -  });
+    -
+    -  test("single accented character", () => {
+    -    expectTypeOf(uncapitalize("É")).toEqualTypeOf<"é">();
+    -  });
+    -});
+    diff --git a/packages/remeda/src/uncapitalize.test.ts b/packages/remeda/src/uncapitalize.test.ts
+    deleted file mode 100644
+    index cb43e2f..0000000
+    --- a/packages/remeda/src/uncapitalize.test.ts
+    +++ /dev/null
+    @@ -1,71 +0,0 @@
+    -import { describe, expect, test } from "vitest";
+    -import { pipe } from "./pipe";
+    -import { uncapitalize } from "./uncapitalize";
+    -
+    -describe("data-first", () => {
+    -  test("empty string", () => {
+    -    expect(uncapitalize("")).toBe("");
+    -  });
+    -
+    -  test("on lower case", () => {
+    -    expect(uncapitalize("hello world")).toBe("hello world");
+    -  });
+    -
+    -  test("on upper case", () => {
+    -    expect(uncapitalize("HELLO WORLD")).toBe("hELLO WORLD");
+    -  });
+    -
+    -  test("on mixed case", () => {
+    -    expect(uncapitalize("HeLlO WoRlD")).toBe("heLlO WoRlD");
+    -  });
+    -});
+    -
+    -describe("data-last", () => {
+    -  test("empty string", () => {
+    -    expect(pipe("", uncapitalize())).toBe("");
+    -  });
+    -
+    -  test("on lower case", () => {
+    -    expect(pipe("hello world", uncapitalize())).toBe("hello world");
+    -  });
+    -
+    -  test("on upper case", () => {
+    -    expect(pipe("HELLO WORLD", uncapitalize())).toBe("hELLO WORLD");
+    -  });
+    -
+    -  test("on mixed case", () => {
+    -    expect(pipe("HeLlO WoRlD", uncapitalize())).toBe("heLlO WoRlD");
+    -  });
+    -});
+    -
+    -describe("unicode", () => {
+    -  test("maintains diacritics in rest of word", () => {
+    -    expect(uncapitalize("Café Naïve")).toBe("café Naïve");
+    -    expect(uncapitalize("CAFÉ NAÏVE")).toBe("cAFÉ NAÏVE");
+    -  });
+    -
+    -  test("handles non-Latin scripts", () => {
+    -    expect(uncapitalize("Москва")).toBe("москва");
+    -    expect(uncapitalize("Ελλάδα")).toBe("ελλάδα");
+    -  });
+    -
+    -  test("handles surrogate pairs (astral plane)", () => {
+    -    expect(uncapitalize("𝒽Ello World")).toBe("𝒽Ello World");
+    -  });
+    -
+    -  test("doesn't explode on emojis", () => {
+    -    expect(uncapitalize("🎉Party Time")).toBe("🎉Party Time");
+    -  });
+    -
+    -  test("handles combining characters", () => {
+    -    expect(uncapitalize("É\u{301}llo")).toBe("é\u{301}llo");
+    -  });
+    -
+    -  test("single surrogate pair", () => {
+    -    expect(uncapitalize("𝒽")).toBe("𝒽");
+    -  });
+    -
+    -  test("single accented character", () => {
+    -    expect(uncapitalize("É")).toBe("é");
+    -  });
+    -});
+    diff --git a/packages/remeda/src/uncapitalize.ts b/packages/remeda/src/uncapitalize.ts
+    deleted file mode 100644
+    index 6aefb3c..0000000
+    --- a/packages/remeda/src/uncapitalize.ts
+    +++ /dev/null
+    @@ -1,59 +0,0 @@
+    -import { purry1 } from "./internal/purryByArity";
+    -
+    -/**
+    - * Makes the first character of a string lowercase while leaving the rest
+    - * unchanged.
+    - *
+    - * It uses the built-in [`String.prototype.toLowerCase`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLowerCase)
+    - * for the runtime and the built-in [`Uncapitalize`](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html#Uncapitalizestringtype)
+    - * utility type for typing and thus shares their _[locale inaccuracies](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLocaleLowerCase#description)_.
+    - *
+    - * For display purposes, prefer using the CSS pseudo-element [`::first-letter`](https://developer.mozilla.org/en-US/docs/Web/CSS/::first-letter) to target
+    - * just the first letter of the word, and [`text-transform: lowercase`](https://developer.mozilla.org/en-US/docs/Web/CSS/text-transform#lowercase)
+    - * to lowercase it. This transformation **is** locale-aware.
+    - *
+    - * For other case manipulations see: `toUpperCase`, `toLowerCase`, `capitalize`,
+    - * `toCamelCase`, `toKebabCase`, `toSnakeCase`, and `toTitleCase`.
+    - *
+    - * @param data - A string.
+    - * @signature
+    - *   uncapitalize(data);
+    - * @example
+    - *   uncapitalize("HELLO WORLD"); // "hELLO WORLD"
+    - * @dataFirst
+    - * @category String
+    - */
+    -export function uncapitalize<T extends string>(data: T): Uncapitalize<T>;
+    -
+    -/**
+    - * Makes the first character of a string lowercase while leaving the rest
+    - * unchanged.
+    - *
+    - * It uses the built-in [`String.prototype.toLowerCase`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLowerCase)
+    - * for the runtime and the built-in [`Uncapitalize`](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html#Uncapitalizestringtype)
+    - * utility type for typing and thus shares their _[locale inaccuracies](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLocaleLowerCase#description)_.
+    - *
+    - * For display purposes, prefer using the CSS pseudo-element [`::first-letter`](https://developer.mozilla.org/en-US/docs/Web/CSS/::first-letter) to target
+    - * just the first letter of the word, and [`text-transform: lowercase`](https://developer.mozilla.org/en-US/docs/Web/CSS/text-transform#lowercase)
+    - * to lowercase it. This transformation **is** locale-aware.
+    - *
+    - * For other case manipulations see: `toUpperCase`, `toLowerCase`, `capitalize`,
+    - * `toCamelCase`, `toKebabCase`, `toSnakeCase`, and `toTitleCase`.
+    - *
+    - * @signature
+    - *   uncapitalize()(data);
+    - * @example
+    - *   pipe("HELLO WORLD", uncapitalize()); // "hELLO WORLD"
+    - * @dataLast
+    - * @category String
+    - */
+    -export function uncapitalize(): <T extends string>(data: T) => Uncapitalize<T>;
+    -
+    -export function uncapitalize(data?: string): unknown {
+    -  return purry1(uncapitalizeImplementation, arguments.length, data);
+    -}
+    -
+    -const uncapitalizeImplementation = <T extends string>(
+    -  data: T,
+    -): Uncapitalize<T> =>
+    -  `${data[0]?.toLowerCase() ?? ""}${data.slice(1)}` as Uncapitalize<T>;
+solution:
+  patch: |
+    diff --git b/packages/remeda/src/index.ts a/packages/remeda/src/index.ts
+    index 388dc27..ed5b86a 100644
+    --- b/packages/remeda/src/index.ts
+    +++ a/packages/remeda/src/index.ts
+    @@ -153,6 +153,7 @@ export * from "./toSnakeCase";
+     export * from "./toTitleCase";
+     export * from "./toUpperCase";
+     export * from "./truncate";
+    +export * from "./uncapitalize";
+     export * from "./unique";
+     export * from "./uniqueBy";
+     export * from "./uniqueWith";
+    diff --git b/packages/remeda/src/uncapitalize.test-d.ts a/packages/remeda/src/uncapitalize.test-d.ts
+    new file mode 100644
+    index 0000000..dbe6700
+    --- /dev/null
+    +++ a/packages/remeda/src/uncapitalize.test-d.ts
+    @@ -0,0 +1,111 @@
+    +import { describe, expectTypeOf, test } from "vitest";
+    +import { pipe } from "./pipe";
+    +import { uncapitalize } from "./uncapitalize";
+    +
+    +describe("data-first", () => {
+    +  test("on lower case", () => {
+    +    const result = uncapitalize("hello world");
+    +
+    +    expectTypeOf(result).toEqualTypeOf<"hello world">();
+    +  });
+    +
+    +  test("on upper case", () => {
+    +    const result = uncapitalize("HELLO WORLD");
+    +
+    +    expectTypeOf(result).toEqualTypeOf<"hELLO WORLD">();
+    +  });
+    +
+    +  test("on mixed case", () => {
+    +    const result = uncapitalize("HeLlO WoRlD");
+    +
+    +    expectTypeOf(result).toEqualTypeOf<"heLlO WoRlD">();
+    +  });
+    +
+    +  test("on empty string", () => {
+    +    const result = uncapitalize("");
+    +
+    +    expectTypeOf(result).toEqualTypeOf<"">();
+    +  });
+    +
+    +  test("on non-literal string", () => {
+    +    const result = uncapitalize("hello world" as string);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<Uncapitalize<string>>();
+    +  });
+    +
+    +  test("on template literal type", () => {
+    +    const result = uncapitalize("PREFIX_123" as `PREFIX_${number}`);
+    +
+    +    expectTypeOf(result).toEqualTypeOf<`pREFIX_${number}`>();
+    +  });
+    +});
+    +
+    +describe("data-last", () => {
+    +  test("on lower case", () => {
+    +    const result = pipe("hello world" as const, uncapitalize());
+    +
+    +    expectTypeOf(result).toEqualTypeOf<"hello world">();
+    +  });
+    +
+    +  test("on upper case", () => {
+    +    const result = pipe("HELLO WORLD" as const, uncapitalize());
+    +
+    +    expectTypeOf(result).toEqualTypeOf<"hELLO WORLD">();
+    +  });
+    +
+    +  test("on mixed case", () => {
+    +    const result = pipe("HeLlO WoRlD" as const, uncapitalize());
+    +
+    +    expectTypeOf(result).toEqualTypeOf<"heLlO WoRlD">();
+    +  });
+    +
+    +  test("on empty string", () => {
+    +    const result = pipe("" as const, uncapitalize());
+    +
+    +    expectTypeOf(result).toEqualTypeOf<"">();
+    +  });
+    +
+    +  test("on non-literal string", () => {
+    +    const result = pipe("hello world" as string, uncapitalize());
+    +
+    +    expectTypeOf(result).toEqualTypeOf<Uncapitalize<string>>();
+    +  });
+    +
+    +  test("on template literal type", () => {
+    +    const result = pipe("PREFIX_123" as `PREFIX_${number}`, uncapitalize());
+    +
+    +    expectTypeOf(result).toEqualTypeOf<`pREFIX_${number}`>();
+    +  });
+    +});
+    +
+    +describe("unicode", () => {
+    +  test("maintains diacritics in rest of word", () => {
+    +    expectTypeOf(uncapitalize("Café Naïve")).toEqualTypeOf<"café Naïve">();
+    +    expectTypeOf(uncapitalize("CAFÉ NAÏVE")).toEqualTypeOf<"cAFÉ NAÏVE">();
+    +  });
+    +
+    +  test("handles non-Latin scripts", () => {
+    +    expectTypeOf(uncapitalize("Москва")).toEqualTypeOf<"москва">();
+    +    expectTypeOf(uncapitalize("Ελλάδα")).toEqualTypeOf<"ελλάδα">();
+    +  });
+    +
+    +  test("handles surrogate pairs (astral plane)", () => {
+    +    expectTypeOf(uncapitalize("𝒽Ello World")).toEqualTypeOf<"𝒽Ello World">();
+    +  });
+    +
+    +  test("doesn't explode on emojis", () => {
+    +    expectTypeOf(uncapitalize("🎉Party Time")).toEqualTypeOf<"🎉Party Time">();
+    +  });
+    +
+    +  test("handles combining characters", () => {
+    +    expectTypeOf(uncapitalize("É\u{301}llo")).toEqualTypeOf<"é\u{301}llo">();
+    +  });
+    +
+    +  test("single surrogate pair", () => {
+    +    expectTypeOf(uncapitalize("𝒽")).toEqualTypeOf<"𝒽">();
+    +  });
+    +
+    +  test("single accented character", () => {
+    +    expectTypeOf(uncapitalize("É")).toEqualTypeOf<"é">();
+    +  });
+    +});
+    diff --git b/packages/remeda/src/uncapitalize.test.ts a/packages/remeda/src/uncapitalize.test.ts
+    new file mode 100644
+    index 0000000..cb43e2f
+    --- /dev/null
+    +++ a/packages/remeda/src/uncapitalize.test.ts
+    @@ -0,0 +1,71 @@
+    +import { describe, expect, test } from "vitest";
+    +import { pipe } from "./pipe";
+    +import { uncapitalize } from "./uncapitalize";
+    +
+    +describe("data-first", () => {
+    +  test("empty string", () => {
+    +    expect(uncapitalize("")).toBe("");
+    +  });
+    +
+    +  test("on lower case", () => {
+    +    expect(uncapitalize("hello world")).toBe("hello world");
+    +  });
+    +
+    +  test("on upper case", () => {
+    +    expect(uncapitalize("HELLO WORLD")).toBe("hELLO WORLD");
+    +  });
+    +
+    +  test("on mixed case", () => {
+    +    expect(uncapitalize("HeLlO WoRlD")).toBe("heLlO WoRlD");
+    +  });
+    +});
+    +
+    +describe("data-last", () => {
+    +  test("empty string", () => {
+    +    expect(pipe("", uncapitalize())).toBe("");
+    +  });
+    +
+    +  test("on lower case", () => {
+    +    expect(pipe("hello world", uncapitalize())).toBe("hello world");
+    +  });
+    +
+    +  test("on upper case", () => {
+    +    expect(pipe("HELLO WORLD", uncapitalize())).toBe("hELLO WORLD");
+    +  });
+    +
+    +  test("on mixed case", () => {
+    +    expect(pipe("HeLlO WoRlD", uncapitalize())).toBe("heLlO WoRlD");
+    +  });
+    +});
+    +
+    +describe("unicode", () => {
+    +  test("maintains diacritics in rest of word", () => {
+    +    expect(uncapitalize("Café Naïve")).toBe("café Naïve");
+    +    expect(uncapitalize("CAFÉ NAÏVE")).toBe("cAFÉ NAÏVE");
+    +  });
+    +
+    +  test("handles non-Latin scripts", () => {
+    +    expect(uncapitalize("Москва")).toBe("москва");
+    +    expect(uncapitalize("Ελλάδα")).toBe("ελλάδα");
+    +  });
+    +
+    +  test("handles surrogate pairs (astral plane)", () => {
+    +    expect(uncapitalize("𝒽Ello World")).toBe("𝒽Ello World");
+    +  });
+    +
+    +  test("doesn't explode on emojis", () => {
+    +    expect(uncapitalize("🎉Party Time")).toBe("🎉Party Time");
+    +  });
+    +
+    +  test("handles combining characters", () => {
+    +    expect(uncapitalize("É\u{301}llo")).toBe("é\u{301}llo");
+    +  });
+    +
+    +  test("single surrogate pair", () => {
+    +    expect(uncapitalize("𝒽")).toBe("𝒽");
+    +  });
+    +
+    +  test("single accented character", () => {
+    +    expect(uncapitalize("É")).toBe("é");
+    +  });
+    +});
+    diff --git b/packages/remeda/src/uncapitalize.ts a/packages/remeda/src/uncapitalize.ts
+    new file mode 100644
+    index 0000000..6aefb3c
+    --- /dev/null
+    +++ a/packages/remeda/src/uncapitalize.ts
+    @@ -0,0 +1,59 @@
+    +import { purry1 } from "./internal/purryByArity";
+    +
+    +/**
+    + * Makes the first character of a string lowercase while leaving the rest
+    + * unchanged.
+    + *
+    + * It uses the built-in [`String.prototype.toLowerCase`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLowerCase)
+    + * for the runtime and the built-in [`Uncapitalize`](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html#Uncapitalizestringtype)
+    + * utility type for typing and thus shares their _[locale inaccuracies](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLocaleLowerCase#description)_.
+    + *
+    + * For display purposes, prefer using the CSS pseudo-element [`::first-letter`](https://developer.mozilla.org/en-US/docs/Web/CSS/::first-letter) to target
+    + * just the first letter of the word, and [`text-transform: lowercase`](https://developer.mozilla.org/en-US/docs/Web/CSS/text-transform#lowercase)
+    + * to lowercase it. This transformation **is** locale-aware.
+    + *
+    + * For other case manipulations see: `toUpperCase`, `toLowerCase`, `capitalize`,
+    + * `toCamelCase`, `toKebabCase`, `toSnakeCase`, and `toTitleCase`.
+    + *
+    + * @param data - A string.
+    + * @signature
+    + *   uncapitalize(data);
+    + * @example
+    + *   uncapitalize("HELLO WORLD"); // "hELLO WORLD"
+    + * @dataFirst
+    + * @category String
+    + */
+    +export function uncapitalize<T extends string>(data: T): Uncapitalize<T>;
+    +
+    +/**
+    + * Makes the first character of a string lowercase while leaving the rest
+    + * unchanged.
+    + *
+    + * It uses the built-in [`String.prototype.toLowerCase`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLowerCase)
+    + * for the runtime and the built-in [`Uncapitalize`](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html#Uncapitalizestringtype)
+    + * utility type for typing and thus shares their _[locale inaccuracies](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLocaleLowerCase#description)_.
+    + *
+    + * For display purposes, prefer using the CSS pseudo-element [`::first-letter`](https://developer.mozilla.org/en-US/docs/Web/CSS/::first-letter) to target
+    + * just the first letter of the word, and [`text-transform: lowercase`](https://developer.mozilla.org/en-US/docs/Web/CSS/text-transform#lowercase)
+    + * to lowercase it. This transformation **is** locale-aware.
+    + *
+    + * For other case manipulations see: `toUpperCase`, `toLowerCase`, `capitalize`,
+    + * `toCamelCase`, `toKebabCase`, `toSnakeCase`, and `toTitleCase`.
+    + *
+    + * @signature
+    + *   uncapitalize()(data);
+    + * @example
+    + *   pipe("HELLO WORLD", uncapitalize()); // "hELLO WORLD"
+    + * @dataLast
+    + * @category String
+    + */
+    +export function uncapitalize(): <T extends string>(data: T) => Uncapitalize<T>;
+    +
+    +export function uncapitalize(data?: string): unknown {
+    +  return purry1(uncapitalizeImplementation, arguments.length, data);
+    +}
+    +
+    +const uncapitalizeImplementation = <T extends string>(
+    +  data: T,
+    +): Uncapitalize<T> =>
+    +  `${data[0]?.toLowerCase() ?? ""}${data.slice(1)}` as Uncapitalize<T>;
+check:
+  files:
+    packages/remeda/test/bench-loader.mjs: |
+      // Resolve remeda's extensionless relative imports to .ts files, and `vitest`
+      // to a small stand-in, so Node 24 runs the tests without npm install.
+      import { registerHooks } from "node:module";
+
+      const shim = new URL("./vitest-shim.mjs", import.meta.url).href;
+      registerHooks({
+        resolve(specifier, context, nextResolve) {
+          if (specifier === "vitest") return { url: shim, shortCircuit: true };
+          try {
+            return nextResolve(specifier, context);
+          } catch (error) {
+            if (!specifier.startsWith(".")) throw error;
+            try {
+              return nextResolve(`${specifier}.ts`, context);
+            } catch {
+              return nextResolve(`${specifier}/index.ts`, context);
+            }
+          }
+        },
+      });
+    packages/remeda/test/vitest-shim.mjs: |
+      // The part of vitest's API remeda's simple tests use, on node:test.
+      import assert from "node:assert/strict";
+      import { describe as nodeDescribe, test as nodeTest } from "node:test";
+
+      export const describe = (name, fn) => nodeDescribe(name, fn);
+      export const test = (name, fn) => nodeTest(name, fn);
+      export const it = test;
+
+      const deep = (a, b, strict) => {
+        try {
+          (strict ? assert.deepStrictEqual : assert.deepEqual)(a, b);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      function matchers(actual, negate) {
+        const check = (ok, what) => {
+          if (negate ? ok : !ok) {
+            throw new assert.AssertionError({ message: `expected ${negate ? "not " : ""}${what}`, actual });
+          }
+        };
+        const throws = (expected) => {
+          let threw = false;
+          let error;
+          try {
+            actual();
+          } catch (e) {
+            threw = true;
+            error = e;
+          }
+          const ok =
+            threw &&
+            (expected === undefined ||
+              (typeof expected === "string" && String(error?.message).includes(expected)) ||
+              (expected instanceof RegExp && expected.test(String(error?.message))) ||
+              (typeof expected === "function" && error instanceof expected) ||
+              (typeof expected === "object" && expected !== null && !(expected instanceof RegExp) && String(error?.message) === String(expected.message)));
+          check(ok, "to throw");
+        };
+        return {
+          toBe: (e) => check(Object.is(actual, e), `${String(actual)} to be ${String(e)}`),
+          toStrictEqual: (e) => check(deep(actual, e, true), "strict equality"),
+          toEqual: (e) => check(deep(actual, e, false), "equality"),
+          toHaveLength: (n) => check(actual?.length === n, `length ${n}`),
+          toBeUndefined: () => check(actual === undefined, "undefined"),
+          toBeNull: () => check(actual === null, "null"),
+          toBeTruthy: () => check(Boolean(actual), "truthy"),
+          toBeFalsy: () => check(!actual, "falsy"),
+          toBeNaN: () => check(Number.isNaN(actual), "NaN"),
+          toBeLessThan: (n) => check(actual < n, `< ${n}`),
+          toBeLessThanOrEqual: (n) => check(actual <= n, `<= ${n}`),
+          toBeGreaterThan: (n) => check(actual > n, `> ${n}`),
+          toBeGreaterThanOrEqual: (n) => check(actual >= n, `>= ${n}`),
+          toContain: (x) => check(actual.includes(x), "to contain"),
+          toBeTypeOf: (t) => check(typeof actual === t, `type ${t}`),
+          toThrow: throws,
+          toThrowError: throws,
+        };
+      }
+
+      export function expect(actual) {
+        const m = matchers(actual, false);
+        m.not = matchers(actual, true);
+        return m;
+      }
+    packages/remeda/src/bench-check.test.ts: |
+      import { describe, expect, test } from "vitest";
+      import { pipe } from "./pipe";
+      import { uncapitalize } from "./uncapitalize";
+
+      describe("data-first", () => {
+        test("empty string", () => {
+          expect(uncapitalize("")).toBe("");
+        });
+
+        test("on lower case", () => {
+          expect(uncapitalize("hello world")).toBe("hello world");
+        });
+
+        test("on upper case", () => {
+          expect(uncapitalize("HELLO WORLD")).toBe("hELLO WORLD");
+        });
+
+        test("on mixed case", () => {
+          expect(uncapitalize("HeLlO WoRlD")).toBe("heLlO WoRlD");
+        });
+      });
+
+      describe("data-last", () => {
+        test("empty string", () => {
+          expect(pipe("", uncapitalize())).toBe("");
+        });
+
+        test("on lower case", () => {
+          expect(pipe("hello world", uncapitalize())).toBe("hello world");
+        });
+
+        test("on upper case", () => {
+          expect(pipe("HELLO WORLD", uncapitalize())).toBe("hELLO WORLD");
+        });
+
+        test("on mixed case", () => {
+          expect(pipe("HeLlO WoRlD", uncapitalize())).toBe("heLlO WoRlD");
+        });
+      });
+
+      describe("unicode", () => {
+        test("maintains diacritics in rest of word", () => {
+          expect(uncapitalize("Café Naïve")).toBe("café Naïve");
+          expect(uncapitalize("CAFÉ NAÏVE")).toBe("cAFÉ NAÏVE");
+        });
+
+        test("handles non-Latin scripts", () => {
+          expect(uncapitalize("Москва")).toBe("москва");
+          expect(uncapitalize("Ελλάδα")).toBe("ελλάδα");
+        });
+
+        test("handles surrogate pairs (astral plane)", () => {
+          expect(uncapitalize("𝒽Ello World")).toBe("𝒽Ello World");
+        });
+
+        test("doesn't explode on emojis", () => {
+          expect(uncapitalize("🎉Party Time")).toBe("🎉Party Time");
+        });
+
+        test("handles combining characters", () => {
+          expect(uncapitalize("É\u{301}llo")).toBe("é\u{301}llo");
+        });
+
+        test("single surrogate pair", () => {
+          expect(uncapitalize("𝒽")).toBe("𝒽");
+        });
+
+        test("single accented character", () => {
+          expect(uncapitalize("É")).toBe("é");
+        });
+      });
+  run: cd packages/remeda && node --no-warnings --import ./test/bench-loader.mjs --test src/bench-check.test.ts
+touches:
+  - packages/remeda/src/uncapitalize.ts
+  - packages/remeda/src/index.ts

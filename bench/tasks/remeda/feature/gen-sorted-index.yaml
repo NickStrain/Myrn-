@@ -1,0 +1,690 @@
+id: remeda/feature/gen-sorted-index
+repo: remeda
+kind: feature
+prompt: |
+    Add a utility `sortedIndex` to remeda in `packages/remeda/src/sortedIndex.ts`, exported from the
+    package index like the other utilities, with the calling styles and types its
+    documentation shows. Its documentation:
+
+        Find the insertion position (index) of an item in an array with items sorted
+        in ascending order; so that `splice(sortedIndex, 0, item)` would result in
+        maintaining the array's sort-ness. The array can contain duplicates.
+        If the item already exists in the array the index would be of the *first*
+        occurrence of the item.
+
+        Runs in O(logN) time.
+
+        @param data - The (ascending) sorted array.
+        @param item - The item to insert.
+        @returns Insertion index (In the range 0..array.length).
+        @signature
+           sortedIndex(data, item)
+        @example
+           sortedIndex(['a','a','b','c','c'], 'c') // => 3
+        @dataFirst
+        @category Array
+        @see sortedIndexBy, sortedIndexWith, sortedLastIndex, sortedLastIndexBy
+
+        Find the insertion position (index) of an item in an array with items sorted
+        in ascending order; so that `splice(sortedIndex, 0, item)` would result in
+        maintaining the array's sort-ness. The array can contain duplicates.
+        If the item already exists in the array the index would be of the *first*
+        occurrence of the item.
+
+        Runs in O(logN) time.
+
+        @param item - The item to insert.
+        @returns Insertion index (In the range 0..array.length).
+        @signature
+           sortedIndex(item)(data)
+        @example
+           pipe(['a','a','b','c','c'], sortedIndex('c')) // => 3
+        @dataLast
+        @category Array
+        @see sortedIndexBy, sortedIndexWith, sortedLastIndex, sortedLastIndexBy
+
+    npm dependencies are not installed and there is no network access. Node 24 is
+    available and can run TypeScript files directly.
+setup:
+  patch: |
+    diff --git a/packages/remeda/src/index.ts b/packages/remeda/src/index.ts
+    index ed5b86a..2bc1540 100644
+    --- a/packages/remeda/src/index.ts
+    +++ b/packages/remeda/src/index.ts
+    @@ -123,7 +123,6 @@ export * from "./shuffle";
+     export * from "./sliceString";
+     export * from "./sort";
+     export * from "./sortBy";
+    -export * from "./sortedIndex";
+     export * from "./sortedIndexBy";
+     export * from "./sortedIndexWith";
+     export * from "./sortedLastIndex";
+    diff --git a/packages/remeda/src/sortedIndex.test-d.ts b/packages/remeda/src/sortedIndex.test-d.ts
+    deleted file mode 100644
+    index b84eb73..0000000
+    --- a/packages/remeda/src/sortedIndex.test-d.ts
+    +++ /dev/null
+    @@ -1,80 +0,0 @@
+    -import { describe, expectTypeOf, test } from "vitest";
+    -import { map } from "./map";
+    -import { pipe } from "./pipe";
+    -import { sortedIndex } from "./sortedIndex";
+    -
+    -type Status = "active" | "inactive" | "pending";
+    -
+    -describe("dataFirst", () => {
+    -  test("a literal item among literal union items", () => {
+    -    expectTypeOf(sortedIndex([] as Status[], "active")).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("an item wider than the items", () => {
+    -    expectTypeOf(sortedIndex([] as ("a" | "b")[], "c")).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("an item narrower than the items", () => {
+    -    expectTypeOf(
+    -      sortedIndex([] as (bigint | number)[], 2),
+    -    ).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("rejects an item unrelated to the items", () => {
+    -    // @ts-expect-error [ts2345] -- The items aren't numbers like the item.
+    -    sortedIndex(["a"], 2);
+    -  });
+    -});
+    -
+    -describe("dataLast", () => {
+    -  test("a literal item among wider items", () => {
+    -    expectTypeOf(pipe([1, 3, 5], sortedIndex(2))).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("an item wider than the items", () => {
+    -    expectTypeOf(
+    -      pipe([] as ("a" | "b")[], sortedIndex("c")),
+    -    ).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("as a callback", () => {
+    -    expectTypeOf(
+    -      map([] as (readonly number[])[], sortedIndex(2)),
+    -    ).toEqualTypeOf<number[]>();
+    -  });
+    -
+    -  test("a literal item outside a tuple's literal items", () => {
+    -    expectTypeOf(
+    -      pipe([1, 3, 5] as const, sortedIndex(2)),
+    -    ).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("a literal item inside a tuple's literal items", () => {
+    -    expectTypeOf(
+    -      pipe([1, 3, 5] as const, sortedIndex(3)),
+    -    ).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("a literal item among literal union items", () => {
+    -    expectTypeOf(
+    -      pipe([] as Status[], sortedIndex("active")),
+    -    ).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("an item narrower than the items", () => {
+    -    expectTypeOf(
+    -      pipe([] as (bigint | number)[], sortedIndex(2)),
+    -    ).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("an undefined item among possibly undefined items", () => {
+    -    expectTypeOf(
+    -      pipe([] as (number | undefined)[], sortedIndex(undefined)),
+    -    ).toEqualTypeOf<number>();
+    -  });
+    -
+    -  test("rejects an item unrelated to the items", () => {
+    -    // @ts-expect-error [ts2322] -- The items aren't numbers like the item.
+    -    pipe(["a"], sortedIndex(2));
+    -  });
+    -});
+    diff --git a/packages/remeda/src/sortedIndex.test.ts b/packages/remeda/src/sortedIndex.test.ts
+    deleted file mode 100644
+    index bc94d81..0000000
+    --- a/packages/remeda/src/sortedIndex.test.ts
+    +++ /dev/null
+    @@ -1,67 +0,0 @@
+    -import { describe, expect, test } from "vitest";
+    -import { pipe } from "./pipe";
+    -import { sortedIndex } from "./sortedIndex";
+    -
+    -test("empty array", () => {
+    -  expect(sortedIndex([], 1)).toBe(0);
+    -});
+    -
+    -describe("array with single item", () => {
+    -  test("item smaller than item in array", () => {
+    -    expect(sortedIndex([2], 1)).toBe(0);
+    -  });
+    -
+    -  test("item larger than item in array", () => {
+    -    expect(sortedIndex([0], 1)).toBe(1);
+    -  });
+    -
+    -  test("item in array", () => {
+    -    expect(sortedIndex([1], 1)).toBe(0);
+    -  });
+    -});
+    -
+    -describe("array with multiple values", () => {
+    -  test("item smaller than all items in array", () => {
+    -    expect(sortedIndex([1, 2, 3, 4, 5], 0)).toBe(0);
+    -  });
+    -
+    -  test("item larger than all items in array", () => {
+    -    expect(sortedIndex([1, 2, 3, 4, 5], 6)).toBe(5);
+    -  });
+    -
+    -  test("item in array", () => {
+    -    expect(sortedIndex([1, 2, 3, 4, 5], 3)).toBe(2);
+    -  });
+    -});
+    -
+    -describe("array with duplicates", () => {
+    -  test("item smaller than all items in array", () => {
+    -    expect(sortedIndex([1, 1, 1, 1, 1], 0)).toBe(0);
+    -  });
+    -
+    -  test("item larger than all items in array", () => {
+    -    expect(sortedIndex([1, 1, 1, 1, 1], 2)).toBe(5);
+    -  });
+    -
+    -  test("item in array", () => {
+    -    expect(sortedIndex([1, 1, 1, 1, 1], 1)).toBe(0);
+    -  });
+    -});
+    -
+    -describe("string array", () => {
+    -  test("item smaller than all items in array", () => {
+    -    expect(sortedIndex(["a", "b", "c", "d", "e"], " ")).toBe(0);
+    -  });
+    -
+    -  test("item larger than all items in array", () => {
+    -    expect(sortedIndex(["a", "b", "c", "d", "e"], "z")).toBe(5);
+    -  });
+    -
+    -  test("item in array", () => {
+    -    expect(sortedIndex(["a", "b", "c", "d", "e"], "c")).toBe(2);
+    -  });
+    -});
+    -
+    -test("data-last", () => {
+    -  expect(pipe([1, 3], sortedIndex(2))).toBe(1);
+    -});
+    diff --git a/packages/remeda/src/sortedIndex.ts b/packages/remeda/src/sortedIndex.ts
+    deleted file mode 100644
+    index d8dfa87..0000000
+    --- a/packages/remeda/src/sortedIndex.ts
+    +++ /dev/null
+    @@ -1,61 +0,0 @@
+    -import { binarySearchCutoffIndex } from "./internal/binarySearchCutoffIndex";
+    -import { purry2 } from "./internal/purryByArity";
+    -
+    -/**
+    - * Find the insertion position (index) of an item in an array with items sorted
+    - * in ascending order; so that `splice(sortedIndex, 0, item)` would result in
+    - * maintaining the array's sort-ness. The array can contain duplicates.
+    - * If the item already exists in the array the index would be of the *first*
+    - * occurrence of the item.
+    - *
+    - * Runs in O(logN) time.
+    - *
+    - * @param data - The (ascending) sorted array.
+    - * @param item - The item to insert.
+    - * @returns Insertion index (In the range 0..array.length).
+    - * @signature
+    - *    sortedIndex(data, item)
+    - * @example
+    - *    sortedIndex(['a','a','b','c','c'], 'c') // => 3
+    - * @dataFirst
+    - * @category Array
+    - * @see sortedIndexBy, sortedIndexWith, sortedLastIndex, sortedLastIndexBy
+    - */
+    -export function sortedIndex<T>(data: readonly T[], item: T): number;
+    -
+    -/**
+    - * Find the insertion position (index) of an item in an array with items sorted
+    - * in ascending order; so that `splice(sortedIndex, 0, item)` would result in
+    - * maintaining the array's sort-ness. The array can contain duplicates.
+    - * If the item already exists in the array the index would be of the *first*
+    - * occurrence of the item.
+    - *
+    - * Runs in O(logN) time.
+    - *
+    - * @param item - The item to insert.
+    - * @returns Insertion index (In the range 0..array.length).
+    - * @signature
+    - *    sortedIndex(item)(data)
+    - * @example
+    - *    pipe(['a','a','b','c','c'], sortedIndex('c')) // => 3
+    - * @dataLast
+    - * @category Array
+    - * @see sortedIndexBy, sortedIndexWith, sortedLastIndex, sortedLastIndexBy
+    - */
+    -export function sortedIndex<T = never>(
+    -  // We first try to infer T through the callback to allow the type to be pulled
+    -  // from the call site it is used in (like `pipe`).
+    -  item: NoInfer<T>,
+    -): (data: readonly T[]) => number;
+    -
+    -export function sortedIndex<T>(
+    -  // Otherwise we allow T to be inferred directly from the operand.
+    -  item: T,
+    -): (data: readonly NoInfer<T>[]) => number;
+    -
+    -export function sortedIndex(dataOrItem: unknown, item?: unknown): unknown {
+    -  return purry2(sortedIndexImplementation, arguments.length, dataOrItem, item);
+    -}
+    -
+    -const sortedIndexImplementation = <T>(data: readonly T[], item: T): number =>
+    -  binarySearchCutoffIndex(data, (pivot) => pivot < item);
+solution:
+  patch: |
+    diff --git b/packages/remeda/src/index.ts a/packages/remeda/src/index.ts
+    index 2bc1540..ed5b86a 100644
+    --- b/packages/remeda/src/index.ts
+    +++ a/packages/remeda/src/index.ts
+    @@ -123,6 +123,7 @@ export * from "./shuffle";
+     export * from "./sliceString";
+     export * from "./sort";
+     export * from "./sortBy";
+    +export * from "./sortedIndex";
+     export * from "./sortedIndexBy";
+     export * from "./sortedIndexWith";
+     export * from "./sortedLastIndex";
+    diff --git b/packages/remeda/src/sortedIndex.test-d.ts a/packages/remeda/src/sortedIndex.test-d.ts
+    new file mode 100644
+    index 0000000..b84eb73
+    --- /dev/null
+    +++ a/packages/remeda/src/sortedIndex.test-d.ts
+    @@ -0,0 +1,80 @@
+    +import { describe, expectTypeOf, test } from "vitest";
+    +import { map } from "./map";
+    +import { pipe } from "./pipe";
+    +import { sortedIndex } from "./sortedIndex";
+    +
+    +type Status = "active" | "inactive" | "pending";
+    +
+    +describe("dataFirst", () => {
+    +  test("a literal item among literal union items", () => {
+    +    expectTypeOf(sortedIndex([] as Status[], "active")).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("an item wider than the items", () => {
+    +    expectTypeOf(sortedIndex([] as ("a" | "b")[], "c")).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("an item narrower than the items", () => {
+    +    expectTypeOf(
+    +      sortedIndex([] as (bigint | number)[], 2),
+    +    ).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("rejects an item unrelated to the items", () => {
+    +    // @ts-expect-error [ts2345] -- The items aren't numbers like the item.
+    +    sortedIndex(["a"], 2);
+    +  });
+    +});
+    +
+    +describe("dataLast", () => {
+    +  test("a literal item among wider items", () => {
+    +    expectTypeOf(pipe([1, 3, 5], sortedIndex(2))).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("an item wider than the items", () => {
+    +    expectTypeOf(
+    +      pipe([] as ("a" | "b")[], sortedIndex("c")),
+    +    ).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("as a callback", () => {
+    +    expectTypeOf(
+    +      map([] as (readonly number[])[], sortedIndex(2)),
+    +    ).toEqualTypeOf<number[]>();
+    +  });
+    +
+    +  test("a literal item outside a tuple's literal items", () => {
+    +    expectTypeOf(
+    +      pipe([1, 3, 5] as const, sortedIndex(2)),
+    +    ).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("a literal item inside a tuple's literal items", () => {
+    +    expectTypeOf(
+    +      pipe([1, 3, 5] as const, sortedIndex(3)),
+    +    ).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("a literal item among literal union items", () => {
+    +    expectTypeOf(
+    +      pipe([] as Status[], sortedIndex("active")),
+    +    ).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("an item narrower than the items", () => {
+    +    expectTypeOf(
+    +      pipe([] as (bigint | number)[], sortedIndex(2)),
+    +    ).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("an undefined item among possibly undefined items", () => {
+    +    expectTypeOf(
+    +      pipe([] as (number | undefined)[], sortedIndex(undefined)),
+    +    ).toEqualTypeOf<number>();
+    +  });
+    +
+    +  test("rejects an item unrelated to the items", () => {
+    +    // @ts-expect-error [ts2322] -- The items aren't numbers like the item.
+    +    pipe(["a"], sortedIndex(2));
+    +  });
+    +});
+    diff --git b/packages/remeda/src/sortedIndex.test.ts a/packages/remeda/src/sortedIndex.test.ts
+    new file mode 100644
+    index 0000000..bc94d81
+    --- /dev/null
+    +++ a/packages/remeda/src/sortedIndex.test.ts
+    @@ -0,0 +1,67 @@
+    +import { describe, expect, test } from "vitest";
+    +import { pipe } from "./pipe";
+    +import { sortedIndex } from "./sortedIndex";
+    +
+    +test("empty array", () => {
+    +  expect(sortedIndex([], 1)).toBe(0);
+    +});
+    +
+    +describe("array with single item", () => {
+    +  test("item smaller than item in array", () => {
+    +    expect(sortedIndex([2], 1)).toBe(0);
+    +  });
+    +
+    +  test("item larger than item in array", () => {
+    +    expect(sortedIndex([0], 1)).toBe(1);
+    +  });
+    +
+    +  test("item in array", () => {
+    +    expect(sortedIndex([1], 1)).toBe(0);
+    +  });
+    +});
+    +
+    +describe("array with multiple values", () => {
+    +  test("item smaller than all items in array", () => {
+    +    expect(sortedIndex([1, 2, 3, 4, 5], 0)).toBe(0);
+    +  });
+    +
+    +  test("item larger than all items in array", () => {
+    +    expect(sortedIndex([1, 2, 3, 4, 5], 6)).toBe(5);
+    +  });
+    +
+    +  test("item in array", () => {
+    +    expect(sortedIndex([1, 2, 3, 4, 5], 3)).toBe(2);
+    +  });
+    +});
+    +
+    +describe("array with duplicates", () => {
+    +  test("item smaller than all items in array", () => {
+    +    expect(sortedIndex([1, 1, 1, 1, 1], 0)).toBe(0);
+    +  });
+    +
+    +  test("item larger than all items in array", () => {
+    +    expect(sortedIndex([1, 1, 1, 1, 1], 2)).toBe(5);
+    +  });
+    +
+    +  test("item in array", () => {
+    +    expect(sortedIndex([1, 1, 1, 1, 1], 1)).toBe(0);
+    +  });
+    +});
+    +
+    +describe("string array", () => {
+    +  test("item smaller than all items in array", () => {
+    +    expect(sortedIndex(["a", "b", "c", "d", "e"], " ")).toBe(0);
+    +  });
+    +
+    +  test("item larger than all items in array", () => {
+    +    expect(sortedIndex(["a", "b", "c", "d", "e"], "z")).toBe(5);
+    +  });
+    +
+    +  test("item in array", () => {
+    +    expect(sortedIndex(["a", "b", "c", "d", "e"], "c")).toBe(2);
+    +  });
+    +});
+    +
+    +test("data-last", () => {
+    +  expect(pipe([1, 3], sortedIndex(2))).toBe(1);
+    +});
+    diff --git b/packages/remeda/src/sortedIndex.ts a/packages/remeda/src/sortedIndex.ts
+    new file mode 100644
+    index 0000000..d8dfa87
+    --- /dev/null
+    +++ a/packages/remeda/src/sortedIndex.ts
+    @@ -0,0 +1,61 @@
+    +import { binarySearchCutoffIndex } from "./internal/binarySearchCutoffIndex";
+    +import { purry2 } from "./internal/purryByArity";
+    +
+    +/**
+    + * Find the insertion position (index) of an item in an array with items sorted
+    + * in ascending order; so that `splice(sortedIndex, 0, item)` would result in
+    + * maintaining the array's sort-ness. The array can contain duplicates.
+    + * If the item already exists in the array the index would be of the *first*
+    + * occurrence of the item.
+    + *
+    + * Runs in O(logN) time.
+    + *
+    + * @param data - The (ascending) sorted array.
+    + * @param item - The item to insert.
+    + * @returns Insertion index (In the range 0..array.length).
+    + * @signature
+    + *    sortedIndex(data, item)
+    + * @example
+    + *    sortedIndex(['a','a','b','c','c'], 'c') // => 3
+    + * @dataFirst
+    + * @category Array
+    + * @see sortedIndexBy, sortedIndexWith, sortedLastIndex, sortedLastIndexBy
+    + */
+    +export function sortedIndex<T>(data: readonly T[], item: T): number;
+    +
+    +/**
+    + * Find the insertion position (index) of an item in an array with items sorted
+    + * in ascending order; so that `splice(sortedIndex, 0, item)` would result in
+    + * maintaining the array's sort-ness. The array can contain duplicates.
+    + * If the item already exists in the array the index would be of the *first*
+    + * occurrence of the item.
+    + *
+    + * Runs in O(logN) time.
+    + *
+    + * @param item - The item to insert.
+    + * @returns Insertion index (In the range 0..array.length).
+    + * @signature
+    + *    sortedIndex(item)(data)
+    + * @example
+    + *    pipe(['a','a','b','c','c'], sortedIndex('c')) // => 3
+    + * @dataLast
+    + * @category Array
+    + * @see sortedIndexBy, sortedIndexWith, sortedLastIndex, sortedLastIndexBy
+    + */
+    +export function sortedIndex<T = never>(
+    +  // We first try to infer T through the callback to allow the type to be pulled
+    +  // from the call site it is used in (like `pipe`).
+    +  item: NoInfer<T>,
+    +): (data: readonly T[]) => number;
+    +
+    +export function sortedIndex<T>(
+    +  // Otherwise we allow T to be inferred directly from the operand.
+    +  item: T,
+    +): (data: readonly NoInfer<T>[]) => number;
+    +
+    +export function sortedIndex(dataOrItem: unknown, item?: unknown): unknown {
+    +  return purry2(sortedIndexImplementation, arguments.length, dataOrItem, item);
+    +}
+    +
+    +const sortedIndexImplementation = <T>(data: readonly T[], item: T): number =>
+    +  binarySearchCutoffIndex(data, (pivot) => pivot < item);
+check:
+  files:
+    packages/remeda/test/bench-loader.mjs: |
+      // Resolve remeda's extensionless relative imports to .ts files, and `vitest`
+      // to a small stand-in, so Node 24 runs the tests without npm install.
+      import { registerHooks } from "node:module";
+
+      const shim = new URL("./vitest-shim.mjs", import.meta.url).href;
+      registerHooks({
+        resolve(specifier, context, nextResolve) {
+          if (specifier === "vitest") return { url: shim, shortCircuit: true };
+          try {
+            return nextResolve(specifier, context);
+          } catch (error) {
+            if (!specifier.startsWith(".")) throw error;
+            try {
+              return nextResolve(`${specifier}.ts`, context);
+            } catch {
+              return nextResolve(`${specifier}/index.ts`, context);
+            }
+          }
+        },
+      });
+    packages/remeda/test/vitest-shim.mjs: |
+      // The part of vitest's API remeda's simple tests use, on node:test.
+      import assert from "node:assert/strict";
+      import { describe as nodeDescribe, test as nodeTest } from "node:test";
+
+      export const describe = (name, fn) => nodeDescribe(name, fn);
+      export const test = (name, fn) => nodeTest(name, fn);
+      export const it = test;
+
+      const deep = (a, b, strict) => {
+        try {
+          (strict ? assert.deepStrictEqual : assert.deepEqual)(a, b);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      function matchers(actual, negate) {
+        const check = (ok, what) => {
+          if (negate ? ok : !ok) {
+            throw new assert.AssertionError({ message: `expected ${negate ? "not " : ""}${what}`, actual });
+          }
+        };
+        const throws = (expected) => {
+          let threw = false;
+          let error;
+          try {
+            actual();
+          } catch (e) {
+            threw = true;
+            error = e;
+          }
+          const ok =
+            threw &&
+            (expected === undefined ||
+              (typeof expected === "string" && String(error?.message).includes(expected)) ||
+              (expected instanceof RegExp && expected.test(String(error?.message))) ||
+              (typeof expected === "function" && error instanceof expected) ||
+              (typeof expected === "object" && expected !== null && !(expected instanceof RegExp) && String(error?.message) === String(expected.message)));
+          check(ok, "to throw");
+        };
+        return {
+          toBe: (e) => check(Object.is(actual, e), `${String(actual)} to be ${String(e)}`),
+          toStrictEqual: (e) => check(deep(actual, e, true), "strict equality"),
+          toEqual: (e) => check(deep(actual, e, false), "equality"),
+          toHaveLength: (n) => check(actual?.length === n, `length ${n}`),
+          toBeUndefined: () => check(actual === undefined, "undefined"),
+          toBeNull: () => check(actual === null, "null"),
+          toBeTruthy: () => check(Boolean(actual), "truthy"),
+          toBeFalsy: () => check(!actual, "falsy"),
+          toBeNaN: () => check(Number.isNaN(actual), "NaN"),
+          toBeLessThan: (n) => check(actual < n, `< ${n}`),
+          toBeLessThanOrEqual: (n) => check(actual <= n, `<= ${n}`),
+          toBeGreaterThan: (n) => check(actual > n, `> ${n}`),
+          toBeGreaterThanOrEqual: (n) => check(actual >= n, `>= ${n}`),
+          toContain: (x) => check(actual.includes(x), "to contain"),
+          toBeTypeOf: (t) => check(typeof actual === t, `type ${t}`),
+          toThrow: throws,
+          toThrowError: throws,
+        };
+      }
+
+      export function expect(actual) {
+        const m = matchers(actual, false);
+        m.not = matchers(actual, true);
+        return m;
+      }
+    packages/remeda/src/bench-check.test.ts: |
+      import { describe, expect, test } from "vitest";
+      import { pipe } from "./pipe";
+      import { sortedIndex } from "./sortedIndex";
+
+      test("empty array", () => {
+        expect(sortedIndex([], 1)).toBe(0);
+      });
+
+      describe("array with single item", () => {
+        test("item smaller than item in array", () => {
+          expect(sortedIndex([2], 1)).toBe(0);
+        });
+
+        test("item larger than item in array", () => {
+          expect(sortedIndex([0], 1)).toBe(1);
+        });
+
+        test("item in array", () => {
+          expect(sortedIndex([1], 1)).toBe(0);
+        });
+      });
+
+      describe("array with multiple values", () => {
+        test("item smaller than all items in array", () => {
+          expect(sortedIndex([1, 2, 3, 4, 5], 0)).toBe(0);
+        });
+
+        test("item larger than all items in array", () => {
+          expect(sortedIndex([1, 2, 3, 4, 5], 6)).toBe(5);
+        });
+
+        test("item in array", () => {
+          expect(sortedIndex([1, 2, 3, 4, 5], 3)).toBe(2);
+        });
+      });
+
+      describe("array with duplicates", () => {
+        test("item smaller than all items in array", () => {
+          expect(sortedIndex([1, 1, 1, 1, 1], 0)).toBe(0);
+        });
+
+        test("item larger than all items in array", () => {
+          expect(sortedIndex([1, 1, 1, 1, 1], 2)).toBe(5);
+        });
+
+        test("item in array", () => {
+          expect(sortedIndex([1, 1, 1, 1, 1], 1)).toBe(0);
+        });
+      });
+
+      describe("string array", () => {
+        test("item smaller than all items in array", () => {
+          expect(sortedIndex(["a", "b", "c", "d", "e"], " ")).toBe(0);
+        });
+
+        test("item larger than all items in array", () => {
+          expect(sortedIndex(["a", "b", "c", "d", "e"], "z")).toBe(5);
+        });
+
+        test("item in array", () => {
+          expect(sortedIndex(["a", "b", "c", "d", "e"], "c")).toBe(2);
+        });
+      });
+
+      test("data-last", () => {
+        expect(pipe([1, 3], sortedIndex(2))).toBe(1);
+      });
+  run: cd packages/remeda && node --no-warnings --import ./test/bench-loader.mjs --test src/bench-check.test.ts
+touches:
+  - packages/remeda/src/sortedIndex.ts
+  - packages/remeda/src/index.ts

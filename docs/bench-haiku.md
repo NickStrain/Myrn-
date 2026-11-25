@@ -571,8 +571,54 @@ Findings:
 - `binary-detection` and `gitignore-matcher` (+7%, +11%) remain small losses:
   short questions where myrn's fixed overhead outweighs its help.
 
+## Feature work: plan and free steps (2026-11-25)
+
+Research (see the plan in the session): retrieving context selectively beats
+always retrieving (Repoformer, CodeFilter); for new code, similar snippets help
+only when a close analogue exists, while repository conventions matter
+(AllianceCoder, RAMBO); feature work is the hardest category for agents
+(FEA-Bench, FeatBench, NoCode-bench); token reduction can raise billed cost
+through extra turns (arXiv 2607.12161).
+
+**12 new feature tasks** (`bench/tasks/*/feature/gen-*.yaml`), built like
+FEA-Bench: an existing function is removed (code, export, stub, docs entry and
+its tests); the reference solution restores it; the hidden check is the
+function's own tests; the prompt is its documentation. more-itertools:
+`subfactorial`, `extract`, `outer_product`, `takewhile_inclusive`,
+`multinomial`, `loops`. remeda: `splitAt`, `takeLast`, `sortedIndex`,
+`uncapitalize`, `only`, `nthBy` (remeda's vitest tests run on Node through a
+small stand-in). All 12 validate: the check fails after setup and passes with
+the solution. Caveat: the removed code is still in git history, for both
+conditions alike; myrn's checklist ignores commits that name the function.
+
+**"How code is added here" checklist.** For a request to add code, myrn lists
+the files that past commits adding code to the same place changed together
+(new table `commit_adds`, filled when indexing history, with a one-time
+backfill). Tested first as a prototype against the files each feature task's
+reference solution touches: **90% precision, 88% recall over 14 tasks**
+(diff-based detection; going by commit subjects found only 38%). Examples:
+
+- more-itertools, a function in `more.py`: `more.py`, `more.pyi`,
+  `tests/test_more.py`, `docs/api.rst`, `README.rst` (from 12 past additions).
+- remeda, a new utility: `src/<name>.ts`, its `.test.ts` and `.test-d.ts`,
+  `src/index.ts`.
+- ripgrep `glob-is-literal`: `crates/globset/src/glob.rs`, `lib.rs`.
+
+The target file is a path the task names, else the file of a name it uses (only
+if that name picks out one file: `Glob` is also a ripgrep flag), else the file
+past additions most often went to (never a stub). Bug-fix and question contexts
+are unchanged (12/12 identical).
+
+**Hint scoped to code myrn shows:** "use it instead of opening those files
+again, and when you edit that code, read only its line range", plus a mention of
+the checklist. The general "read only the line range you need" is gone. The
+benchmark's `hint` condition now uses myrn's own text (`MYRN_BENCH_HINT`
+overrides it).
+
 ## Next
 
+- Haiku run on the 16 feature tasks: without myrn, Stage 8 myrn, and the
+  checklist + scoped hint; compare tokens, billed cost, turns and success.
 - Features: test a narrower hint and stricter new-function rule.
 - Shrink the SessionStart project map (the real per-call overhead), then check on
   short questions.

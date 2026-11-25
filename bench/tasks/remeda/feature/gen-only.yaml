@@ -1,0 +1,811 @@
+id: remeda/feature/gen-only
+repo: remeda
+kind: feature
+prompt: |
+    Add a utility `only` to remeda in `packages/remeda/src/only.ts`, exported from the
+    package index like the other utilities, with the calling styles and types its
+    documentation shows. Its documentation:
+
+        Returns the first and only element of `data`, or undefined otherwise.
+
+        @param data - The target array.
+        @signature
+           only(data)
+        @example
+           only([]) // => undefined
+           only([1]) // => 1
+           only([1, 2]) // => undefined
+        @dataFirst
+        @category Array
+
+        Returns the first and only element of `data`, or undefined otherwise.
+
+        @signature
+           only()(data)
+        @example
+           pipe([], only()); // => undefined
+           pipe([1], only()); // => 1
+           pipe([1, 2], only()); // => undefined
+        @dataLast
+        @category Array
+
+    npm dependencies are not installed and there is no network access. Node 24 is
+    available and can run TypeScript files directly.
+setup:
+  patch: |
+    diff --git a/packages/remeda/src/index.ts b/packages/remeda/src/index.ts
+    index ed5b86a..27f8d99 100644
+    --- a/packages/remeda/src/index.ts
+    +++ b/packages/remeda/src/index.ts
+    @@ -95,7 +95,6 @@ export * from "./objOf";
+     export * from "./omit";
+     export * from "./omitBy";
+     export * from "./once";
+    -export * from "./only";
+     export * from "./partialBind";
+     export * from "./partialLastBind";
+     export * from "./partition";
+    diff --git a/packages/remeda/src/only.test-d.ts b/packages/remeda/src/only.test-d.ts
+    deleted file mode 100644
+    index d4c4749..0000000
+    --- a/packages/remeda/src/only.test-d.ts
+    +++ /dev/null
+    @@ -1,129 +0,0 @@
+    -import { expectTypeOf, test } from "vitest";
+    -import { only } from "./only";
+    -
+    -test("simple array", () => {
+    -  const result = only([] as number[]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    -});
+    -
+    -test("simple non-empty array", () => {
+    -  const result = only([1] as [number, ...number[]]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    -});
+    -
+    -test("simple tuple", () => {
+    -  const result = only([1, "a"] as [number, string]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<undefined>();
+    -});
+    -
+    -test("array with more than one item", () => {
+    -  const result = only([1, 2] as [number, number, ...number[]]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<undefined>();
+    -});
+    -
+    -test("trivial empty array", () => {
+    -  const result = only([] as []);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<undefined>();
+    -});
+    -
+    -test("array with last", () => {
+    -  const result = only([1] as [...number[], number]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    -});
+    -
+    -test("tuple with last", () => {
+    -  const result = only(["a", 1] as [...string[], number]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    -});
+    -
+    -test("tuple with two last", () => {
+    -  const result = only(["a", 1, 2] as [...string[], number, number]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<undefined>();
+    -});
+    -
+    -test("tuple with first and last", () => {
+    -  const result = only([1, "a", 2] as [number, ...string[], number]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<undefined>();
+    -});
+    -
+    -test("tuple with optional and array", () => {
+    -  const result = only(["a", 1] as [string?, ...number[]]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    -});
+    -
+    -test("tuple with all optional", () => {
+    -  const result = only(["a", 1] as [string?, number?]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    -});
+    -
+    -test("simple readonly array", () => {
+    -  const result = only([] as readonly number[]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    -});
+    -
+    -test("simple non-empty readonly array", () => {
+    -  const result = only([1] as readonly [number, ...number[]]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    -});
+    -
+    -test("simple readonly tuple", () => {
+    -  const result = only([1, "a"] as readonly [number, string]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<undefined>();
+    -});
+    -
+    -test("readonly array with more than one item", () => {
+    -  const result = only([1, 2] as readonly [number, number, ...number[]]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<undefined>();
+    -});
+    -
+    -test("readonly trivial empty array", () => {
+    -  const result = only([] as const);
+    -
+    -  expectTypeOf(result).toEqualTypeOf(undefined);
+    -});
+    -
+    -test("readonly array with last", () => {
+    -  const result = only([1] as readonly [...number[], number]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    -});
+    -
+    -test("readonly tuple with last", () => {
+    -  const result = only(["a", 1] as readonly [...string[], number]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    -});
+    -
+    -test("readonly tuple with optional and array", () => {
+    -  const result = only(["a", 1] as readonly [string?, ...number[]]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    -});
+    -
+    -test("readonly tuple with all optional", () => {
+    -  const result = only(["a", 1] as readonly [string?, number?]);
+    -
+    -  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    -});
+    -
+    -// https://github.com/remeda/remeda/issues/1353
+    -test("union of tuple shapes", () => {
+    -  expectTypeOf(only(["a"] as ["a"] | ["b"] | ["c"])).toEqualTypeOf<
+    -    "a" | "b" | "c"
+    -  >();
+    -});
+    diff --git a/packages/remeda/src/only.test.ts b/packages/remeda/src/only.test.ts
+    deleted file mode 100644
+    index 932dc82..0000000
+    --- a/packages/remeda/src/only.test.ts
+    +++ /dev/null
+    @@ -1,88 +0,0 @@
+    -import { describe, expect, test } from "vitest";
+    -import { filter } from "./filter";
+    -import { only } from "./only";
+    -import { pipe } from "./pipe";
+    -
+    -describe("dataFirst", () => {
+    -  test("empty array", () => {
+    -    expect(only([])).toBeUndefined();
+    -  });
+    -
+    -  test("length 1 array", () => {
+    -    expect(only([1])).toBe(1);
+    -  });
+    -
+    -  test("length 2 array", () => {
+    -    expect(only([1, 2])).toBeUndefined();
+    -  });
+    -
+    -  test("length 3 array", () => {
+    -    expect(only([1, 2, 3])).toBeUndefined();
+    -  });
+    -
+    -  test("returns the item itself", () => {
+    -    const item = { a: 1 };
+    -
+    -    expect(only([item])).toBe(item);
+    -  });
+    -
+    -  test("a NaN item", () => {
+    -    expect(only([NaN])).toBeNaN();
+    -  });
+    -
+    -  test("a -0 item", () => {
+    -    expect(only([-0])).toBe(-0);
+    -  });
+    -
+    -  test("an undefined first item still counts", () => {
+    -    expect(only([undefined, 1])).toBeUndefined();
+    -  });
+    -});
+    -
+    -describe("data last", () => {
+    -  test("empty array", () => {
+    -    expect(pipe([], only())).toBeUndefined();
+    -  });
+    -
+    -  test("length 1 array", () => {
+    -    expect(pipe([1], only())).toBe(1);
+    -  });
+    -
+    -  test("length 2 array", () => {
+    -    expect(pipe([1, 2], only())).toBeUndefined();
+    -  });
+    -
+    -  test("length 3 array", () => {
+    -    expect(pipe([1, 2, 3], only())).toBeUndefined();
+    -  });
+    -
+    -  test("an undefined first item still counts", () => {
+    -    expect(pipe([undefined, 1], only())).toBeUndefined();
+    -  });
+    -
+    -  test("counts only the items that reach it", () => {
+    -    expect(
+    -      pipe(
+    -        [1, 2, 3],
+    -        filter((x) => x > 2),
+    -        only(),
+    -      ),
+    -    ).toBe(3);
+    -  });
+    -});
+    -
+    -test("simple tuple", () => {
+    -  expect(only([1, "a"])).toBeUndefined();
+    -});
+    -
+    -test("tuple with last", () => {
+    -  expect(only(["a", 1])).toBeUndefined();
+    -});
+    -
+    -test("tuple with two last", () => {
+    -  expect(only(["a", 1, 2])).toBeUndefined();
+    -});
+    -
+    -test("tuple with first and last", () => {
+    -  expect(only([1, "a", 2])).toBeUndefined();
+    -});
+    diff --git a/packages/remeda/src/only.ts b/packages/remeda/src/only.ts
+    deleted file mode 100644
+    index 86792d4..0000000
+    --- a/packages/remeda/src/only.ts
+    +++ /dev/null
+    @@ -1,48 +0,0 @@
+    -import { purry1 } from "./internal/purryByArity";
+    -import type { IterableContainer } from "./internal/types/IterableContainer";
+    -
+    -type Only<T extends IterableContainer> = T extends
+    -  | readonly [...unknown[], unknown, unknown]
+    -  | readonly []
+    -  | readonly [unknown, ...unknown[], unknown]
+    -  | readonly [unknown, unknown, ...unknown[]]
+    -  ? undefined
+    -  : T extends readonly [unknown]
+    -    ? T[number]
+    -    : T[number] | undefined;
+    -
+    -/**
+    - * Returns the first and only element of `data`, or undefined otherwise.
+    - *
+    - * @param data - The target array.
+    - * @signature
+    - *    only(data)
+    - * @example
+    - *    only([]) // => undefined
+    - *    only([1]) // => 1
+    - *    only([1, 2]) // => undefined
+    - * @dataFirst
+    - * @category Array
+    - */
+    -export function only<T extends IterableContainer>(data: T): Only<T>;
+    -
+    -/**
+    - * Returns the first and only element of `data`, or undefined otherwise.
+    - *
+    - * @signature
+    - *    only()(data)
+    - * @example
+    - *    pipe([], only()); // => undefined
+    - *    pipe([1], only()); // => 1
+    - *    pipe([1, 2], only()); // => undefined
+    - * @dataLast
+    - * @category Array
+    - */
+    -export function only<T extends IterableContainer>(): (data: T) => Only<T>;
+    -
+    -export function only(data?: IterableContainer): unknown {
+    -  return purry1(onlyImplementation, arguments.length, data);
+    -}
+    -
+    -const onlyImplementation = <T>(data: readonly T[]): T | undefined =>
+    -  data.length === 1 ? data[0] : undefined;
+solution:
+  patch: |
+    diff --git b/packages/remeda/src/index.ts a/packages/remeda/src/index.ts
+    index 27f8d99..ed5b86a 100644
+    --- b/packages/remeda/src/index.ts
+    +++ a/packages/remeda/src/index.ts
+    @@ -95,6 +95,7 @@ export * from "./objOf";
+     export * from "./omit";
+     export * from "./omitBy";
+     export * from "./once";
+    +export * from "./only";
+     export * from "./partialBind";
+     export * from "./partialLastBind";
+     export * from "./partition";
+    diff --git b/packages/remeda/src/only.test-d.ts a/packages/remeda/src/only.test-d.ts
+    new file mode 100644
+    index 0000000..d4c4749
+    --- /dev/null
+    +++ a/packages/remeda/src/only.test-d.ts
+    @@ -0,0 +1,129 @@
+    +import { expectTypeOf, test } from "vitest";
+    +import { only } from "./only";
+    +
+    +test("simple array", () => {
+    +  const result = only([] as number[]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    +});
+    +
+    +test("simple non-empty array", () => {
+    +  const result = only([1] as [number, ...number[]]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    +});
+    +
+    +test("simple tuple", () => {
+    +  const result = only([1, "a"] as [number, string]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<undefined>();
+    +});
+    +
+    +test("array with more than one item", () => {
+    +  const result = only([1, 2] as [number, number, ...number[]]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<undefined>();
+    +});
+    +
+    +test("trivial empty array", () => {
+    +  const result = only([] as []);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<undefined>();
+    +});
+    +
+    +test("array with last", () => {
+    +  const result = only([1] as [...number[], number]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    +});
+    +
+    +test("tuple with last", () => {
+    +  const result = only(["a", 1] as [...string[], number]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    +});
+    +
+    +test("tuple with two last", () => {
+    +  const result = only(["a", 1, 2] as [...string[], number, number]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<undefined>();
+    +});
+    +
+    +test("tuple with first and last", () => {
+    +  const result = only([1, "a", 2] as [number, ...string[], number]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<undefined>();
+    +});
+    +
+    +test("tuple with optional and array", () => {
+    +  const result = only(["a", 1] as [string?, ...number[]]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    +});
+    +
+    +test("tuple with all optional", () => {
+    +  const result = only(["a", 1] as [string?, number?]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    +});
+    +
+    +test("simple readonly array", () => {
+    +  const result = only([] as readonly number[]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    +});
+    +
+    +test("simple non-empty readonly array", () => {
+    +  const result = only([1] as readonly [number, ...number[]]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    +});
+    +
+    +test("simple readonly tuple", () => {
+    +  const result = only([1, "a"] as readonly [number, string]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<undefined>();
+    +});
+    +
+    +test("readonly array with more than one item", () => {
+    +  const result = only([1, 2] as readonly [number, number, ...number[]]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<undefined>();
+    +});
+    +
+    +test("readonly trivial empty array", () => {
+    +  const result = only([] as const);
+    +
+    +  expectTypeOf(result).toEqualTypeOf(undefined);
+    +});
+    +
+    +test("readonly array with last", () => {
+    +  const result = only([1] as readonly [...number[], number]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | undefined>();
+    +});
+    +
+    +test("readonly tuple with last", () => {
+    +  const result = only(["a", 1] as readonly [...string[], number]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    +});
+    +
+    +test("readonly tuple with optional and array", () => {
+    +  const result = only(["a", 1] as readonly [string?, ...number[]]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    +});
+    +
+    +test("readonly tuple with all optional", () => {
+    +  const result = only(["a", 1] as readonly [string?, number?]);
+    +
+    +  expectTypeOf(result).toEqualTypeOf<number | string | undefined>();
+    +});
+    +
+    +// https://github.com/remeda/remeda/issues/1353
+    +test("union of tuple shapes", () => {
+    +  expectTypeOf(only(["a"] as ["a"] | ["b"] | ["c"])).toEqualTypeOf<
+    +    "a" | "b" | "c"
+    +  >();
+    +});
+    diff --git b/packages/remeda/src/only.test.ts a/packages/remeda/src/only.test.ts
+    new file mode 100644
+    index 0000000..932dc82
+    --- /dev/null
+    +++ a/packages/remeda/src/only.test.ts
+    @@ -0,0 +1,88 @@
+    +import { describe, expect, test } from "vitest";
+    +import { filter } from "./filter";
+    +import { only } from "./only";
+    +import { pipe } from "./pipe";
+    +
+    +describe("dataFirst", () => {
+    +  test("empty array", () => {
+    +    expect(only([])).toBeUndefined();
+    +  });
+    +
+    +  test("length 1 array", () => {
+    +    expect(only([1])).toBe(1);
+    +  });
+    +
+    +  test("length 2 array", () => {
+    +    expect(only([1, 2])).toBeUndefined();
+    +  });
+    +
+    +  test("length 3 array", () => {
+    +    expect(only([1, 2, 3])).toBeUndefined();
+    +  });
+    +
+    +  test("returns the item itself", () => {
+    +    const item = { a: 1 };
+    +
+    +    expect(only([item])).toBe(item);
+    +  });
+    +
+    +  test("a NaN item", () => {
+    +    expect(only([NaN])).toBeNaN();
+    +  });
+    +
+    +  test("a -0 item", () => {
+    +    expect(only([-0])).toBe(-0);
+    +  });
+    +
+    +  test("an undefined first item still counts", () => {
+    +    expect(only([undefined, 1])).toBeUndefined();
+    +  });
+    +});
+    +
+    +describe("data last", () => {
+    +  test("empty array", () => {
+    +    expect(pipe([], only())).toBeUndefined();
+    +  });
+    +
+    +  test("length 1 array", () => {
+    +    expect(pipe([1], only())).toBe(1);
+    +  });
+    +
+    +  test("length 2 array", () => {
+    +    expect(pipe([1, 2], only())).toBeUndefined();
+    +  });
+    +
+    +  test("length 3 array", () => {
+    +    expect(pipe([1, 2, 3], only())).toBeUndefined();
+    +  });
+    +
+    +  test("an undefined first item still counts", () => {
+    +    expect(pipe([undefined, 1], only())).toBeUndefined();
+    +  });
+    +
+    +  test("counts only the items that reach it", () => {
+    +    expect(
+    +      pipe(
+    +        [1, 2, 3],
+    +        filter((x) => x > 2),
+    +        only(),
+    +      ),
+    +    ).toBe(3);
+    +  });
+    +});
+    +
+    +test("simple tuple", () => {
+    +  expect(only([1, "a"])).toBeUndefined();
+    +});
+    +
+    +test("tuple with last", () => {
+    +  expect(only(["a", 1])).toBeUndefined();
+    +});
+    +
+    +test("tuple with two last", () => {
+    +  expect(only(["a", 1, 2])).toBeUndefined();
+    +});
+    +
+    +test("tuple with first and last", () => {
+    +  expect(only([1, "a", 2])).toBeUndefined();
+    +});
+    diff --git b/packages/remeda/src/only.ts a/packages/remeda/src/only.ts
+    new file mode 100644
+    index 0000000..86792d4
+    --- /dev/null
+    +++ a/packages/remeda/src/only.ts
+    @@ -0,0 +1,48 @@
+    +import { purry1 } from "./internal/purryByArity";
+    +import type { IterableContainer } from "./internal/types/IterableContainer";
+    +
+    +type Only<T extends IterableContainer> = T extends
+    +  | readonly [...unknown[], unknown, unknown]
+    +  | readonly []
+    +  | readonly [unknown, ...unknown[], unknown]
+    +  | readonly [unknown, unknown, ...unknown[]]
+    +  ? undefined
+    +  : T extends readonly [unknown]
+    +    ? T[number]
+    +    : T[number] | undefined;
+    +
+    +/**
+    + * Returns the first and only element of `data`, or undefined otherwise.
+    + *
+    + * @param data - The target array.
+    + * @signature
+    + *    only(data)
+    + * @example
+    + *    only([]) // => undefined
+    + *    only([1]) // => 1
+    + *    only([1, 2]) // => undefined
+    + * @dataFirst
+    + * @category Array
+    + */
+    +export function only<T extends IterableContainer>(data: T): Only<T>;
+    +
+    +/**
+    + * Returns the first and only element of `data`, or undefined otherwise.
+    + *
+    + * @signature
+    + *    only()(data)
+    + * @example
+    + *    pipe([], only()); // => undefined
+    + *    pipe([1], only()); // => 1
+    + *    pipe([1, 2], only()); // => undefined
+    + * @dataLast
+    + * @category Array
+    + */
+    +export function only<T extends IterableContainer>(): (data: T) => Only<T>;
+    +
+    +export function only(data?: IterableContainer): unknown {
+    +  return purry1(onlyImplementation, arguments.length, data);
+    +}
+    +
+    +const onlyImplementation = <T>(data: readonly T[]): T | undefined =>
+    +  data.length === 1 ? data[0] : undefined;
+check:
+  files:
+    packages/remeda/test/bench-loader.mjs: |
+      // Resolve remeda's extensionless relative imports to .ts files, and `vitest`
+      // to a small stand-in, so Node 24 runs the tests without npm install.
+      import { registerHooks } from "node:module";
+
+      const shim = new URL("./vitest-shim.mjs", import.meta.url).href;
+      registerHooks({
+        resolve(specifier, context, nextResolve) {
+          if (specifier === "vitest") return { url: shim, shortCircuit: true };
+          try {
+            return nextResolve(specifier, context);
+          } catch (error) {
+            if (!specifier.startsWith(".")) throw error;
+            try {
+              return nextResolve(`${specifier}.ts`, context);
+            } catch {
+              return nextResolve(`${specifier}/index.ts`, context);
+            }
+          }
+        },
+      });
+    packages/remeda/test/vitest-shim.mjs: |
+      // The part of vitest's API remeda's simple tests use, on node:test.
+      import assert from "node:assert/strict";
+      import { describe as nodeDescribe, test as nodeTest } from "node:test";
+
+      export const describe = (name, fn) => nodeDescribe(name, fn);
+      export const test = (name, fn) => nodeTest(name, fn);
+      export const it = test;
+
+      const deep = (a, b, strict) => {
+        try {
+          (strict ? assert.deepStrictEqual : assert.deepEqual)(a, b);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      function matchers(actual, negate) {
+        const check = (ok, what) => {
+          if (negate ? ok : !ok) {
+            throw new assert.AssertionError({ message: `expected ${negate ? "not " : ""}${what}`, actual });
+          }
+        };
+        const throws = (expected) => {
+          let threw = false;
+          let error;
+          try {
+            actual();
+          } catch (e) {
+            threw = true;
+            error = e;
+          }
+          const ok =
+            threw &&
+            (expected === undefined ||
+              (typeof expected === "string" && String(error?.message).includes(expected)) ||
+              (expected instanceof RegExp && expected.test(String(error?.message))) ||
+              (typeof expected === "function" && error instanceof expected) ||
+              (typeof expected === "object" && expected !== null && !(expected instanceof RegExp) && String(error?.message) === String(expected.message)));
+          check(ok, "to throw");
+        };
+        return {
+          toBe: (e) => check(Object.is(actual, e), `${String(actual)} to be ${String(e)}`),
+          toStrictEqual: (e) => check(deep(actual, e, true), "strict equality"),
+          toEqual: (e) => check(deep(actual, e, false), "equality"),
+          toHaveLength: (n) => check(actual?.length === n, `length ${n}`),
+          toBeUndefined: () => check(actual === undefined, "undefined"),
+          toBeNull: () => check(actual === null, "null"),
+          toBeTruthy: () => check(Boolean(actual), "truthy"),
+          toBeFalsy: () => check(!actual, "falsy"),
+          toBeNaN: () => check(Number.isNaN(actual), "NaN"),
+          toBeLessThan: (n) => check(actual < n, `< ${n}`),
+          toBeLessThanOrEqual: (n) => check(actual <= n, `<= ${n}`),
+          toBeGreaterThan: (n) => check(actual > n, `> ${n}`),
+          toBeGreaterThanOrEqual: (n) => check(actual >= n, `>= ${n}`),
+          toContain: (x) => check(actual.includes(x), "to contain"),
+          toBeTypeOf: (t) => check(typeof actual === t, `type ${t}`),
+          toThrow: throws,
+          toThrowError: throws,
+        };
+      }
+
+      export function expect(actual) {
+        const m = matchers(actual, false);
+        m.not = matchers(actual, true);
+        return m;
+      }
+    packages/remeda/src/bench-check.test.ts: |
+      import { describe, expect, test } from "vitest";
+      import { filter } from "./filter";
+      import { only } from "./only";
+      import { pipe } from "./pipe";
+
+      describe("dataFirst", () => {
+        test("empty array", () => {
+          expect(only([])).toBeUndefined();
+        });
+
+        test("length 1 array", () => {
+          expect(only([1])).toBe(1);
+        });
+
+        test("length 2 array", () => {
+          expect(only([1, 2])).toBeUndefined();
+        });
+
+        test("length 3 array", () => {
+          expect(only([1, 2, 3])).toBeUndefined();
+        });
+
+        test("returns the item itself", () => {
+          const item = { a: 1 };
+
+          expect(only([item])).toBe(item);
+        });
+
+        test("a NaN item", () => {
+          expect(only([NaN])).toBeNaN();
+        });
+
+        test("a -0 item", () => {
+          expect(only([-0])).toBe(-0);
+        });
+
+        test("an undefined first item still counts", () => {
+          expect(only([undefined, 1])).toBeUndefined();
+        });
+      });
+
+      describe("data last", () => {
+        test("empty array", () => {
+          expect(pipe([], only())).toBeUndefined();
+        });
+
+        test("length 1 array", () => {
+          expect(pipe([1], only())).toBe(1);
+        });
+
+        test("length 2 array", () => {
+          expect(pipe([1, 2], only())).toBeUndefined();
+        });
+
+        test("length 3 array", () => {
+          expect(pipe([1, 2, 3], only())).toBeUndefined();
+        });
+
+        test("an undefined first item still counts", () => {
+          expect(pipe([undefined, 1], only())).toBeUndefined();
+        });
+
+        test("counts only the items that reach it", () => {
+          expect(
+            pipe(
+              [1, 2, 3],
+              filter((x) => x > 2),
+              only(),
+            ),
+          ).toBe(3);
+        });
+      });
+
+      test("simple tuple", () => {
+        expect(only([1, "a"])).toBeUndefined();
+      });
+
+      test("tuple with last", () => {
+        expect(only(["a", 1])).toBeUndefined();
+      });
+
+      test("tuple with two last", () => {
+        expect(only(["a", 1, 2])).toBeUndefined();
+      });
+
+      test("tuple with first and last", () => {
+        expect(only([1, "a", 2])).toBeUndefined();
+      });
+  run: cd packages/remeda && node --no-warnings --import ./test/bench-loader.mjs --test src/bench-check.test.ts
+touches:
+  - packages/remeda/src/only.ts
+  - packages/remeda/src/index.ts

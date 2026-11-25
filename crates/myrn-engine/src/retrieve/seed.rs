@@ -207,7 +207,7 @@ fn code_tokens(task: &str) -> Vec<String> {
 
 /// Identifiers written in backticks: `` `chunk` ``, `` `chunk([1, 2], 2)` ``,
 /// `` `GlobSet::new` ``. A plain word in backticks is code, even lowercase.
-fn backticked(task: &str) -> Vec<String> {
+pub(crate) fn backticked(task: &str) -> Vec<String> {
     task.split('`')
         .skip(1)
         .step_by(2)

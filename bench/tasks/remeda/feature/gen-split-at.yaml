@@ -1,0 +1,529 @@
+id: remeda/feature/gen-split-at
+repo: remeda
+kind: feature
+prompt: |
+    Add a utility `splitAt` to remeda in `packages/remeda/src/splitAt.ts`, exported from the
+    package index like the other utilities, with the calling styles and types its
+    documentation shows. Its documentation:
+
+        Splits a given array at a given index.
+
+        @param data - The array to split.
+        @param index - The index to split at.
+        @signature
+           splitAt(data, index)
+        @example
+           splitAt([1, 2, 3], 1) // => [[1], [2, 3]]
+           splitAt([1, 2, 3, 4, 5], -1) // => [[1, 2, 3, 4], [5]]
+        @dataFirst
+        @category Array
+
+        Splits a given array at a given index.
+
+        @param index - The index to split at.
+        @signature
+           splitAt(index)(data)
+        @example
+           splitAt(1)([1, 2, 3]) // => [[1], [2, 3]]
+           splitAt(-1)([1, 2, 3, 4, 5]) // => [[1, 2, 3, 4], [5]]
+        @dataLast
+        @category Array
+
+    npm dependencies are not installed and there is no network access. Node 24 is
+    available and can run TypeScript files directly.
+setup:
+  patch: |
+    diff --git a/packages/remeda/src/index.ts b/packages/remeda/src/index.ts
+    index ed5b86a..cf9ee2d 100644
+    --- a/packages/remeda/src/index.ts
+    +++ b/packages/remeda/src/index.ts
+    @@ -130,7 +130,6 @@ export * from "./sortedLastIndex";
+     export * from "./sortedLastIndexBy";
+     export * from "./splice";
+     export * from "./split";
+    -export * from "./splitAt";
+     export * from "./splitWhen";
+     export * from "./startsWith";
+     export * from "./stringToPath";
+    diff --git a/packages/remeda/src/splitAt.test.ts b/packages/remeda/src/splitAt.test.ts
+    deleted file mode 100644
+    index 70e1acd..0000000
+    --- a/packages/remeda/src/splitAt.test.ts
+    +++ /dev/null
+    @@ -1,84 +0,0 @@
+    -import { describe, expect, test } from "vitest";
+    -import { pipe } from "./pipe";
+    -import { splitAt } from "./splitAt";
+    -
+    -describe("data_first", () => {
+    -  test("split", () => {
+    -    expect(splitAt([1, 2, 3] as const, 1)).toStrictEqual([[1], [2, 3]]);
+    -  });
+    -
+    -  test("split at -1", () => {
+    -    expect(splitAt([1, 2, 3, 4, 5] as const, -1)).toStrictEqual([
+    -      [1, 2, 3, 4],
+    -      [5],
+    -    ]);
+    -  });
+    -
+    -  test("empty array", () => {
+    -    expect(splitAt([], 1)).toStrictEqual([[], []]);
+    -  });
+    -
+    -  test("single item", () => {
+    -    expect(splitAt([1], 1)).toStrictEqual([[1], []]);
+    -  });
+    -
+    -  test("index 0", () => {
+    -    expect(splitAt([1, 2, 3], 0)).toStrictEqual([[], [1, 2, 3]]);
+    -  });
+    -
+    -  test("index -0", () => {
+    -    expect(splitAt([1, 2, 3], -0)).toStrictEqual([[], [1, 2, 3]]);
+    -  });
+    -
+    -  test("fractional index truncates", () => {
+    -    expect(splitAt([1, 2, 3], 1.5)).toStrictEqual([[1], [2, 3]]);
+    -  });
+    -
+    -  test("negative fractional index counts from the end before truncating", () => {
+    -    expect(splitAt([1, 2, 3, 4, 5], -1.5)).toStrictEqual([
+    -      [1, 2, 3],
+    -      [4, 5],
+    -    ]);
+    -  });
+    -
+    -  test("index NaN", () => {
+    -    expect(splitAt([1, 2, 3], NaN)).toStrictEqual([[], [1, 2, 3]]);
+    -  });
+    -
+    -  test("index at the length", () => {
+    -    expect(splitAt([1, 2, 3], 3)).toStrictEqual([[1, 2, 3], []]);
+    -  });
+    -
+    -  test("index past the length is clamped", () => {
+    -    expect(splitAt([1, 2, 3], 5)).toStrictEqual([[1, 2, 3], []]);
+    -  });
+    -
+    -  test("negative index past the length is clamped", () => {
+    -    expect(splitAt([1, 2, 3], -5)).toStrictEqual([[], [1, 2, 3]]);
+    -  });
+    -
+    -  test("index Infinity", () => {
+    -    expect(splitAt([1, 2, 3], Infinity)).toStrictEqual([[1, 2, 3], []]);
+    -  });
+    -
+    -  test("index -Infinity", () => {
+    -    expect(splitAt([1, 2, 3], -Infinity)).toStrictEqual([[], [1, 2, 3]]);
+    -  });
+    -});
+    -
+    -describe("data_last", () => {
+    -  test("split", () => {
+    -    expect(splitAt(1)([1, 2, 3] as const)).toStrictEqual([[1], [2, 3]]);
+    -  });
+    -
+    -  test("split at -1", () => {
+    -    expect(splitAt(-1)([1, 2, 3, 4, 5] as const)).toStrictEqual([
+    -      [1, 2, 3, 4],
+    -      [5],
+    -    ]);
+    -  });
+    -
+    -  test("empty array", () => {
+    -    expect(pipe([], splitAt(1))).toStrictEqual([[], []]);
+    -  });
+    -});
+    diff --git a/packages/remeda/src/splitAt.ts b/packages/remeda/src/splitAt.ts
+    deleted file mode 100644
+    index 2508555..0000000
+    --- a/packages/remeda/src/splitAt.ts
+    +++ /dev/null
+    @@ -1,48 +0,0 @@
+    -import { purry2 } from "./internal/purryByArity";
+    -
+    -/**
+    - * Splits a given array at a given index.
+    - *
+    - * @param data - The array to split.
+    - * @param index - The index to split at.
+    - * @signature
+    - *    splitAt(data, index)
+    - * @example
+    - *    splitAt([1, 2, 3], 1) // => [[1], [2, 3]]
+    - *    splitAt([1, 2, 3, 4, 5], -1) // => [[1, 2, 3, 4], [5]]
+    - * @dataFirst
+    - * @category Array
+    - */
+    -export function splitAt<T>(data: readonly T[], index: number): [T[], T[]];
+    -
+    -/**
+    - * Splits a given array at a given index.
+    - *
+    - * @param index - The index to split at.
+    - * @signature
+    - *    splitAt(index)(data)
+    - * @example
+    - *    splitAt(1)([1, 2, 3]) // => [[1], [2, 3]]
+    - *    splitAt(-1)([1, 2, 3, 4, 5]) // => [[1, 2, 3, 4], [5]]
+    - * @dataLast
+    - * @category Array
+    - */
+    -export function splitAt<T>(index: number): (data: readonly T[]) => [T[], T[]];
+    -
+    -export function splitAt(
+    -  dataOrIndex: readonly unknown[] | number,
+    -  index?: number,
+    -): unknown {
+    -  return purry2(splitAtImplementation, arguments.length, dataOrIndex, index);
+    -}
+    -
+    -function splitAtImplementation<T>(
+    -  data: readonly T[],
+    -  index: number,
+    -): [T[], T[]] {
+    -  const effectiveIndex = Math.max(
+    -    Math.min(index < 0 ? data.length + index : index, data.length),
+    -    0,
+    -  );
+    -  return [data.slice(0, effectiveIndex), data.slice(effectiveIndex)];
+    -}
+solution:
+  patch: |
+    diff --git b/packages/remeda/src/index.ts a/packages/remeda/src/index.ts
+    index cf9ee2d..ed5b86a 100644
+    --- b/packages/remeda/src/index.ts
+    +++ a/packages/remeda/src/index.ts
+    @@ -130,6 +130,7 @@ export * from "./sortedLastIndex";
+     export * from "./sortedLastIndexBy";
+     export * from "./splice";
+     export * from "./split";
+    +export * from "./splitAt";
+     export * from "./splitWhen";
+     export * from "./startsWith";
+     export * from "./stringToPath";
+    diff --git b/packages/remeda/src/splitAt.test.ts a/packages/remeda/src/splitAt.test.ts
+    new file mode 100644
+    index 0000000..70e1acd
+    --- /dev/null
+    +++ a/packages/remeda/src/splitAt.test.ts
+    @@ -0,0 +1,84 @@
+    +import { describe, expect, test } from "vitest";
+    +import { pipe } from "./pipe";
+    +import { splitAt } from "./splitAt";
+    +
+    +describe("data_first", () => {
+    +  test("split", () => {
+    +    expect(splitAt([1, 2, 3] as const, 1)).toStrictEqual([[1], [2, 3]]);
+    +  });
+    +
+    +  test("split at -1", () => {
+    +    expect(splitAt([1, 2, 3, 4, 5] as const, -1)).toStrictEqual([
+    +      [1, 2, 3, 4],
+    +      [5],
+    +    ]);
+    +  });
+    +
+    +  test("empty array", () => {
+    +    expect(splitAt([], 1)).toStrictEqual([[], []]);
+    +  });
+    +
+    +  test("single item", () => {
+    +    expect(splitAt([1], 1)).toStrictEqual([[1], []]);
+    +  });
+    +
+    +  test("index 0", () => {
+    +    expect(splitAt([1, 2, 3], 0)).toStrictEqual([[], [1, 2, 3]]);
+    +  });
+    +
+    +  test("index -0", () => {
+    +    expect(splitAt([1, 2, 3], -0)).toStrictEqual([[], [1, 2, 3]]);
+    +  });
+    +
+    +  test("fractional index truncates", () => {
+    +    expect(splitAt([1, 2, 3], 1.5)).toStrictEqual([[1], [2, 3]]);
+    +  });
+    +
+    +  test("negative fractional index counts from the end before truncating", () => {
+    +    expect(splitAt([1, 2, 3, 4, 5], -1.5)).toStrictEqual([
+    +      [1, 2, 3],
+    +      [4, 5],
+    +    ]);
+    +  });
+    +
+    +  test("index NaN", () => {
+    +    expect(splitAt([1, 2, 3], NaN)).toStrictEqual([[], [1, 2, 3]]);
+    +  });
+    +
+    +  test("index at the length", () => {
+    +    expect(splitAt([1, 2, 3], 3)).toStrictEqual([[1, 2, 3], []]);
+    +  });
+    +
+    +  test("index past the length is clamped", () => {
+    +    expect(splitAt([1, 2, 3], 5)).toStrictEqual([[1, 2, 3], []]);
+    +  });
+    +
+    +  test("negative index past the length is clamped", () => {
+    +    expect(splitAt([1, 2, 3], -5)).toStrictEqual([[], [1, 2, 3]]);
+    +  });
+    +
+    +  test("index Infinity", () => {
+    +    expect(splitAt([1, 2, 3], Infinity)).toStrictEqual([[1, 2, 3], []]);
+    +  });
+    +
+    +  test("index -Infinity", () => {
+    +    expect(splitAt([1, 2, 3], -Infinity)).toStrictEqual([[], [1, 2, 3]]);
+    +  });
+    +});
+    +
+    +describe("data_last", () => {
+    +  test("split", () => {
+    +    expect(splitAt(1)([1, 2, 3] as const)).toStrictEqual([[1], [2, 3]]);
+    +  });
+    +
+    +  test("split at -1", () => {
+    +    expect(splitAt(-1)([1, 2, 3, 4, 5] as const)).toStrictEqual([
+    +      [1, 2, 3, 4],
+    +      [5],
+    +    ]);
+    +  });
+    +
+    +  test("empty array", () => {
+    +    expect(pipe([], splitAt(1))).toStrictEqual([[], []]);
+    +  });
+    +});
+    diff --git b/packages/remeda/src/splitAt.ts a/packages/remeda/src/splitAt.ts
+    new file mode 100644
+    index 0000000..2508555
+    --- /dev/null
+    +++ a/packages/remeda/src/splitAt.ts
+    @@ -0,0 +1,48 @@
+    +import { purry2 } from "./internal/purryByArity";
+    +
+    +/**
+    + * Splits a given array at a given index.
+    + *
+    + * @param data - The array to split.
+    + * @param index - The index to split at.
+    + * @signature
+    + *    splitAt(data, index)
+    + * @example
+    + *    splitAt([1, 2, 3], 1) // => [[1], [2, 3]]
+    + *    splitAt([1, 2, 3, 4, 5], -1) // => [[1, 2, 3, 4], [5]]
+    + * @dataFirst
+    + * @category Array
+    + */
+    +export function splitAt<T>(data: readonly T[], index: number): [T[], T[]];
+    +
+    +/**
+    + * Splits a given array at a given index.
+    + *
+    + * @param index - The index to split at.
+    + * @signature
+    + *    splitAt(index)(data)
+    + * @example
+    + *    splitAt(1)([1, 2, 3]) // => [[1], [2, 3]]
+    + *    splitAt(-1)([1, 2, 3, 4, 5]) // => [[1, 2, 3, 4], [5]]
+    + * @dataLast
+    + * @category Array
+    + */
+    +export function splitAt<T>(index: number): (data: readonly T[]) => [T[], T[]];
+    +
+    +export function splitAt(
+    +  dataOrIndex: readonly unknown[] | number,
+    +  index?: number,
+    +): unknown {
+    +  return purry2(splitAtImplementation, arguments.length, dataOrIndex, index);
+    +}
+    +
+    +function splitAtImplementation<T>(
+    +  data: readonly T[],
+    +  index: number,
+    +): [T[], T[]] {
+    +  const effectiveIndex = Math.max(
+    +    Math.min(index < 0 ? data.length + index : index, data.length),
+    +    0,
+    +  );
+    +  return [data.slice(0, effectiveIndex), data.slice(effectiveIndex)];
+    +}
+check:
+  files:
+    packages/remeda/test/bench-loader.mjs: |
+      // Resolve remeda's extensionless relative imports to .ts files, and `vitest`
+      // to a small stand-in, so Node 24 runs the tests without npm install.
+      import { registerHooks } from "node:module";
+
+      const shim = new URL("./vitest-shim.mjs", import.meta.url).href;
+      registerHooks({
+        resolve(specifier, context, nextResolve) {
+          if (specifier === "vitest") return { url: shim, shortCircuit: true };
+          try {
+            return nextResolve(specifier, context);
+          } catch (error) {
+            if (!specifier.startsWith(".")) throw error;
+            try {
+              return nextResolve(`${specifier}.ts`, context);
+            } catch {
+              return nextResolve(`${specifier}/index.ts`, context);
+            }
+          }
+        },
+      });
+    packages/remeda/test/vitest-shim.mjs: |
+      // The part of vitest's API remeda's simple tests use, on node:test.
+      import assert from "node:assert/strict";
+      import { describe as nodeDescribe, test as nodeTest } from "node:test";
+
+      export const describe = (name, fn) => nodeDescribe(name, fn);
+      export const test = (name, fn) => nodeTest(name, fn);
+      export const it = test;
+
+      const deep = (a, b, strict) => {
+        try {
+          (strict ? assert.deepStrictEqual : assert.deepEqual)(a, b);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      function matchers(actual, negate) {
+        const check = (ok, what) => {
+          if (negate ? ok : !ok) {
+            throw new assert.AssertionError({ message: `expected ${negate ? "not " : ""}${what}`, actual });
+          }
+        };
+        const throws = (expected) => {
+          let threw = false;
+          let error;
+          try {
+            actual();
+          } catch (e) {
+            threw = true;
+            error = e;
+          }
+          const ok =
+            threw &&
+            (expected === undefined ||
+              (typeof expected === "string" && String(error?.message).includes(expected)) ||
+              (expected instanceof RegExp && expected.test(String(error?.message))) ||
+              (typeof expected === "function" && error instanceof expected) ||
+              (typeof expected === "object" && expected !== null && !(expected instanceof RegExp) && String(error?.message) === String(expected.message)));
+          check(ok, "to throw");
+        };
+        return {
+          toBe: (e) => check(Object.is(actual, e), `${String(actual)} to be ${String(e)}`),
+          toStrictEqual: (e) => check(deep(actual, e, true), "strict equality"),
+          toEqual: (e) => check(deep(actual, e, false), "equality"),
+          toHaveLength: (n) => check(actual?.length === n, `length ${n}`),
+          toBeUndefined: () => check(actual === undefined, "undefined"),
+          toBeNull: () => check(actual === null, "null"),
+          toBeTruthy: () => check(Boolean(actual), "truthy"),
+          toBeFalsy: () => check(!actual, "falsy"),
+          toBeNaN: () => check(Number.isNaN(actual), "NaN"),
+          toBeLessThan: (n) => check(actual < n, `< ${n}`),
+          toBeLessThanOrEqual: (n) => check(actual <= n, `<= ${n}`),
+          toBeGreaterThan: (n) => check(actual > n, `> ${n}`),
+          toBeGreaterThanOrEqual: (n) => check(actual >= n, `>= ${n}`),
+          toContain: (x) => check(actual.includes(x), "to contain"),
+          toBeTypeOf: (t) => check(typeof actual === t, `type ${t}`),
+          toThrow: throws,
+          toThrowError: throws,
+        };
+      }
+
+      export function expect(actual) {
+        const m = matchers(actual, false);
+        m.not = matchers(actual, true);
+        return m;
+      }
+    packages/remeda/src/bench-check.test.ts: |
+      import { describe, expect, test } from "vitest";
+      import { pipe } from "./pipe";
+      import { splitAt } from "./splitAt";
+
+      describe("data_first", () => {
+        test("split", () => {
+          expect(splitAt([1, 2, 3] as const, 1)).toStrictEqual([[1], [2, 3]]);
+        });
+
+        test("split at -1", () => {
+          expect(splitAt([1, 2, 3, 4, 5] as const, -1)).toStrictEqual([
+            [1, 2, 3, 4],
+            [5],
+          ]);
+        });
+
+        test("empty array", () => {
+          expect(splitAt([], 1)).toStrictEqual([[], []]);
+        });
+
+        test("single item", () => {
+          expect(splitAt([1], 1)).toStrictEqual([[1], []]);
+        });
+
+        test("index 0", () => {
+          expect(splitAt([1, 2, 3], 0)).toStrictEqual([[], [1, 2, 3]]);
+        });
+
+        test("index -0", () => {
+          expect(splitAt([1, 2, 3], -0)).toStrictEqual([[], [1, 2, 3]]);
+        });
+
+        test("fractional index truncates", () => {
+          expect(splitAt([1, 2, 3], 1.5)).toStrictEqual([[1], [2, 3]]);
+        });
+
+        test("negative fractional index counts from the end before truncating", () => {
+          expect(splitAt([1, 2, 3, 4, 5], -1.5)).toStrictEqual([
+            [1, 2, 3],
+            [4, 5],
+          ]);
+        });
+
+        test("index NaN", () => {
+          expect(splitAt([1, 2, 3], NaN)).toStrictEqual([[], [1, 2, 3]]);
+        });
+
+        test("index at the length", () => {
+          expect(splitAt([1, 2, 3], 3)).toStrictEqual([[1, 2, 3], []]);
+        });
+
+        test("index past the length is clamped", () => {
+          expect(splitAt([1, 2, 3], 5)).toStrictEqual([[1, 2, 3], []]);
+        });
+
+        test("negative index past the length is clamped", () => {
+          expect(splitAt([1, 2, 3], -5)).toStrictEqual([[], [1, 2, 3]]);
+        });
+
+        test("index Infinity", () => {
+          expect(splitAt([1, 2, 3], Infinity)).toStrictEqual([[1, 2, 3], []]);
+        });
+
+        test("index -Infinity", () => {
+          expect(splitAt([1, 2, 3], -Infinity)).toStrictEqual([[], [1, 2, 3]]);
+        });
+      });
+
+      describe("data_last", () => {
+        test("split", () => {
+          expect(splitAt(1)([1, 2, 3] as const)).toStrictEqual([[1], [2, 3]]);
+        });
+
+        test("split at -1", () => {
+          expect(splitAt(-1)([1, 2, 3, 4, 5] as const)).toStrictEqual([
+            [1, 2, 3, 4],
+            [5],
+          ]);
+        });
+
+        test("empty array", () => {
+          expect(pipe([], splitAt(1))).toStrictEqual([[], []]);
+        });
+      });
+  run: cd packages/remeda && node --no-warnings --import ./test/bench-loader.mjs --test src/bench-check.test.ts
+touches:
+  - packages/remeda/src/splitAt.ts
+  - packages/remeda/src/index.ts
