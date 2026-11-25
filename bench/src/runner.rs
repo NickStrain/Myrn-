@@ -34,10 +34,12 @@ pub enum Condition {
     /// Injection on, plus a one-line instruction (as a user would put in
     /// CLAUDE.md) to use myrn's context instead of re-reading files.
     Hint,
+    /// As `Hint`, with the first wording (Stages 7-8), to compare wordings in
+    /// one interleaved run.
+    HintV1,
 }
 
-/// The first hint wording (Stages 7-8), kept for comparisons via MYRN_BENCH_HINT.
-#[allow(dead_code)]
+/// The first hint wording (Stages 7-8): the `hint-v1` condition.
 pub const HINT_V1: &str = "This repository uses myrn. When a prompt has a \"Myrn context\" block, \
 its code is the files' current content: use it instead of opening those files again. When you \
 must open a file (to edit it, or for something not shown), read only the line range you need \
@@ -51,6 +53,7 @@ impl Condition {
             Condition::With => "with",
             Condition::Fixed => "fixed",
             Condition::Hint => "hint",
+            Condition::HintV1 => "hint-v1",
         }
     }
     /// Column heading in the report.
@@ -61,6 +64,7 @@ impl Condition {
             Condition::With => "myrn, inject on",
             Condition::Fixed => "myrn, inject on, fixed ranking",
             Condition::Hint => "myrn, inject on, + use-context hint",
+            Condition::HintV1 => "myrn, inject on, + first use-context hint",
         }
     }
     pub fn uses_myrn(self) -> bool {
@@ -73,6 +77,7 @@ impl Condition {
             "with" => Ok(Condition::With),
             "fixed" => Ok(Condition::Fixed),
             "hint" => Ok(Condition::Hint),
+            "hint-v1" => Ok(Condition::HintV1),
             _ => bail!("unknown condition {s}; use without, off, with, fixed or hint"),
         }
     }
@@ -386,7 +391,7 @@ fn run_inner(
     let mcp_config = paths.work.join("mcp.json");
     let mcp = match spec.condition {
         Condition::Without => serde_json::json!({ "mcpServers": {} }),
-        Condition::Off | Condition::With | Condition::Fixed | Condition::Hint => {
+        Condition::Off | Condition::With | Condition::Fixed | Condition::Hint | Condition::HintV1 => {
             let map = tools.maps.get(&spec.repo.name).map(PathBuf::as_path);
             setup_myrn(
                 &tools.myrn,
@@ -428,6 +433,9 @@ fn run_inner(
         .arg(&mcp_config);
     if let Some(m) = &tools.model {
         cmd.args(["--model", m]);
+    }
+    if spec.condition == Condition::HintV1 {
+        cmd.args(["--append-system-prompt", &HINT_V1.split_whitespace().collect::<Vec<_>>().join(" ")]);
     }
     if spec.condition == Condition::Hint {
         // The shipped hint is myrn's own (written to CLAUDE.md by `connect`,
@@ -725,12 +733,15 @@ fn export_records(
 }
 
 /// What myrn injected in this run, and whether the agent then opened it.
-fn collect_injections(work: &Path, home: &Path, rec: &mut RunRecord) -> Result<()> {
-    let engine = myrn_engine::api::Engine::open(work, Some(home))?;
-    let mut stmt = engine
-        .db()
-        .conn
-        .prepare("SELECT DISTINCT note_id FROM usage WHERE injected = 1 AND session_id = ?1")?;
+fn collect_injections(_work: &Path, home: &Path, rec: &mut RunRecord) -> Result<()> {
+    // Read the database as it is: opening it through myrn's engine would
+    // upgrade its schema, which an older myrn under test then refuses to read.
+    let conn = rusqlite::Connection::open_with_flags(
+        myrn_db(home)?,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )?;
+    let mut stmt =
+        conn.prepare("SELECT DISTINCT note_id FROM usage WHERE injected = 1 AND session_id = ?1")?;
     let session = rec.session.session_id.clone().unwrap_or_default();
     rec.injected = stmt
         .query_map([&session], |r| r.get::<_, String>(0))?
@@ -744,7 +755,7 @@ fn collect_injections(work: &Path, home: &Path, rec: &mut RunRecord) -> Result<(
                 || item_name(id).is_some_and(|n| n.len() >= 4 && answer.contains(&n.to_lowercase()))
         })
         .count();
-    let (records, stale): (i64, i64) = engine.db().conn.query_row(
+    let (records, stale): (i64, i64) = conn.query_row(
         "SELECT COUNT(DISTINCT u.note_id), COUNT(DISTINCT CASE WHEN u.status = 'suspect' THEN u.note_id END)
          FROM usage u JOIN nodes n ON n.id = u.note_id
          WHERE u.injected = 1 AND n.origin = 'earned' AND u.session_id = ?1",
@@ -753,8 +764,9 @@ fn collect_injections(work: &Path, home: &Path, rec: &mut RunRecord) -> Result<(
     )?;
     rec.injected_records = records as usize;
     rec.injected_stale = stale as usize;
-    rec.hook_ms = engine
-        .state()?
+    let db = myrn_db(home)?;
+    let state = myrn_store::State::load(&db.with_file_name("state.json"))?;
+    rec.hook_ms = state
         .hook_timings
         .iter()
         .filter(|t| t.event == "UserPromptSubmit" && t.time >= rec.started)

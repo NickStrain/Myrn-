@@ -174,6 +174,11 @@ pub struct ContextConfig {
     pub max_items: usize,
     /// Include a top hit's source when its body has at most this many lines.
     pub code_lines: usize,
+    /// For a request to add a function that does not exist yet, list the
+    /// files past commits adding code to the same place changed together.
+    /// Off by default: on the benchmark agents then updated every listed file
+    /// (+34% billed cost on feature tasks) for checks that test only the code.
+    pub addition_checklist: bool,
 }
 
 impl Default for ContextConfig {
@@ -184,6 +189,7 @@ impl Default for ContextConfig {
             prompt_budget: 1500,
             max_items: 5,
             code_lines: 40,
+            addition_checklist: false,
         }
     }
 }

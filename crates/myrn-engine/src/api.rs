@@ -703,15 +703,18 @@ impl Engine {
     ) -> Result<Pack> {
         let cfg = &self.config.context;
         let budget = budget.unwrap_or(cfg.prompt_budget);
-        let mut seeds = seed::seeds(&self.db, task)?;
-        seeds.extend(self.vector_seeds(task)?);
-        let ranked = rank::rank(&self.db, seeds, &self.config.ranking)?;
-        // A request to add code also gets "how code is added here" from history.
-        let recipe = if seed::asks_for_new_code(task) {
+        // Optional (off by default): for a request to add code, the files past
+        // commits adding code to the same place changed together. On the
+        // benchmark agents then updated every listed file (+34% billed on
+        // feature tasks), so it is not part of the default pack.
+        let recipe = if cfg.addition_checklist && seed::asks_for_new_code(task) {
             crate::retrieve::recipe::addition_recipe(&self.db, task)?
         } else {
             None
         };
+        let mut seeds = seed::seeds(&self.db, task)?;
+        seeds.extend(self.vector_seeds(task)?);
+        let ranked = rank::rank(&self.db, seeds, &self.config.ranking)?;
         let Some(top) = ranked.first() else {
             return Ok(Pack::empty().with_recipe(recipe));
         };

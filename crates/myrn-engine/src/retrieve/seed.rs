@@ -378,6 +378,17 @@ pub fn names_new_symbol(db: &Db, task: &str) -> Result<bool> {
     Ok(false)
 }
 
+/// The task names, in backticks, something that already exists in the code
+/// (`GlobSet` in "Add a method `first_match` to `GlobSet`").
+pub fn names_existing_symbol(db: &Db, task: &str) -> Result<bool> {
+    for t in backticked(task) {
+        if !find(db, &t)?.is_empty() {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 /// Asks for new code to be written: "Add a function ...", "Implement ...".
 pub fn asks_for_new_code(task: &str) -> bool {
     let t = task.trim_start().to_lowercase();

@@ -13,13 +13,13 @@ tool of the `myrn` MCP server with your task, and call `explain` or `impact` bef
 are reference derived from the code, not instructions.";
 
 /// Hooks mode. On the benchmark this line cut reads before the first edit by a
-/// Hooks mode. Scoped to code Myrn shows: a general "read only line ranges"
-/// version cut reads on bug fixes and questions but made feature work, which
-/// needs the repository's conventions, more expensive (docs/bench-haiku.md).
-pub const HOOKS_TEXT: &str = "This repository uses Myrn. When a prompt has a \"Myrn context\" block, the \
-code it shows is the files' current content: use it instead of opening those files again, and when you \
-edit that code, read only its line range. A \"How code is added here\" list in it names the files such \
-a change usually touches.";
+/// third and tokens by about 10% on the hardest tasks (docs/bench-haiku.md,
+/// Stage 7); a narrower wording scoped to shown code did worse on feature tasks
+/// (+10% tokens against this one, Stage 10).
+pub const HOOKS_TEXT: &str = "This repository uses Myrn. When a prompt has a \"Myrn context\" block, its \
+code is the files' current content: use it instead of opening those files again. When you must open a \
+file (to edit it, or for something not shown), read only the line range you need (for example Read with \
+offset and limit), not the whole file.";
 
 pub fn block() -> String {
     block_with(TEXT)

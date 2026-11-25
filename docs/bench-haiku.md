@@ -615,8 +615,83 @@ the checklist. The general "read only the line range you need" is gone. The
 benchmark's `hint` condition now uses myrn's own text (`MYRN_BENCH_HINT`
 overrides it).
 
+## Stage 9: feature tasks, run 1 (2026-11-25)
+
+16 feature tasks × 1 run: without myrn, Stage 8 myrn (binary from `8482b69`, its
+first hint), and new myrn (checklist + scoped hint). Runs `cheap-s9-old`,
+`cheap-s9-new`; 48 sessions, $0.53 including a broken first attempt (the bench
+upgraded each session's database, which the older binary then refused to read;
+fixed: the bench now reads session data read-only).
+
+| 16 feature tasks | Tokens | Billed cost | Turns | Cheaper in | Passed |
+|---|---|---|---|---|---|
+| Without myrn | – | $0.154 | 12.2 | – | 14/16 |
+| Stage 8 myrn | +10% | +9% | 13.8 | 8/16 | 14/16 |
+| New myrn (checklist + scoped hint) | **+25%** | **+34%** | 14.7 | 4/16 | 14/16 |
+
+All three failed the same two tasks (`gen-split-at`, `gen-take-last`): their
+tests check fractional counts, a remeda convention the prompt does not mention.
+
+**The checklist widens the job.** Files edited per session: without 2.1,
+Stage 8 2.5, new 3.6. It reads as a to-do list: agents update the stub, docs,
+README and extra tests the way the project's own commits do. More complete
+work, but the hidden checks only test the function, so it shows as cost.
+Not continued to runs 2–3.
+
+## Stage 9b: selective injection, run 1 (2026-11-25)
+
+New-function requests got no context at all (`cheap-s9-sel`, 16 sessions,
+$0.23): +58% tokens against run 1's without-myrn sessions. Not trusted: those
+sessions ran hours after the without-myrn ones (not interleaved), the hint
+wording differed, and on ripgrep, whose packs were unchanged, it was +50% where
+Stage 8 had +0%. Single feature sessions also swing 2-3× by chance (one agent
+stumbled on remeda's own agent guide in `.agents/skills`, which prescribes extra
+tests, and doubled its session). Selective injection was dropped; myrn's
+injection was restored exactly to Stage 8 (16/16 identical packs).
+
+## Stage 10: hint wording on feature tasks, interleaved (2026-11-25)
+
+All 16 feature tasks × 2 runs × 3 conditions run back to back per task: without
+myrn, myrn with the Stage 8 hint (`hint-v1`), myrn with the narrower hint
+(`hint`: "use the code Myrn shows; when you edit that code, read only its line
+range"). Same binary, Stage 8 injection. Run `cheap-s10`, 96 sessions, $1.20.
+
+| 32 pairs | Tokens | Billed cost | Turns | Files edited | Cheaper in | Passed |
+|---|---|---|---|---|---|---|
+| Without myrn | – | – | 15.0 | 3.2 | – | 27/32 |
+| **myrn, Stage 8 hint** | **−17%** (−66k ± 50k) | **−13%** | 13.8 | 3.1 | **22/32** (p = 0.05) | **28/32** |
+| myrn, narrower hint | +19% | +17% | 15.4 | 3.2 | 12/32 | 28/32 |
+| narrower vs Stage 8 hint | +43% | +33% | | | 8/32 (p = 0.01) | |
+
+Every condition fails the same two tasks some of the time (`gen-split-at`,
+`gen-take-last`: their tests check fractional counts the prompt never mentions).
+
+| Task | Stage 8 hint, run 1 / 2 | Narrower hint, run 1 / 2 |
+|---|---|---|
+| `ripgrep/feature/glob-is-literal` | −45% / −43% | −40% / −33% |
+| `ripgrep/feature/globset-first-match` | −38% / −24% | −58% / −20% |
+| `remeda/feature/gen-sorted-index` | −53% / −69% | −63% / −59% |
+| `remeda/feature/gen-only` | −44% / −47% | −66% / +40% |
+| `remeda/feature/take-every` | −26% / −26% | +32% / +321% |
+| `more-itertools/feature/gen-takewhile-inclusive` | +100% / +42% | +58% / +3% |
+| `more-itertools/feature/gen-outer-product` | +25% / +98% | −31% / +7% |
+
+Findings:
+- **With conditions interleaved, myrn saves on feature work too**: −17% tokens,
+  −13% cost, the interval below zero, one more task passed, the same number of
+  files edited. The earlier "+10% on features" (Stages 1-8, 4 hand-written
+  feature tasks) was largely noise; Stage 9 compared sessions run hours apart.
+- **The Stage 8 hint stays.** The narrower wording costs a third more
+  (p = 0.01); reverted. remeda and ripgrep features gain most; more-itertools
+  features still often lose.
+- Lesson: compare only interleaved conditions, and expect single feature
+  sessions to vary 2-3×.
+
 ## Next
 
+- Feature tasks: test injecting nothing for requests that add new code
+  (selective retrieval), with the scoped hint; keep the checklist out or make it
+  name only the registration point (`index.ts`, `__all__`).
 - Haiku run on the 16 feature tasks: without myrn, Stage 8 myrn, and the
   checklist + scoped hint; compare tokens, billed cost, turns and success.
 - Features: test a narrower hint and stricter new-function rule.
