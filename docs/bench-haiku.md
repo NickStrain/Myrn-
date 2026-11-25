@@ -514,8 +514,66 @@ Findings:
   helper process (8 at once); bulk indexing now loads the model once in-process,
   a listening helper is never duplicated, and batches are sorted by length.
 
+## Stage 8: full series, myrn as shipped (2026-11-24)
+
+All 16 tasks × 3 runs, without myrn vs myrn with everything above: Arctic Embed
+embeddings, the use-context hint (in the system prompt: the benchmark does not
+load CLAUDE.md), MCP on, question code, edit ranges, the stub fix and the
+new-function rule. Run: `bench/runs/cheap-s8`, 96 sessions, $0.58.
+
+**Verdict: the best result so far, not yet conclusive overall.** Tokens −10%
+(−18.1k ± 23.6k per pair), cheaper in 31 of 48 pairs. Every myrn session passed
+(48/48; without myrn 47/48).
+
+| 48 pairs | Stage 8 | Stage 6, same pairs | Stages 1–3, same pairs |
+|---|---|---|---|
+| **All** | **−10%** (31/48) | −1% (25/48) | −4% (25/48) |
+| Questions | **−35%** (13/18), −30.2k ± 21.6k | −26% (10/18) | −41% (14/18) |
+| Bug fixes | **−19%** (14/18), −39.4k ± 26.1k | +1% (9/18) | +1% (5/18) |
+| Features | +10% (4/12) | +6% (6/12) | +7% (6/12) |
+| more-itertools | +15% | +11% | +9% |
+| remeda | **−15%** | +2% | −18% |
+| ripgrep | **−16%** | −7% | −2% |
+
+Reads and searches before the first correct edit 4.1 → 3.4; turns 8.4 → 7.7;
+success 98% → 100%.
+
+| Task | Stage 8 | Stage 6 | Stages 1–3 |
+|---|---|---|---|
+| `more-itertools/bugfix/collapse-levels` | +5% | +3% | +16% |
+| `more-itertools/bugfix/unique-everseen-key` | −12% | +27% | +50% |
+| `more-itertools/feature/take-every` | +46% | +20% | +18% |
+| `more-itertools/question/unhashable-everseen` | −64% | −53% | −64% |
+| `more-itertools/question/windowed-step` | −41% | +21% | −50% |
+| `remeda/bugfix/chunk-drops-remainder` | +11% | −21% | −16% |
+| `remeda/bugfix/clamp-zero-limit` | −26% | −30% | −21% |
+| `remeda/feature/take-every` | +8% | +65% | +10% |
+| `remeda/question/lazy-pipe` | −84% | −62% | −65% |
+| `remeda/question/purry` | −31% | −30% | −46% |
+| `ripgrep/bugfix/gitignore-negation-order` | −18% | +37% | +8% |
+| `ripgrep/bugfix/glob-multi-dot-extension` | −38% | −23% | −6% |
+| `ripgrep/feature/glob-is-literal` | −10% | −24% | +13% |
+| `ripgrep/feature/globset-first-match` | −9% | −28% | −19% |
+| `ripgrep/question/binary-detection` | +7% | +2% | −26% |
+| `ripgrep/question/gitignore-matcher` | +11% | +10% | +15% |
+
+Findings:
+- **Bug fixes are a real saving for the first time** (−19%, interval below zero;
+  every earlier version was about break-even). `gitignore-negation-order` went
+  from +37% to −18%.
+- **Questions** save about a third (interval below zero).
+- **Features still lose** (+10%), almost all from `more-itertools/feature/take-every`
+  (+46%): the embeddings lift its pointers above the new-function bar, and with
+  the hint the agent does more checking (type checks, stub edits). In Stage 7 the
+  hint also hurt `remeda/feature/take-every`. Candidates: hint wording that
+  applies only to code shown in myrn's context, or no pointers for new functions
+  whatever their score.
+- `binary-detection` and `gitignore-matcher` (+7%, +11%) remain small losses:
+  short questions where myrn's fixed overhead outweighs its help.
+
 ## Next
 
+- Features: test a narrower hint and stricter new-function rule.
 - Shrink the SessionStart project map (the real per-call overhead), then check on
   short questions.
 - Trim injection for small questions where the answer is cheap to find (the
