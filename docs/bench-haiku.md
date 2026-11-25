@@ -19,12 +19,15 @@ targeted context) against no myrn, on Claude Haiku:
 |---|---|---|---|---|---|---|
 | Questions | 18 | **−35%** | −26% | 13/18 | 18 → 18 | Stage 8 |
 | Bug fixes | 18 | **−19%** | −19% | 14/18 | 17 → 18 | Stage 8 |
-| Features | 32 | **−17%** | −13% | 22/32 | 27 → 28 | Stage 10 |
+| Features | 44 | **−10%** | −8% | 26/44 | 39 → 40 | Stages 8 + 10 pooled |
 | All 16 original tasks | 48 | −10% | −11% | 31/48 | 47 → 48 | Stage 8 |
 
-Question and bug-fix savings are clearly real (95% interval below zero); the
-feature saving is too (−66k ± 50k tokens per pair); the overall Stage 8 figure
-just touches zero. myrn never passed fewer tasks than no myrn.
+Question and bug-fix savings are clearly real (95% interval below zero). For
+features the same myrn measured +10% in Stage 8 (4 tasks, 12 pairs) and −17% in
+Stage 10 (16 tasks, 32 pairs; the same 4 tasks alone −31%), so single feature
+sessions are very noisy; pooled, −10% (−39k ± 43k per pair, sign test p = 0.29):
+likely a saving, not yet proven. The overall Stage 8 figure just touches zero.
+myrn never passed fewer tasks than no myrn.
 
 ## Every benchmark run
 
